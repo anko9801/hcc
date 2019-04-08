@@ -1,7 +1,9 @@
-ucc: ucc.c
+hcc: hcc.c
+	gcc -o hcc hcc.c -g
 
-test: ucc
+test: hcc
+	./hcc -test
 	./test.sh
 
 clean:
-	rm -f ucc *.o *~ tmp*
+	rm -f hcc *.o *~ tmp*
