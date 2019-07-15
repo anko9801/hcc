@@ -99,10 +99,8 @@ int number(char **p) {
 	return atoi(num);
 }
 
-// $B%H!<%/%J%$%:(B
+// トークンに切り分ける
 void tokenize(char *p) {
-	tokens = new_vector();
-
 	int i = 0;
 	while (*p) {
 		if (isspace(*p)) {
@@ -110,7 +108,7 @@ void tokenize(char *p) {
 			continue;
 		}
 
-		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == ';') {
+		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')' || *p == ';' || *p == '=') {
 			Token *token = add_token(tokens, *p, p);
 			token->val = *p;
 			i++;
@@ -141,7 +139,6 @@ void tokenize(char *p) {
 	add_token(tokens, TOK_EOF, p);
 }
 
-// $B%Q!<%5(B
 void program();
 Node *stmt();
 Node *assign();
@@ -276,8 +273,6 @@ Node *term() {
 	return NULL;
 }
 
-
-// Code$B@8@.(B
 void gen_lvalue(Node *node) {
 	if (node->type != NODE_IDENT)
 		error("lvalue is not variable!");
@@ -349,28 +344,28 @@ int main(int argc, char **argv) {
 		return 0;
 	}
 
-	/*FILE *fp;
+	FILE *fp;
 	fp = fopen(argv[1], "r");
 	if (fp == NULL) {
 		printf("%s is not found.", argv[1]);
 		exit(1);
 	}
 	char src[256];
+	tokens = new_vector();
 	while (fgets(src, 256, fp) != NULL) {
-		printf("%s\n", src);
+		printf("%s", src);
+		tokenize(src/*argv[1]*/);
 	}
-	fclose(fp);*/
+	fclose(fp);
 
-	tokenize(argv[1]);
-
-	/*int i = 0;
+	int i = 0;
 	Token *t = tokens->data[i];
 	while (i < tokens->len) {
 		fprintf(stderr, "token: %s", t->input);
 		i++;
 		t = tokens->data[i];
 	}
-	fprintf(stderr, "\n");*/
+	fprintf(stderr, "\n");
 	program();
 
 
@@ -383,6 +378,7 @@ int main(int argc, char **argv) {
 	printf("	sub rsp, 208\n");
 
 	for (int i = 0;code[i];i++) {
+		fprintf(stderr, "%d\n", i);
 		gen(code[i]);
 		printf("	pop rax\n");
 	}
