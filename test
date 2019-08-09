@@ -6,8 +6,8 @@ main() {
 		a = 1;
 	}
 	b = 4;
-	test();
-	test();
+	test(1, 2);
+	test(3, 4);
 	return a + b / 2;
 }
 

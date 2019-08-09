@@ -40,7 +40,7 @@ void error_at(Token *loc, char *fmt, ...) {
 	fprintf(stderr, "^ ");
 	vfprintf(stderr, fmt, ap);
 	fprintf(stderr, "\n");
-	exit(1);
+	//exit(1);
 }
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
@@ -57,23 +57,27 @@ bool consume(char *op) {
 
 Token *consume_ident() {
 	Token *tok = token;
-	if (token->kind != TK_IDENT) return NULL;
+	if (token->kind != TK_IDENT)
+		return NULL;
 	token = token->next;
 	return tok;
 }
 
-// 次のトークンが期待している記号のときには、トークンを1つ読み進める。
-// それ以外の場合にはエラーを報告する。
-void expect(char op) {
-	if (token->kind != TK_RESERVED || token->str[0] != op)
-		// error("'%c'ではありません", op);
-		error_at(token, "'%c'ではありません", op);
+int consume_number() {
+	if (token->kind != TK_NUM)
+		return -1;
+	int val = token->val;
 	token = token->next;
+	return val;
 }
 
-void current() {
-	// fprintf(stderr, "%s %d %d", token->str, token->val, token->len);
-	//fprintf(stderr, "%s", token->str);
+// 次のトークンが期待している記号のときには、トークンを1つ読み進める。
+// それ以外の場合にはエラーを報告する。
+void expect(char *op) {
+	if (token->kind != TK_RESERVED || memcmp(token->str, op, strlen(op)))
+		// error("'%c'ではありません", op);
+		error_at(token, "'%s'ではありません", op);
+	token = token->next;
 }
 
 // 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す。
@@ -138,7 +142,9 @@ Token *tokenize(char *p) {
 		}
 
 		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' ||
-			*p == '(' || *p == ')' || *p == ';' || *p == '=' || *p == '<' || *p == '>' ||
+			*p == ';' || *p == '=' || *p == ',' ||
+			*p == '(' || *p == ')' ||
+			*p == '<' || *p == '>' ||
 			*p == '{' || *p == '}') {
 			fprintf(stderr, "%c", *p);
 			cur = new_token(TK_RESERVED, cur, p++, line);
@@ -206,15 +212,18 @@ Node *new_node(int type, Node *lhs, Node *rhs) {
 	node->side[1] = rhs;
 	return node;
 }
+
 Node *new_nodev(int type, int num, Node *sides, ...) {
 	va_list arg_list;
 	va_start(arg_list, sides);
+
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = type;
 	node->side[0] = sides;
 	for (int i = 1; i < num; i++) {
 		node->side[i] = va_arg(arg_list, Node*);
 	}
+
 	va_end(arg_list);
 	return node;
 }
@@ -249,6 +258,7 @@ LVar *find_lvar(Token *tok) {
 /*
 program    = stmt*
 stmt       = expr ";"
+
            | "return" expr ";"
 expr       = assign
 assign     = equality ("=" assign)?
@@ -268,7 +278,7 @@ Node *term() {
 	// current();
 	if (consume("(")) {
 		Node *node = expr();
-		expect(')');
+		expect(")");
 		return node;
 	}
 
@@ -277,11 +287,26 @@ Node *term() {
 		Node *node = calloc(1, sizeof(Node));
 		if (consume("(")) {
 			node->kind = ND_CALL;
-			//fprintf(stderr, "call\n");
-			strncpy(node->ident, tok->str, tok->len+1);
-			node->ident[tok->len] = '\0';
-			//fprintf(stderr, "call %s\n", node->ident);
-			expect(')');
+			// 関数名
+			node->ident = tok->str;
+			node->len = tok->len+1;
+
+			// 引数
+			Node *arg;
+			Vec *args = new_vector();
+			while (!consume(")")) {
+				arg = expr();
+				if (!arg) {
+					error_at(token, "関数の引数が','で終わっています");
+					break;
+				}
+				push_back(args, arg);
+				if (!consume(",")) {
+					expect(")");
+					break;
+				}
+			}
+			node->nodes = args;
 			return node;
 		}
 		node->kind = ND_LVAR;
@@ -303,7 +328,13 @@ Node *term() {
 	}
 
 	// そうでなければ数値のはず
-	return new_node_num(expect_number());
+	int val = consume_number();
+	if (val != -1)
+		return new_node_num(val);
+
+	//fprintf(stderr, "%s\n", token->str);
+	error_at(token, "数ではありません");
+	return NULL;
 }
 
 Node *unary() {
@@ -401,14 +432,14 @@ Node *stmt() {
 	if (consume("return")) {
 		node = expr();
 		node = new_nodev(ND_RETURN, 1, node);
-		expect(';');
+		expect(";");
 
 	}else if (consume("if")) {
 		Node *Cond, *Then, *Else;
 
-		expect('(');
+		expect("(");
 		Cond = expr();
-		expect(')');
+		expect(")");
 		Then = stmts();
 		if (consume("else"))
 			Else = stmts();
@@ -420,9 +451,9 @@ Node *stmt() {
 	}else if (consume("while")) {
 		Node *Cond, *Loop;
 
-		expect('(');
+		expect("(");
 		Cond = expr();
-		expect(')');
+		expect(")");
 		Loop = stmts();
 
 		node = new_nodev(ND_WHILE, 2, Cond, Loop);
@@ -430,19 +461,19 @@ Node *stmt() {
 	}else if (consume("for")) {
 		Node *Cond1, *Cond2, *Cond3, *Loop;
 
-		expect('(');
+		expect("(");
 		Cond1 = expr();
-		expect(';');
+		expect(";");
 		Cond2 = expr();
-		expect(';');
+		expect(";");
 		Cond3 = expr();
-		expect(')');
+		expect(")");
 		Loop = stmts();
 
 		node = new_nodev(ND_FOR, 4, Cond1, Cond2, Cond3, Loop);
 	}else{
 		node = expr();
-		expect(';');
+		expect(";");
 	}
 	return node;
 }
@@ -453,6 +484,7 @@ Node *stmts() {
 	if (consume("{")) {
 		Vec *nodes = new_vector();
 		for(;;) {
+			fprintf(stderr, "%s\n", token->str);
 			push_back(nodes, stmt());
 			if (consume("}")) {
 				break;
@@ -465,6 +497,7 @@ Node *stmts() {
 	}else{
 		node = stmt();
 	}
+	fprintf(stderr, "%s\n", token->str);
 
 	return node;
 }
@@ -473,38 +506,69 @@ Node *stmts() {
 Node *global() {
 	Node *node;
 	Token *tok = consume_ident();
+	//fprintf(stderr, "%s\n", token->str);
 
 	if (tok) {
 		if (consume("(")) {
-			//fprintf(stderr, "%s\n", tok->str);
 			node = calloc(1, sizeof(Node));
-			for (;;) {
-				if (!consume_ident())break;
-				if (!consume(",")) break;
+			Func *func;
+			Token *arg;
+			LVar *func_args;
+			LVar *lvar;
+
+			while (!consume(")")) {
+				arg = consume_ident();
+				if (!arg) {
+					error_at(token, "関数の引数が','で終わっています");
+					break;
+				}
+
+				lvar = calloc(1, sizeof(LVar));
+				lvar->next = func_args;
+				lvar->name = arg->str;
+				lvar->len = arg->len;
+				lvar->offset = func_args->offset + 8;
+				node->offset = lvar->offset;
+				func_args = lvar;
+
+				if (!consume(",")) {
+					expect(")");
+					break;
+				}
 			}
-			expect(')');
+
+			func->name = tok->str;
+			func->len = tok->len;
+			func->args = func_args;
+
+			node->ident = tok->str;
+			node->len = tok->len;
 
 			if (consume(";")) {
+				node->kind = ND_DECL;
 			}else{
-				node = new_nodev(ND_DEF, 1, stmts());
-				strncpy(node->ident, tok->str, tok->len+1);
-				node->ident[tok->len] = '\0';
-				//strcpy(node->ident, tok->str);
+				node->kind = ND_DEF;
+				node->side[0] = stmts();
 			}
-			//fprintf(stderr, "%s\n", tok->str);
+			fprintf(stderr, "%s\n", token->str);
 			return node;
 		}
 	}
 
-	node = stmt();
-	return node;
+	//node = stmt();
+	//return node;
+	return NULL;
 }
 
 // program    = stmt*
 void program() {
 	int i = 0;
 	while (!at_eof()) {
-		code[i++] = global();
+		//fprintf(stderr, "%s\n", token->str);
+		Node *node = global();
+		//fprintf(stderr, "gkh\n");
+		code[i++] = node;
+		//fprintf(stderr, "aaaaaaaaaaaaaaaaaa%s\n", token->str);
 	}
 	code[i] = NULL;
 }

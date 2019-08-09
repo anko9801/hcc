@@ -108,6 +108,17 @@ void gen(Node *node) {
 		return;
 
 	case ND_CALL:
+		printf("	mov rax, %d\n", node->nodes->len);
+		char *args_list[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
+		strncpy(node->ident, node->ident, node->len+1);
+		node->ident[node->len] = '\0';
+		for (int i = 0;i < node->nodes->len && i < 6;i++) {
+			gen((Node*)node->nodes->data[i]);
+			printf("	pop %s\n", args_list[i]);
+		}
+		printf("	mov rax, %d\n", node->nodes->len);
+
 		printf("	test rsp, 15\n");
 		printf("	jne call.else%d\n", call_cnt);
 		printf("	call _%s\n", node->ident);

@@ -12,12 +12,16 @@ _foo:                                   ## @foo
 	mov	rbp, rsp
 	.cfi_def_cfa_register rbp
 	sub	rsp, 16
+	mov	dword ptr [rbp - 8], edi
+	mov	dword ptr [rbp - 12], esi
+	mov	esi, dword ptr [rbp - 8]
+	mov	edx, dword ptr [rbp - 12]
 	lea	rdi, [rip + L_.str]
 	mov	al, 0
 	call	_printf
-	mov	ecx, dword ptr [rbp - 4]
-	mov	dword ptr [rbp - 8], eax ## 4-byte Spill
-	mov	eax, ecx
+	mov	edx, dword ptr [rbp - 4]
+	mov	dword ptr [rbp - 16], eax ## 4-byte Spill
+	mov	eax, edx
 	add	rsp, 16
 	pop	rbp
 	ret
@@ -25,7 +29,7 @@ _foo:                                   ## @foo
                                         ## -- End function
 	.section	__TEXT,__cstring,cstring_literals
 L_.str:                                 ## @.str
-	.asciz	"OK\n"
+	.asciz	"%d %d\n"
 
 
 .subsections_via_symbols

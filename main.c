@@ -32,12 +32,7 @@ int main(int argc, char **argv) {
 	printf(".intel_syntax noprefix\n");
 	printf(".extern _foo\n");
 	printf(".globl _main, _test\n");
-	/*printf("_main:\n");
 
-	printf("	push rbp\n");
-	printf("	mov rbp, rsp\n");
-	printf("	sub rsp, %d\n", locals->offset);
-    */
 	gen(code[0]);
 	for (int i = 1;code[i];i++) {
 		printf("	pop rax\n");
