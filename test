@@ -1,0 +1,17 @@
+main() {
+	a = 4;
+	if (a > 2) {
+		a = 3;
+	}else{
+		a = 1;
+	}
+	b = 4;
+	test();
+	test();
+	return a + b / 2;
+}
+
+test() {
+	foo();
+	return 0;
+}
