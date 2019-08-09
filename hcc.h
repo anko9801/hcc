@@ -78,8 +78,8 @@ struct Func {
 	Func *next; // 次の変数かNULL
 	char *name; // 関数の名前
 	int len;    // 名前の長さ
-	LVar *args;  // 引数
-	LVar *locals; // ローカル変数
+	int args_len;
+	LVar *locals; // 引数 ローカル変数
 };
 
 void error(char *fmt, ...);

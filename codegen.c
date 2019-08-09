@@ -16,6 +16,8 @@ int call_cnt = 0;
 
 void gen(Node *node) {
 	//fprintf(stderr, "gen %d\n", node);
+	char str[100];
+	char *args_list[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 	switch (node->kind) {
 	case ND_NUM:
 		//fprintf(stderr, "num\n");
@@ -108,11 +110,8 @@ void gen(Node *node) {
 		return;
 
 	case ND_CALL:
-		printf("	mov rax, %d\n", node->nodes->len);
-		char *args_list[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
-
-		strncpy(node->ident, node->ident, node->len+1);
-		node->ident[node->len] = '\0';
+		strncpy(str, node->ident, node->len);
+		str[node->len-1] = '\0';
 		for (int i = 0;i < node->nodes->len && i < 6;i++) {
 			gen((Node*)node->nodes->data[i]);
 			printf("	pop %s\n", args_list[i]);
@@ -121,21 +120,26 @@ void gen(Node *node) {
 
 		printf("	test rsp, 15\n");
 		printf("	jne call.else%d\n", call_cnt);
-		printf("	call _%s\n", node->ident);
+		printf("	call _%s\n", str);
 		printf("	jmp call.end%d\n", call_cnt);
 		printf("call.else%d:\n", call_cnt);
 		printf("	push rax\n");
-		printf("	call _%s\n", node->ident);
+		printf("	call _%s\n", str);
 		printf("	pop rax\n");
 		printf("call.end%d:\n", call_cnt);
 		call_cnt++;
 		return;
 
 	case ND_DEF:
-		printf("_%s:\n", node->ident);
+		strncpy(str, node->ident, node->len);
+		str[node->len] = '\0';
+		printf("_%s:\n", str);
 		printf("	push rbp\n");
 		printf("	mov rbp, rsp\n");
-		printf("	sub rsp, %d\n", 32);
+		printf("	sub rsp, %d\n", node->func->locals->offset);
+		for (int i = 0;i < node->func->args_len && i < 6;i++) {
+			printf("	mov [rbp-%d], %s\n", (i+1)*8, args_list[i]);
+		}
 
 		gen(node->side[0]);
 		return;

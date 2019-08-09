@@ -40,7 +40,7 @@ void error_at(Token *loc, char *fmt, ...) {
 	fprintf(stderr, "^ ");
 	vfprintf(stderr, fmt, ap);
 	fprintf(stderr, "\n");
-	//exit(1);
+	exit(1);
 }
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
@@ -146,7 +146,7 @@ Token *tokenize(char *p) {
 			*p == '(' || *p == ')' ||
 			*p == '<' || *p == '>' ||
 			*p == '{' || *p == '}') {
-			fprintf(stderr, "%c", *p);
+			//fprintf(stderr, "%c", *p);
 			cur = new_token(TK_RESERVED, cur, p++, line);
 			cur->len = 1;
 			continue;
@@ -157,7 +157,7 @@ Token *tokenize(char *p) {
 			char *q = p;
 			cur->val = strtol(p, &p, 10);
 			cur->len = p - q;
-			fprintf(stderr, "%d", cur->val);
+			//fprintf(stderr, "%d", cur->val);
 			continue;
 		}
 
@@ -176,7 +176,7 @@ Token *tokenize(char *p) {
 			len++;
 			for (;;) {
 				if ('a' <= *p && *p <= 'z') {
-					fprintf(stderr, "%c", *p);
+					//fprintf(stderr, "%c", *p);
 					p++;
 					len++;
 				}else{
@@ -194,7 +194,7 @@ Token *tokenize(char *p) {
 	}
 
 	new_token(TK_EOF, cur, p, line);
-	fprintf(stderr, "\n");
+	//fprintf(stderr, "\n");
 	return head.next;
 }
 
@@ -204,6 +204,7 @@ Node *code[100];
 LVar *locals;
 // 関数
 Func *funcs;
+Func *cur_func;
 
 Node *new_node(int type, Node *lhs, Node *rhs) {
 	Node *node = calloc(1, sizeof(Node));
@@ -253,6 +254,13 @@ LVar *find_lvar(Token *tok) {
 	for (LVar *var = locals; var; var = var->next)
 		if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
 			return var;
+	return NULL;
+}
+
+Func *find_func(Token *tok) {
+	for (Func *func = funcs; func; func = func->next)
+		if (func->len == func->len && !memcmp(tok->str, func->name, func->len))
+			return func;
 	return NULL;
 }
 /*
@@ -312,7 +320,6 @@ Node *term() {
 		node->kind = ND_LVAR;
 
 		LVar *lvar = find_lvar(tok);
-		if (!locals) locals = calloc(1, sizeof(LVar));
 		if (lvar) {
 			node->offset = lvar->offset;
 		}else{
@@ -332,7 +339,7 @@ Node *term() {
 	if (val != -1)
 		return new_node_num(val);
 
-	//fprintf(stderr, "%s\n", token->str);
+	fprintf(stderr, "%s\n", token->str);
 	error_at(token, "数ではありません");
 	return NULL;
 }
@@ -484,7 +491,6 @@ Node *stmts() {
 	if (consume("{")) {
 		Vec *nodes = new_vector();
 		for(;;) {
-			fprintf(stderr, "%s\n", token->str);
 			push_back(nodes, stmt());
 			if (consume("}")) {
 				break;
@@ -497,7 +503,6 @@ Node *stmts() {
 	}else{
 		node = stmt();
 	}
-	fprintf(stderr, "%s\n", token->str);
 
 	return node;
 }
@@ -506,14 +511,13 @@ Node *stmts() {
 Node *global() {
 	Node *node;
 	Token *tok = consume_ident();
-	//fprintf(stderr, "%s\n", token->str);
 
 	if (tok) {
 		if (consume("(")) {
 			node = calloc(1, sizeof(Node));
-			Func *func;
+			Func *func = calloc(1, sizeof(Func));
 			Token *arg;
-			LVar *func_args;
+			LVar *args = calloc(1, sizeof(LVar));
 			LVar *lvar;
 
 			while (!consume(")")) {
@@ -524,12 +528,14 @@ Node *global() {
 				}
 
 				lvar = calloc(1, sizeof(LVar));
-				lvar->next = func_args;
+				lvar->next = args;
 				lvar->name = arg->str;
 				lvar->len = arg->len;
-				lvar->offset = func_args->offset + 8;
+				lvar->offset = args->offset + 8;
 				node->offset = lvar->offset;
-				func_args = lvar;
+				locals = lvar;
+				args = lvar;
+				func->args_len++;
 
 				if (!consume(",")) {
 					expect(")");
@@ -537,9 +543,11 @@ Node *global() {
 				}
 			}
 
+			func->next = funcs;
 			func->name = tok->str;
 			func->len = tok->len;
-			func->args = func_args;
+			func->locals = args;
+			funcs = func;
 
 			node->ident = tok->str;
 			node->len = tok->len;
@@ -549,8 +557,9 @@ Node *global() {
 			}else{
 				node->kind = ND_DEF;
 				node->side[0] = stmts();
+				node->func = func;
+				cur_func = func;
 			}
-			fprintf(stderr, "%s\n", token->str);
 			return node;
 		}
 	}
@@ -562,13 +571,10 @@ Node *global() {
 
 // program    = stmt*
 void program() {
+	locals = calloc(1, sizeof(LVar));
 	int i = 0;
 	while (!at_eof()) {
-		//fprintf(stderr, "%s\n", token->str);
-		Node *node = global();
-		//fprintf(stderr, "gkh\n");
-		code[i++] = node;
-		//fprintf(stderr, "aaaaaaaaaaaaaaaaaa%s\n", token->str);
+		code[i++] = global();
 	}
 	code[i] = NULL;
 }

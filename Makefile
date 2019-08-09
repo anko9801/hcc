@@ -10,8 +10,7 @@ $(OBJS): hcc.h
 
 test: hcc test
 	./hcc test > tmp.s
-	gcc -S -o lib.s lib.c -masm=intel
-	gcc -c -o lib.o lib.s
+	gcc -c -o lib.o lib.c
 	gcc -c -o tmp.o tmp.s
 	gcc -o tmp lib.o tmp.o
 	./tmp
