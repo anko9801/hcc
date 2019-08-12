@@ -24,13 +24,15 @@ int main(int argc, char **argv) {
 	}
 	// printf("%s", src);
 	user_input = src;
-	token = tokenize(src);
 	fclose(fp);
 
+	token = tokenize(src);
+	fprintf(stderr, "トークナイズ完了！\n");
 	program();
+	fprintf(stderr, "パース完了！\n");
 
 	printf(".intel_syntax noprefix\n");
-	printf(".extern _foo\n");
+	printf(".extern _foo, _alloc4\n");
 	printf(".globl _main, _test\n");
 
 	gen(code[0]);
@@ -39,5 +41,6 @@ int main(int argc, char **argv) {
 		gen(code[i]);
 	}
 
+	fprintf(stderr, "CodeGen完了！\n");
 	return 0;
 }

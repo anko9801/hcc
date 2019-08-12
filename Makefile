@@ -8,8 +8,8 @@ hcc: $(OBJS)
 
 $(OBJS): hcc.h
 
-test: hcc test
-	./hcc test > tmp.s
+test: hcc test4
+	./hcc test4 > tmp.s
 	gcc -c -o lib.o lib.c
 	gcc -c -o tmp.o tmp.s
 	gcc -o tmp lib.o tmp.o

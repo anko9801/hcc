@@ -1,21 +1,36 @@
 #include <hcc.h>
 
-void gen_lvalue(Node *node) {
-	if (node->kind != ND_LVAR)
-		error("lvalue is not variable!");
-
-	printf("	mov rax, rbp\n");
-	printf("	sub rax, %d\n", node->offset);
-	printf("	push rax\n");
-}
-
 int if_cnt = 0;
 int while_cnt = 0;
 int for_cnt = 0;
 int call_cnt = 0;
+extern Node *new_node(int type, Node *lhs, Node *rhs);
+extern Node *new_node_num(int val);
+
+void gen_lvalue(Node *node) {
+	switch (node->kind) {
+	case ND_LVAR:
+		printf("	mov rax, rbp\n");
+		printf("	sub rax, %d\n", node->offset);
+		printf("	push rax\n");
+		return;
+	case ND_VARDECL:
+		printf("	mov rax, rbp\n");
+		printf("	sub rax, %d\n", node->offset);
+		printf("	push rax\n");
+		return;
+	case ND_ADDR:
+		gen_lvalue(node->side[0]);
+		return;
+	case ND_DEREF:
+		gen(node->side[0]);
+		return;
+	default:
+		error("It is not lvalue!");
+	}
+}
 
 void gen(Node *node) {
-	//fprintf(stderr, "gen %d\n", node);
 	char str[100];
 	char *args_list[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 	switch (node->kind) {
@@ -33,8 +48,22 @@ void gen(Node *node) {
 		printf("	push rax\n");
 		return;
 
+	case ND_VARDECL:
+		return;
+
+	case ND_ADDR:
+		gen_lvalue(node->side[0]);
+		return;
+
+	case ND_DEREF:
+		gen(node->side[0]);
+
+		printf("	pop rax\n");
+		printf("	mov rax, [rax]\n");
+		printf("	push rax\n");
+		return;
+
 	case ND_ASSIGN:
-		//fprintf(stderr, "assign\n");
 		gen_lvalue(node->side[0]);
 		gen(node->side[1]);
 
@@ -45,8 +74,9 @@ void gen(Node *node) {
 		return;
 
 	case ND_RETURN:
-		//fprintf(stderr, "return\n");
 		gen(node->side[0]);
+
+		printf("	pop rax\n");
 
 		printf("	mov rsp, rbp\n");
 		printf("	pop rbp\n");
@@ -59,15 +89,16 @@ void gen(Node *node) {
 		printf("	cmp rax, 1\n");
 		printf("	je if.then%d\n", if_cnt);
 		printf("	jmp if.else%d\n", if_cnt);
-
 		printf("if.then%d:\n", if_cnt);
+
 		gen(node->side[1]);
-		printf("	jmp if.end%d\n", if_cnt);
 
+		printf("	jmp if.end%d\n", if_cnt);
 		printf("if.else%d:\n", if_cnt);
-		gen(node->side[2]);
-		printf("	jmp if.end%d\n", if_cnt);
 
+		gen(node->side[2]);
+
+		printf("	jmp if.end%d\n", if_cnt);
 		printf("if.end%d:\n", if_cnt);
 		if_cnt += 1;
 		return;
@@ -81,6 +112,7 @@ void gen(Node *node) {
 		printf("	je while.end%d\n", while_cnt);
 
 		gen(node->side[1]);
+
 		printf("	jmp while.loop%d\n", while_cnt);
 		printf("while.end%d:\n", while_cnt);
 		while_cnt += 1;
@@ -95,8 +127,10 @@ void gen(Node *node) {
 
 		printf("	cmp rax, 0\n");
 		printf("	je for.end%d\n", for_cnt);
+
 		gen(node->side[2]);
 		gen(node->side[3]);
+
 		printf("	jmp for.loop%d\n", for_cnt);
 		printf("for.end%d:\n", for_cnt);
 
@@ -123,9 +157,9 @@ void gen(Node *node) {
 		printf("	call _%s\n", str);
 		printf("	jmp call.end%d\n", call_cnt);
 		printf("call.else%d:\n", call_cnt);
-		printf("	push rax\n");
+		printf("	push rsi\n");
 		printf("	call _%s\n", str);
-		printf("	pop rax\n");
+		printf("	pop rsi\n");
 		printf("call.end%d:\n", call_cnt);
 		call_cnt++;
 		return;
@@ -138,7 +172,7 @@ void gen(Node *node) {
 		printf("	mov rbp, rsp\n");
 		printf("	sub rsp, %d\n", node->func->locals->offset);
 		for (int i = 0;i < node->func->args_len && i < 6;i++) {
-			printf("	mov [rbp-%d], %s\n", (i+1)*8, args_list[i]);
+			printf("	mov [rbp-%d], %s\n", (i+1)*16, args_list[i]);
 		}
 
 		gen(node->side[0]);
@@ -151,7 +185,6 @@ void gen(Node *node) {
 	printf("	pop rdi\n");
 	printf("	pop rax\n");
 
-	//fprintf(stderr, "op\n");
 	switch (node->kind) {
 	case ND_ADD:
 		printf("	add rax, rdi\n");
@@ -189,7 +222,6 @@ void gen(Node *node) {
 	default:
 		error("I don't know this nodekind");
 	}
-	//fprintf(stderr, "finish2\n");
 
 	printf("	push rax\n");
 }

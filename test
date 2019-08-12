@@ -1,27 +1,10 @@
-main() {
-	a = 4;
-	if (a > 2) {
-		a = 3;
-	}else{
-		a = 1;
-	}
-	b = 4;
-	test(1, 1, 1);
-	return a + b / 2;
+int main() {
+	fibo(1, 1, 1);
+	return 0;
 }
 
-test(x, y, i) {
-	k = x;
-	x = x+y;
-	y = k;
-	i = i+1;
-	if (i < 20) {
-		foo(x,y);
-		test(x, y, i);
-
-	}else{
-		foo(x,y);
-	}
-
-	return x;
+int fibo(int a, int b, int i) {
+	if (i == 20) return 0;
+	foo(a, b);
+	return fibo(a + b, a, i + 1);
 }

@@ -49,15 +49,21 @@ typedef enum {
 	ND_CALL,
 	ND_DECL,
 	ND_DEF,
+	ND_ADDR,
+	ND_DEREF,
+	ND_VARDECL,
 } NodeKind;
 
 typedef struct Node Node;
 typedef struct Func Func;
+typedef struct LVar LVar;
+typedef struct Type Type;
 struct Node {
 	NodeKind kind; // ノードの型
 	Node *side[10]; // 左辺・右辺/stmt/cond,then,else
 	Vec *nodes;    // ND_BLOCK, ND_CALL, ND_DEFの場合
 	int val;       // kindがND_NUMの場合のみ使う
+	Type *type;
 	int offset;    // kindがND_LVARの場合のみ使う
 	char *ident;
 	int len;
@@ -65,21 +71,27 @@ struct Node {
 };
 
 // ローカル変数の型
-typedef struct LVar LVar;
 struct LVar {
 	LVar *next; // 次の変数かNULL
 	char *name; // 変数の名前
 	int len;    // 名前の長さ
+	Type *type;
 	int offset; // RBPからのオフセット
 };
 
 // 関数の型
 struct Func {
 	Func *next; // 次の変数かNULL
+	Type *type;
 	char *name; // 関数の名前
 	int len;    // 名前の長さ
 	int args_len;
 	LVar *locals; // 引数 ローカル変数
+};
+
+struct Type {
+	enum { INT, PTR } ty;
+	struct Type *ptr_to;
 };
 
 void error(char *fmt, ...);

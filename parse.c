@@ -26,15 +26,9 @@ void error_at(Token *loc, char *fmt, ...) {
 	int posline = 0;
 	int pos = 0;
 	for (int i = 0;; i++) {
-		if (user_input[i] == '\n')
-			posline++;
-		if (loc->line == posline) {
-			fprintf(stderr, "%c", user_input[i]);
-			if (loc->str < user_input)
-				pos++;
-		}
-		if (loc->line < posline)
+		if (loc->str[i] == '\n')
 			break;
+		fprintf(stderr, "%c", loc->str[i]);
 	}
 	fprintf(stderr, "\n%*s", pos, ""); // pos個の空白を出力
 	fprintf(stderr, "^ ");
@@ -112,10 +106,9 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int line) {
 }
 
 bool is_reserved(char **p, Token **cur, char *str) {
-	//fprintf(stderr, "%c", (*p)[6]);
 	if (strncmp(*p, str, strlen(str)) == 0 && !is_alnum((*p)[strlen(str)])) {
 		*cur = new_token(TK_RESERVED, *cur, *p, line);
-		//fprintf(stderr, "%s", str);
+		fprintf(stderr, "%s", str);
 		(*cur)->len = strlen(str);
 		*p += strlen(str);
 		return true;
@@ -128,9 +121,34 @@ Token *tokenize(char *p) {
 	Token head;
 	head.next = NULL;
 	Token *cur = &head;
+	int commented = 0;
 
 	while (*p) {
 		// 空白文字をスキップ
+		if (commented > 0) {
+			if (commented == 1 && *p == '\n') {
+				commented = 0;
+				p++;
+				continue;
+			}
+			if (commented == 2 && strncmp(p, "*/", 2) == 0) {
+				commented = 0;
+				p += 2;
+				continue;
+			}
+			p++;
+			continue;
+		}
+		if (strncmp(p, "//", 2) == 0) {
+			commented = 1;
+			p += 2;
+			continue;
+		}
+		if (strncmp(p, "/*", 2) == 0) {
+			commented = 2;
+			p += 2;
+			continue;
+		}
 		if (isspace(*p)) {
 			p++;
 			continue;
@@ -141,12 +159,17 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
+		if (strncmp(p, "==", 2) == 0) {
+			cur = new_token(TK_RESERVED, cur, p++, line);
+			cur->len = 2;
+			continue;
+		}
 		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' ||
-			*p == ';' || *p == '=' || *p == ',' ||
+			*p == ';' || *p == '=' || *p == ',' || *p == '&' ||
 			*p == '(' || *p == ')' ||
 			*p == '<' || *p == '>' ||
 			*p == '{' || *p == '}') {
-			//fprintf(stderr, "%c", *p);
+			fprintf(stderr, "%c", *p);
 			cur = new_token(TK_RESERVED, cur, p++, line);
 			cur->len = 1;
 			continue;
@@ -157,15 +180,17 @@ Token *tokenize(char *p) {
 			char *q = p;
 			cur->val = strtol(p, &p, 10);
 			cur->len = p - q;
-			//fprintf(stderr, "%d", cur->val);
+			fprintf(stderr, "%d", cur->val);
 			continue;
 		}
 
-		if (is_reserved(&p, &cur, "return") ||
+		if (is_reserved(&p, &cur, "int") ||
+			is_reserved(&p, &cur, "return") ||
 			is_reserved(&p, &cur, "if") ||
 			is_reserved(&p, &cur, "else") ||
 			is_reserved(&p, &cur, "while") ||
-			is_reserved(&p, &cur, "for")) {
+			is_reserved(&p, &cur, "for") ||
+			is_reserved(&p, &cur, "sizeof")) {
 			continue;
 		}
 
@@ -175,8 +200,8 @@ Token *tokenize(char *p) {
 			p++;
 			len++;
 			for (;;) {
-				if ('a' <= *p && *p <= 'z') {
-					//fprintf(stderr, "%c", *p);
+				if (is_alnum(*p)) {
+					fprintf(stderr, "%c", *p);
 					p++;
 					len++;
 				}else{
@@ -185,8 +210,6 @@ Token *tokenize(char *p) {
 			}
 			cur = new_token(TK_IDENT, cur, p-len, line);
 			cur->len = len;
-			//strncpy(cur->str, cur->str, cur->len+1);
-			//cur->str[cur->len] = '\0';
 			continue;
 		}
 
@@ -194,7 +217,7 @@ Token *tokenize(char *p) {
 	}
 
 	new_token(TK_EOF, cur, p, line);
-	//fprintf(stderr, "\n");
+	fprintf(stderr, "\n");
 	return head.next;
 }
 
@@ -209,6 +232,7 @@ Func *cur_func;
 Node *new_node(int type, Node *lhs, Node *rhs) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = type;
+	node->type = NULL;
 	node->side[0] = lhs;
 	node->side[1] = rhs;
 	return node;
@@ -224,6 +248,7 @@ Node *new_nodev(int type, int num, Node *sides, ...) {
 	for (int i = 1; i < num; i++) {
 		node->side[i] = va_arg(arg_list, Node*);
 	}
+	node->type = NULL;
 
 	va_end(arg_list);
 	return node;
@@ -233,6 +258,7 @@ Node *new_node_single(int type, Node *lhs) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = type;
 	node->side[0] = lhs;
+	node->type = NULL;
 	return node;
 }
 
@@ -240,6 +266,10 @@ Node *new_node_num(int val) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = ND_NUM;
 	node->val = val;
+	Type *type = calloc(1, sizeof(Type));
+	type->ty = INT;
+	type->ptr_to = NULL;
+	node->type = type;
 	return node;
 }
 
@@ -274,25 +304,75 @@ equality   = relational ("==" relational | "!=" relational)*
 relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 add        = mul ("+" mul | "-" mul)*
 mul        = unary ("*" unary | "/" unary)*
-unary      = ("+" | "-")? term
+unary = "+"? term
+      | "-"? term
+      | "*" unary
+      | "&" unary
 term       = num | ident | "(" expr ")"
 */
 
+void cu() {
+	fprintf(stderr, "%s\n", token->str);
+}
 Node *expr();
 Node *stmts();
+
+Type *type() {
+	Type *type_addr;
+	Type *type = NULL;
+
+	if (consume("int")) {
+		type = calloc(1, sizeof(Type));
+		type->ty = INT;
+		type->ptr_to = NULL;
+	}
+	while (consume("*")) {
+		type_addr = calloc(1, sizeof(Type));
+		type_addr->ty = PTR;
+		type_addr->ptr_to = type;
+		type = type_addr;
+	}
+	return type;
+}
 
 Node *term() {
 	// 次のトークンが"("なら、"(" expr ")"のはず
 	// current();
+	//cu();
 	if (consume("(")) {
 		Node *node = expr();
 		expect(")");
 		return node;
 	}
 
-	Token *tok = consume_ident();
+	Token *tok;
+	Type *ident_type = type();
+	if (ident_type) {
+		tok = consume_ident();
+		if (tok) {
+			Node *node = calloc(1, sizeof(Node));
+			node->kind = ND_VARDECL;
+
+			LVar *lvar = calloc(1, sizeof(LVar));
+			lvar->next = locals;
+			lvar->name = tok->str;
+			lvar->len = tok->len;
+			lvar->type = ident_type;
+			lvar->offset = locals->offset + 8;
+			node->offset = lvar->offset;
+			node->type = lvar->type;
+			locals = lvar;
+			if (consume("=")) {
+				node = new_node(ND_ASSIGN, node, expr());
+			}
+			return node;
+		}
+	}
+
+	tok = consume_ident();
 	if (tok) {
 		Node *node = calloc(1, sizeof(Node));
+		//cu();
 		if (consume("(")) {
 			node->kind = ND_CALL;
 			// 関数名
@@ -322,14 +402,9 @@ Node *term() {
 		LVar *lvar = find_lvar(tok);
 		if (lvar) {
 			node->offset = lvar->offset;
+			node->type = lvar->type;
 		}else{
-			lvar = calloc(1, sizeof(LVar));
-			lvar->next = locals;
-			lvar->name = tok->str;
-			lvar->len = tok->len;
-			lvar->offset = locals->offset + 8;
-			node->offset = lvar->offset;
-			locals = lvar;
+			error_at(token, "その変数は宣言されていません");
 		}
 		return node;
 	}
@@ -339,27 +414,35 @@ Node *term() {
 	if (val != -1)
 		return new_node_num(val);
 
-	fprintf(stderr, "%s\n", token->str);
-	error_at(token, "数ではありません");
+	//fprintf(stderr, "%s\n", token->str);
+	error_at(token, "項がありません");
 	return NULL;
 }
 
+// unary = "+"? term
+//       | "-"? term
+//       | "*" unary
+//       | "&" unary
 Node *unary() {
 	if (consume("+"))
 		return term();
 	if (consume("-"))
 		return new_node(ND_SUB, new_node_num(0), term());
+	if (consume("*"))
+		return new_nodev(ND_DEREF, 1, unary());
+	if (consume("&"))
+		return new_nodev(ND_ADDR, 1, unary());
 	return term();
 }
 
 Node *mul_expr() {
-	Node *node = term();
+	Node *node = unary();
 
 	for (;;) {
 		if (consume("*"))
-			node = new_node(ND_MUL, node, term());
+			node = new_node(ND_MUL, node, unary());
 		else if (consume("/"))
-			node = new_node(ND_DIV, node, term());
+			node = new_node(ND_DIV, node, unary());
 		else
 			return node;
 	}
@@ -370,9 +453,21 @@ Node *add_expr() {
 
 	for (;;) {
 		if (consume("+"))
-			node = new_node(ND_ADD, node, mul_expr());
+			if (node->type->ty == PTR)
+				if (node->type->ptr_to->ty == INT)
+					node = new_node(ND_ADD, node, new_node(ND_MUL, mul_expr(), new_node_num(4)));
+				else
+					node = new_node(ND_ADD, node, new_node(ND_MUL, mul_expr(), new_node_num(8)));
+			else
+				node = new_node(ND_ADD, node, mul_expr());
 		else if (consume("-"))
-			node = new_node(ND_SUB, node, mul_expr());
+			if (node->type->ty == PTR)
+				if (node->type->ptr_to->ty == INT)
+					node = new_node(ND_ADD, node, new_node(ND_MUL, mul_expr(), new_node_num(4)));
+				else
+					node = new_node(ND_ADD, node, new_node(ND_MUL, mul_expr(), new_node_num(8)));
+			else
+				node = new_node(ND_SUB, node, mul_expr());
 		else
 			return node;
 	}
@@ -421,9 +516,61 @@ Node *assign() {
 	return node;
 }
 
+Node *lvalue() {
+	Token *backup = token;
+	Node *node = NULL;
+
+	if (consume("*"))
+		return new_nodev(ND_DEREF, 1, lvalue());
+	if (consume("&"))
+		return new_nodev(ND_ADDR, 1, lvalue());
+	Token *tok;
+
+	tok = consume_ident();
+	if (tok) {
+		node = calloc(1, sizeof(Node));
+		node->kind = ND_LVAR;
+
+		LVar *lvar = find_lvar(tok);
+		if (lvar) {
+			node->offset = lvar->offset;
+			node->type = lvar->type;
+		}else{
+			if (consume("(")) {
+				token = backup;
+				return NULL;
+			}
+			error_at(token, "その変数は宣言されていません");
+		}
+		return node;
+	}
+
+	return node;
+}
+
+Node *rvalue() {
+	Node *node = NULL;
+	Token *backup = token;
+	Node *lval = lvalue();
+	Node *rval;
+
+	if (lval) {
+		if (consume("=")) {
+			rval = rvalue();
+			node = new_node(ND_ASSIGN, lval, rval);
+		}else{
+			token = backup;
+			node = equality();
+		}
+	}else{
+		node = equality();
+	}
+	return node;
+}
+
 // expr       = assign
 Node *expr() {
-	return assign();
+	return rvalue();
 }
 
 // stmt    = expr ";"
@@ -510,63 +657,74 @@ Node *stmts() {
 // foo(x, y) { ... }
 Node *global() {
 	Node *node;
-	Token *tok = consume_ident();
+	Type *func_type = type();
 
-	if (tok) {
-		if (consume("(")) {
-			node = calloc(1, sizeof(Node));
-			Func *func = calloc(1, sizeof(Func));
-			Token *arg;
-			LVar *args = calloc(1, sizeof(LVar));
-			LVar *lvar;
+	if (func_type) {
+		Token *tok = consume_ident();
 
-			while (!consume(")")) {
-				arg = consume_ident();
-				if (!arg) {
-					error_at(token, "関数の引数が','で終わっています");
-					break;
+		if (tok) {
+			if (consume("(")) {
+				node = calloc(1, sizeof(Node));
+				Func *func = calloc(1, sizeof(Func));
+				Token *arg;
+				LVar *args = calloc(1, sizeof(LVar));
+				Type *arg_type;
+				LVar *lvar;
+
+				while (!consume(")")) {
+					arg_type = type();
+					if (!arg_type)
+						break;
+					arg = consume_ident();
+					if (!arg) {
+						error_at(token, "関数の引数が','で終わっています");
+						break;
+					}
+
+					lvar = calloc(1, sizeof(LVar));
+					lvar->next = args;
+					lvar->name = arg->str;
+					lvar->len = arg->len;
+					lvar->offset = args->offset + 8;
+					lvar->type = arg_type;
+					node->offset = lvar->offset;
+					node->type = lvar->type;
+					locals = lvar;
+					args = lvar;
+					func->args_len++;
+
+					if (!consume(",")) {
+						expect(")");
+						break;
+					}
 				}
 
-				lvar = calloc(1, sizeof(LVar));
-				lvar->next = args;
-				lvar->name = arg->str;
-				lvar->len = arg->len;
-				lvar->offset = args->offset + 8;
-				node->offset = lvar->offset;
-				locals = lvar;
-				args = lvar;
-				func->args_len++;
+				func->next = funcs;
+				func->name = tok->str;
+				func->len = tok->len;
+				func->locals = args;
+				func->type = func_type;
+				funcs = func;
 
-				if (!consume(",")) {
-					expect(")");
-					break;
+				node->ident = tok->str;
+				node->len = tok->len;
+				node->type = func->type;
+
+				if (consume(";")) {
+					node->kind = ND_DECL;
+				}else{
+					node->kind = ND_DEF;
+					node->side[0] = stmts();
+					func->locals = locals;
+					node->func = func;
+					cur_func = func;
 				}
+				return node;
 			}
-
-			func->next = funcs;
-			func->name = tok->str;
-			func->len = tok->len;
-			func->locals = args;
-			funcs = func;
-
-			node->ident = tok->str;
-			node->len = tok->len;
-
-			if (consume(";")) {
-				node->kind = ND_DECL;
-			}else{
-				node->kind = ND_DEF;
-				node->side[0] = stmts();
-				node->func = func;
-				cur_func = func;
-			}
-			return node;
 		}
 	}
 
-	//node = stmt();
-	//return node;
-	return NULL;
+	return stmt();
 }
 
 // program    = stmt*

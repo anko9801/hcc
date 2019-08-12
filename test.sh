@@ -4,8 +4,8 @@ try() {
 	expected="$1"
 	input="$2"
 
-	./hcc "$input" > tmp.s
-	gcc -o tmp tmp.s
+	#./hcc "$input" > tmp.s
+	#gcc -o tmp tmp.s
 	./tmp
 	actual="$?"
 
