@@ -370,6 +370,7 @@ Type *type() {
 
 Node *term() {
 	// 次のトークンが"("なら、"(" expr ")"のはず
+	cu();
 	if (consume("(")) {
 		Node *node = expr();
 		expect(")");
@@ -429,6 +430,7 @@ Node *term() {
 				push_back(args, arg);
 				if (!consume(",")) {
 					expect(")");
+					cu();
 					break;
 				}
 			}
@@ -464,9 +466,10 @@ Node *term() {
 //       | "*" unary
 //       | "&" unary
 Node *unary() {
+	Node *node;
 	if (consume("sizeof")) {
-		Node *node = unary();
-		if (node->type) {
+		node = unary();
+		if (node && node->type) {
 			return new_node_num(node->type->type_size * node->type->array_size);
 		}else{
 			return new_node_num(0);
@@ -477,7 +480,7 @@ Node *unary() {
 	if (consume("-"))
 		return new_node(ND_SUB, new_node_num(0), term());
 	if (consume("*")) {
-		Node *node = unary();
+		node = unary();
 
 		// PTRならばそのDEREFした型を代入
 		if (node->type && node->type->ty == PTR) {
@@ -523,7 +526,7 @@ Node *mul_expr() {
 Node *add_expr() {
 	Node *node = mul_expr();
 	Node *rhs;
-	if (node->type->ty == ARRAY)
+	if (node->type && node->type->ty == ARRAY)
 		node->type->ty = PTR;
 
 	for (;;) {
@@ -630,10 +633,11 @@ Node *expr() {
 		if (consume("=")) {
 			rval = expr();
 			node = new_node(ND_ASSIGN, lval, rval);
-		}/*else{
+		}else{
 			token = backup;
 			node = rvalue();
-		}*/
+			cu();
+		}
 	}else{
 		node = rvalue();
 	}
