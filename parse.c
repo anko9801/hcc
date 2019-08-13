@@ -453,13 +453,6 @@ Node *term() {
 		if (lvar) {
 			node->offset = lvar->offset;
 			node->type = lvar->type;
-			if (node->type->ty == ARRAY && consume("[")) {
-				Node *rhs = rvalue();
-				//*(a+3)
-				node = new_node(ND_ADD, node, rhs);
-				node = new_nodev(ND_DEREF, 1, node);
-				node->type = lvar->type->ptr_to;
-			}
 		}else{
 			error_at(token, "その変数は宣言されていません");
 		}
@@ -520,7 +513,32 @@ Node *unary() {
 		node->type = wrap_pointer(node->side[0]->type);
 		return node;
 	}
-	return term();
+	node = term();
+
+	if (consume("[")) {
+		Node *rhs = rvalue();
+		if (node->type->ty == ARRAY) {
+			node = new_nodev(ND_ADDR, 1, node);
+			node->type = wrap_pointer(node->side[0]->type->ptr_to);
+		}
+		if (rhs->type->ty == ARRAY) {
+			rhs = new_nodev(ND_ADDR, 1, rhs);
+			rhs->type = wrap_pointer(rhs->side[0]->type->ptr_to);
+		}
+
+		if (node->type->ty == PTR)
+			rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
+		if (rhs->type->ty == PTR)
+			node = new_node(ND_MUL, node, new_node_num(node->type->ptr_to->type_size));
+
+		//*(a+3)
+		node = new_node(ND_ADD, node, rhs);
+		node = new_nodev(ND_DEREF, 1, node);
+		node->type = node->side[0]->side[0]->type->ptr_to;
+		expect("]");
+		return node;
+	}
+	return node;
 }
 
 Node *mul_expr() {
@@ -629,6 +647,30 @@ Node *lvalue() {
 		if (lvar) {
 			node->offset = lvar->offset;
 			node->type = lvar->type;
+
+			if (consume("[")) {
+				Node *rhs = rvalue();
+				if (node->type->ty == ARRAY) {
+					node = new_nodev(ND_ADDR, 1, node);
+					node->type = wrap_pointer(node->side[0]->type->ptr_to);
+				}
+				if (rhs->type->ty == ARRAY) {
+					rhs = new_nodev(ND_ADDR, 1, rhs);
+					rhs->type = wrap_pointer(rhs->side[0]->type->ptr_to);
+				}
+
+				if (node->type->ty == PTR)
+					rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
+				if (rhs->type->ty == PTR)
+					node = new_node(ND_MUL, node, new_node_num(node->type->ptr_to->type_size));
+
+				//*(a+3)
+				node = new_node(ND_ADD, node, rhs);
+				node = new_nodev(ND_DEREF, 1, node);
+				node->type = node->side[0]->side[0]->type->ptr_to;
+				expect("]");
+				return node;
+			}
 		}else{
 			if (consume("(")) {
 				token = backup;
