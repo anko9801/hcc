@@ -39,8 +39,8 @@ void gen_lvalue(Node *node) {
 		printf("	push rax\n");
 		return;
 	case ND_VARDECL:
-		printf("	mov rax, rbp\n");
-		printf("	sub rax, %d\n", node->offset);
+		printf("	lea rax, [rbp-%d]\n", node->offset);
+		//printf("	sub rax, %d\n", );
 		printf("	push rax\n");
 		return;
 	case ND_ADDR:

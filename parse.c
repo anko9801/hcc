@@ -347,6 +347,15 @@ Node *expr();
 Node *stmts();
 Node *rvalue();
 
+Type *wrap_pointer(Type *ptr_to) {
+	Type *type = calloc(1, sizeof(Type));
+	type->ty = PTR;
+	type->type_size = 8;
+	type->ptr_to = ptr_to;
+	type->array_size = 1;
+	return type;
+}
+
 Type *type() {
 	Type *type_addr;
 	Type *type = NULL;
@@ -444,6 +453,13 @@ Node *term() {
 		if (lvar) {
 			node->offset = lvar->offset;
 			node->type = lvar->type;
+			if (node->type->ty == ARRAY && consume("[")) {
+				Node *rhs = rvalue();
+				//*(a+3)
+				node = new_node(ND_ADD, node, rhs);
+				node = new_nodev(ND_DEREF, 1, node);
+				node->type = lvar->type->ptr_to;
+			}
 		}else{
 			error_at(token, "その変数は宣言されていません");
 		}
@@ -480,6 +496,10 @@ Node *unary() {
 		return new_node(ND_SUB, new_node_num(0), term());
 	if (consume("*")) {
 		node = unary();
+		if (node->type && node->type->ty == ARRAY) {
+			node = new_nodev(ND_ADDR, 1, node);
+			node->type = wrap_pointer(node->side[0]->type->ptr_to);
+		}
 
 		// PTRならばそのDEREFした型を代入
 		if (node->type && node->type->ty == PTR) {
@@ -497,11 +517,7 @@ Node *unary() {
 		// 全ての型
 		node = new_nodev(ND_ADDR, 1, node);
 		// nodeのaddrを型に代入
-		node->type = calloc(1, sizeof(Type));
-		node->type->ty = PTR;
-		node->type->type_size = 8;
-		node->type->ptr_to = node->side[0]->type;
-		node->type->array_size = 1;
+		node->type = wrap_pointer(node->side[0]->type);
 		return node;
 	}
 	return term();
@@ -528,12 +544,7 @@ Node *add_expr() {
 	Node *rhs;
 	if (node->type && node->type->ty == ARRAY) {
 		node = new_nodev(ND_ADDR, 1, node);
-		node->type = calloc(1, sizeof(Type));
-		node->type->ty = PTR;
-		node->type->type_size = 8;
-		node->type->ptr_to = node->side[0]->type;
-		node->type->array_size = 1;
-		//node->type->ty = PTR;
+		node->type = wrap_pointer(node->side[0]->type->ptr_to);
 	}
 
 	for (;;) {
