@@ -430,7 +430,6 @@ Node *term() {
 				push_back(args, arg);
 				if (!consume(",")) {
 					expect(")");
-					cu();
 					break;
 				}
 			}
@@ -489,6 +488,7 @@ Node *unary() {
 				node->type = node->side[0]->type->ptr_to;
 		}else
 			error_at(token, "error: indirection requires pointer operand ('int' invalid)");
+		cu();
 		return node;
 	}
 	if (consume("&")) {
@@ -517,7 +517,7 @@ Node *mul_expr() {
 			else if (consume("/"))
 				node = new_node(ND_DIV, node, unary());
 			else
-				return node;;
+				return node;
 		}
 	}
 	return node;
@@ -526,8 +526,15 @@ Node *mul_expr() {
 Node *add_expr() {
 	Node *node = mul_expr();
 	Node *rhs;
-	if (node->type && node->type->ty == ARRAY)
+	if (node->type && node->type->ty == ARRAY) {
+		node = new_nodev(ND_ADDR, 1, node);
+		node->type = calloc(1, sizeof(Type));
 		node->type->ty = PTR;
+		node->type->type_size = 8;
+		node->type->ptr_to = node->side[0]->type;
+		node->type->array_size = 1;
+		//node->type->ty = PTR;
+	}
 
 	for (;;) {
 		if (consume("+")) {
@@ -593,8 +600,11 @@ Node *lvalue() {
 	Token *backup = token;
 	Node *node = NULL;
 
-	if (consume("*"))
-		return new_nodev(ND_DEREF, 1, lvalue());
+	if (consume("*")) {
+		node = rvalue();
+		if (node->type && node->type->ty == PTR)
+			return new_nodev(ND_DEREF, 1, node);
+	}
 	if (consume("&"))
 		return new_nodev(ND_ADDR, 1, lvalue());
 	Token *tok;
@@ -636,7 +646,6 @@ Node *expr() {
 		}else{
 			token = backup;
 			node = rvalue();
-			cu();
 		}
 	}else{
 		node = rvalue();

@@ -4,5 +4,5 @@ int main() {
 	*(a + 1) = 2;
 	int *p;
 	p = a;
-	return *p + *(p + 1)  // → 3
+	return *p + *(p + 1);  // → 3
 }
