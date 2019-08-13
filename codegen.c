@@ -7,6 +7,30 @@ int call_cnt = 0;
 extern Node *new_node(int type, Node *lhs, Node *rhs);
 extern Node *new_node_num(int val);
 
+void gen_pre(Node **code, Func *funcs) {
+	printf(".intel_syntax noprefix\n");
+	printf(".extern _print, _alloc4\n");
+	printf(".global ");
+
+	char *str;
+	while (funcs->next) {
+		strncpy(str, funcs->name, funcs->len);
+		str[funcs->len] = '\0';
+
+		printf("_%s, ", str);
+		funcs = funcs->next;
+	}
+	strncpy(str, funcs->name, funcs->len);
+	str[funcs->len] = '\0';
+	printf("_%s\n", str);
+
+	gen(code[0]);
+	for (int i = 1;code[i];i++) {
+		printf("	pop rax\n");
+		gen(code[i]);
+	}
+}
+
 void gen_lvalue(Node *node) {
 	switch (node->kind) {
 	case ND_LVAR:
@@ -35,12 +59,12 @@ void gen(Node *node) {
 	char *args_list[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 	switch (node->kind) {
 	case ND_NUM:
-		//fprintf(stderr, "num\n");
+		fprintf(stderr, "num\n");
 		printf("	push %d\n", node->val);
 		return;
 
 	case ND_LVAR:
-		//fprintf(stderr, "lvar\n");
+		fprintf(stderr, "lvar\n");
 		gen_lvalue(node);
 
 		printf("	pop rax\n");
@@ -88,18 +112,21 @@ void gen(Node *node) {
 
 		printf("	cmp rax, 1\n");
 		printf("	je if.then%d\n", if_cnt);
-		printf("	jmp if.else%d\n", if_cnt);
+		if (node->side[2])
+			printf("	jmp if.else%d\n", if_cnt);
 		printf("if.then%d:\n", if_cnt);
 
 		gen(node->side[1]);
 
-		printf("	jmp if.end%d\n", if_cnt);
-		printf("if.else%d:\n", if_cnt);
+		if (node->side[2]) {
+			printf("	jmp if.end%d\n", if_cnt);
+			printf("if.else%d:\n", if_cnt);
 
-		gen(node->side[2]);
+			gen(node->side[2]);
 
-		printf("	jmp if.end%d\n", if_cnt);
-		printf("if.end%d:\n", if_cnt);
+			printf("	jmp if.end%d\n", if_cnt);
+			printf("if.end%d:\n", if_cnt);
+		}
 		if_cnt += 1;
 		return;
 
@@ -167,12 +194,16 @@ void gen(Node *node) {
 	case ND_DEF:
 		strncpy(str, node->ident, node->len);
 		str[node->len] = '\0';
+
 		printf("_%s:\n", str);
 		printf("	push rbp\n");
 		printf("	mov rbp, rsp\n");
 		printf("	sub rsp, %d\n", node->func->locals->offset);
-		for (int i = 0;i < node->func->args_len && i < 6;i++) {
-			printf("	mov [rbp-%d], %s\n", (i+1)*16, args_list[i]);
+
+		LVar *arg = node->func->args;
+		for (int i = 0;i < 6 && arg->offset != 0;i++) {
+			printf("	mov [rbp-%d], %s\n", arg->offset, args_list[i]);
+			arg = arg->next;
 		}
 
 		gen(node->side[0]);

@@ -3,7 +3,7 @@
 extern char *user_input;
 extern Token *token;
 extern Node *code[100];
-extern LVar *locals;
+extern Func *funcs;
 
 int main(int argc, char **argv) {
 	if (argc != 2) {
@@ -30,17 +30,7 @@ int main(int argc, char **argv) {
 	fprintf(stderr, "トークナイズ完了！\n");
 	program();
 	fprintf(stderr, "パース完了！\n");
-
-	printf(".intel_syntax noprefix\n");
-	printf(".extern _foo, _alloc4\n");
-	printf(".globl _main, _test\n");
-
-	gen(code[0]);
-	for (int i = 1;code[i];i++) {
-		printf("	pop rax\n");
-		gen(code[i]);
-	}
-
+	gen_pre(code, funcs);
 	fprintf(stderr, "CodeGen完了！\n");
 	return 0;
 }

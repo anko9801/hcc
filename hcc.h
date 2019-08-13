@@ -85,13 +85,15 @@ struct Func {
 	Type *type;
 	char *name; // 関数の名前
 	int len;    // 名前の長さ
-	int args_len;
 	LVar *locals; // 引数 ローカル変数
+	LVar *args;
 };
 
 struct Type {
-	enum { INT, PTR } ty;
+	enum { INT, PTR, ARRAY } ty;
 	struct Type *ptr_to;
+	int type_size;
+	int array_size;
 };
 
 void error(char *fmt, ...);
@@ -103,3 +105,4 @@ void gen(Node *node);
 Vec *new_vector();
 void push_back(Vec *vec, void *elem);
 void runtest();
+void gen_pre(Node **code, Func *funcs);

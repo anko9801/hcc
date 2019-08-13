@@ -160,13 +160,15 @@ Token *tokenize(char *p) {
 		}
 
 		if (strncmp(p, "==", 2) == 0) {
-			cur = new_token(TK_RESERVED, cur, p++, line);
+			cur = new_token(TK_RESERVED, cur, p, line);
+			p+= 2;
 			cur->len = 2;
 			continue;
 		}
 		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' ||
 			*p == ';' || *p == '=' || *p == ',' || *p == '&' ||
 			*p == '(' || *p == ')' ||
+			*p == '[' || *p == ']' ||
 			*p == '<' || *p == '>' ||
 			*p == '{' || *p == '}') {
 			fprintf(stderr, "%c", *p);
@@ -232,7 +234,10 @@ Func *cur_func;
 Node *new_node(int type, Node *lhs, Node *rhs) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = type;
-	node->type = NULL;
+	if ((type != ND_ADD && type != ND_SUB) && lhs->type && rhs->type && lhs->type->ty != rhs->type->ty) {
+		error_at(token, "相違な型です%d %d\n", lhs->type->ty, rhs->type->ty);
+	}
+	node->type = lhs->type;
 	node->side[0] = lhs;
 	node->side[1] = rhs;
 	return node;
@@ -268,7 +273,9 @@ Node *new_node_num(int val) {
 	node->val = val;
 	Type *type = calloc(1, sizeof(Type));
 	type->ty = INT;
+	type->type_size = 4;
 	type->ptr_to = NULL;
+	type->array_size = 1;
 	node->type = type;
 	return node;
 }
@@ -287,12 +294,34 @@ LVar *find_lvar(Token *tok) {
 	return NULL;
 }
 
+LVar *new_lvar(LVar *pre, Token *tok, Type *type) {
+	LVar *lvar = calloc(1, sizeof(LVar));
+	lvar->next = pre;
+	lvar->name = tok->str;
+	lvar->len = tok->len;
+	lvar->offset = pre->offset + 8;
+	lvar->type = type;
+	return lvar;
+}
+
 Func *find_func(Token *tok) {
 	for (Func *func = funcs; func; func = func->next)
-		if (func->len == func->len && !memcmp(tok->str, func->name, func->len))
+		if (func->len == tok->len && !memcmp(tok->str, func->name, func->len))
 			return func;
 	return NULL;
 }
+
+Func *new_func(Func *pre, Token *tok, Type *type, LVar *args) {
+	Func *func = calloc(1, sizeof(Func));
+	func->next = funcs;
+	func->name = tok->str;
+	func->len = tok->len;
+	func->args = args;
+	func->locals = args;
+	func->type = type;
+	return func;
+}
+
 /*
 program    = stmt*
 stmt       = expr ";"
@@ -316,6 +345,7 @@ void cu() {
 }
 Node *expr();
 Node *stmts();
+Node *rvalue();
 
 Type *type() {
 	Type *type_addr;
@@ -324,11 +354,14 @@ Type *type() {
 	if (consume("int")) {
 		type = calloc(1, sizeof(Type));
 		type->ty = INT;
+		type->type_size = 4;
 		type->ptr_to = NULL;
+		type->array_size = 1;
 	}
 	while (consume("*")) {
 		type_addr = calloc(1, sizeof(Type));
 		type_addr->ty = PTR;
+		type_addr->type_size = 8;
 		type_addr->ptr_to = type;
 		type = type_addr;
 	}
@@ -337,8 +370,6 @@ Type *type() {
 
 Node *term() {
 	// 次のトークンが"("なら、"(" expr ")"のはず
-	// current();
-	//cu();
 	if (consume("(")) {
 		Node *node = expr();
 		expect(")");
@@ -350,18 +381,25 @@ Node *term() {
 	if (ident_type) {
 		tok = consume_ident();
 		if (tok) {
-			Node *node = calloc(1, sizeof(Node));
-			node->kind = ND_VARDECL;
+			if (consume("[")) {
+				int array_size = consume_number();
+				expect("]");
 
-			LVar *lvar = calloc(1, sizeof(LVar));
-			lvar->next = locals;
-			lvar->name = tok->str;
-			lvar->len = tok->len;
-			lvar->type = ident_type;
-			lvar->offset = locals->offset + 8;
+				Type *type = calloc(1, sizeof(Type));
+				type->ty = ARRAY;
+				type->ptr_to = ident_type;
+				type->type_size = ident_type->type_size * ident_type->array_size;
+				type->array_size = array_size;
+				ident_type = type;
+			}
+			Node *node = calloc(1, sizeof(Node));
+			LVar *lvar = new_lvar(locals, tok, ident_type);
+			locals = lvar;
+
+			node->kind = ND_VARDECL;
 			node->offset = lvar->offset;
 			node->type = lvar->type;
-			locals = lvar;
+
 			if (consume("=")) {
 				node = new_node(ND_ASSIGN, node, expr());
 			}
@@ -372,12 +410,12 @@ Node *term() {
 	tok = consume_ident();
 	if (tok) {
 		Node *node = calloc(1, sizeof(Node));
-		//cu();
 		if (consume("(")) {
 			node->kind = ND_CALL;
 			// 関数名
 			node->ident = tok->str;
 			node->len = tok->len+1;
+			Func *func = find_func(tok);
 
 			// 引数
 			Node *arg;
@@ -395,6 +433,8 @@ Node *term() {
 				}
 			}
 			node->nodes = args;
+			if (func)
+				node->type = func->type;
 			return node;
 		}
 		node->kind = ND_LVAR;
@@ -424,51 +464,86 @@ Node *term() {
 //       | "*" unary
 //       | "&" unary
 Node *unary() {
+	if (consume("sizeof")) {
+		Node *node = unary();
+		if (node->type) {
+			return new_node_num(node->type->type_size * node->type->array_size);
+		}else{
+			return new_node_num(0);
+		}
+	}
 	if (consume("+"))
 		return term();
 	if (consume("-"))
 		return new_node(ND_SUB, new_node_num(0), term());
-	if (consume("*"))
-		return new_nodev(ND_DEREF, 1, unary());
-	if (consume("&"))
-		return new_nodev(ND_ADDR, 1, unary());
+	if (consume("*")) {
+		Node *node = unary();
+
+		// PTRならばそのDEREFした型を代入
+		if (node->type && node->type->ty == PTR) {
+			node = new_nodev(ND_DEREF, 1, node);
+			if (node->side[0]->type && node->side[0]->type->ty == PTR)
+				node->type = node->side[0]->type->ptr_to;
+		}else
+			error_at(token, "error: indirection requires pointer operand ('int' invalid)");
+		return node;
+	}
+	if (consume("&")) {
+		Node *node = unary();
+
+		// 全ての型
+		node = new_nodev(ND_ADDR, 1, node);
+		// nodeのaddrを型に代入
+		node->type = calloc(1, sizeof(Type));
+		node->type->ty = PTR;
+		node->type->type_size = 8;
+		node->type->ptr_to = node->side[0]->type;
+		node->type->array_size = 1;
+		return node;
+	}
 	return term();
 }
 
 Node *mul_expr() {
 	Node *node = unary();
 
-	for (;;) {
-		if (consume("*"))
-			node = new_node(ND_MUL, node, unary());
-		else if (consume("/"))
-			node = new_node(ND_DIV, node, unary());
-		else
-			return node;
+	if (node->type && node->type->ty == INT) {
+		for (;;) {
+			if (consume("*"))
+				node = new_node(ND_MUL, node, unary());
+			else if (consume("/"))
+				node = new_node(ND_DIV, node, unary());
+			else
+				return node;;
+		}
 	}
+	return node;
 }
 
 Node *add_expr() {
 	Node *node = mul_expr();
+	Node *rhs;
+	if (node->type->ty == ARRAY)
+		node->type->ty = PTR;
 
 	for (;;) {
-		if (consume("+"))
+		if (consume("+")) {
+			rhs = mul_expr();
 			if (node->type->ty == PTR)
-				if (node->type->ptr_to->ty == INT)
-					node = new_node(ND_ADD, node, new_node(ND_MUL, mul_expr(), new_node_num(4)));
-				else
-					node = new_node(ND_ADD, node, new_node(ND_MUL, mul_expr(), new_node_num(8)));
-			else
-				node = new_node(ND_ADD, node, mul_expr());
-		else if (consume("-"))
+				rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
+			else if (rhs->type->ty == PTR)
+				node = new_node(ND_MUL, node, new_node_num(node->type->ptr_to->type_size));
+
+			node = new_node(ND_ADD, node, rhs);
+		}else if (consume("-")) {
+			rhs = mul_expr();
 			if (node->type->ty == PTR)
-				if (node->type->ptr_to->ty == INT)
-					node = new_node(ND_ADD, node, new_node(ND_MUL, mul_expr(), new_node_num(4)));
-				else
-					node = new_node(ND_ADD, node, new_node(ND_MUL, mul_expr(), new_node_num(8)));
-			else
-				node = new_node(ND_SUB, node, mul_expr());
-		else
+				rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
+			else if (rhs->type->ty == PTR)
+				node = new_node(ND_MUL, node, new_node_num(node->type->ptr_to->type_size));
+
+			node = new_node(ND_SUB, node, rhs);
+		}else
 			return node;
 	}
 }
@@ -507,13 +582,8 @@ Node *equality() {
 	}
 }
 
-// assign     = equality ("=" assign)?
-Node *assign() {
-	Node *node = equality();
-
-	if (consume("="))
-		node = new_node(ND_ASSIGN, node, assign());
-	return node;
+Node *rvalue() {
+	return equality();
 }
 
 Node *lvalue() {
@@ -548,7 +618,9 @@ Node *lvalue() {
 	return node;
 }
 
-Node *rvalue() {
+// expr		= lvalue (= expr)
+//			| rvalue
+Node *expr() {
 	Node *node = NULL;
 	Token *backup = token;
 	Node *lval = lvalue();
@@ -556,21 +628,16 @@ Node *rvalue() {
 
 	if (lval) {
 		if (consume("=")) {
-			rval = rvalue();
+			rval = expr();
 			node = new_node(ND_ASSIGN, lval, rval);
-		}else{
+		}/*else{
 			token = backup;
-			node = equality();
-		}
+			node = rvalue();
+		}*/
 	}else{
-		node = equality();
+		node = rvalue();
 	}
 	return node;
-}
-
-// expr       = assign
-Node *expr() {
-	return rvalue();
 }
 
 // stmt    = expr ";"
@@ -581,7 +648,6 @@ Node *expr() {
 //         | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 Node *stmt() {
 	Node *node;
-	Token *tok;
 
 	if (consume("return")) {
 		node = expr();
@@ -654,7 +720,7 @@ Node *stmts() {
 	return node;
 }
 
-// foo(x, y) { ... }
+// int foo(int x, int y) { ... }
 Node *global() {
 	Node *node;
 	Type *func_type = type();
@@ -665,7 +731,7 @@ Node *global() {
 		if (tok) {
 			if (consume("(")) {
 				node = calloc(1, sizeof(Node));
-				Func *func = calloc(1, sizeof(Func));
+				Func *func;
 				Token *arg;
 				LVar *args = calloc(1, sizeof(LVar));
 				Type *arg_type;
@@ -681,17 +747,13 @@ Node *global() {
 						break;
 					}
 
-					lvar = calloc(1, sizeof(LVar));
-					lvar->next = args;
-					lvar->name = arg->str;
-					lvar->len = arg->len;
-					lvar->offset = args->offset + 8;
-					lvar->type = arg_type;
+					lvar = new_lvar(args, arg, arg_type);
+					lvar = new_lvar(locals, arg, arg_type);
+					args = lvar;
+					locals = lvar;
+
 					node->offset = lvar->offset;
 					node->type = lvar->type;
-					locals = lvar;
-					args = lvar;
-					func->args_len++;
 
 					if (!consume(",")) {
 						expect(")");
@@ -699,11 +761,7 @@ Node *global() {
 					}
 				}
 
-				func->next = funcs;
-				func->name = tok->str;
-				func->len = tok->len;
-				func->locals = args;
-				func->type = func_type;
+				func = new_func(funcs, tok, func_type, args);
 				funcs = func;
 
 				node->ident = tok->str;

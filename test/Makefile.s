@@ -1,0 +1,1 @@
+./test/Makefile.hc is not found.

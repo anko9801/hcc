@@ -6,7 +6,7 @@ try() {
 
 	#./hcc "$input" > tmp.s
 	#gcc -o tmp tmp.s
-	./tmp
+	./test2
 	actual="$?"
 
 	if [ "$actual" = "$expected" ]; then
