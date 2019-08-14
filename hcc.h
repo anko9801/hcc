@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -64,7 +65,7 @@ struct Node {
 	Vec *nodes;    // ND_BLOCK, ND_CALL, ND_DEFの場合
 	int val;       // kindがND_NUMの場合のみ使う
 	Type *type;
-	int offset;    // kindがND_LVARの場合のみ使う
+	LVar *var;    // kindがND_LVARの場合のみ使う
 	char *ident;
 	int len;
 	Func *func;
@@ -76,6 +77,7 @@ struct LVar {
 	char *name; // 変数の名前
 	int len;    // 名前の長さ
 	Type *type;
+	int scope;
 	int offset; // RBPからのオフセット
 };
 
@@ -97,7 +99,7 @@ struct Type {
 };
 
 void error(char *fmt, ...);
-void error_at(Token *loc, char *fmt, ...);
+void error_at(char *loc, char *fmt, ...);
 void expect(char *op);
 Token *tokenize(char *p);
 void program();

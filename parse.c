@@ -17,20 +17,39 @@ void error(char *fmt, ...) {
 	exit(1);
 }
 
-// エラー箇所を報告する
-void error_at(Token *loc, char *fmt, ...) {
+// 入力ファイル名
+char *filename;
+
+// エラーの起きた場所を報告するための関数
+// 下のようなフォーマットでエラーメッセージを表示する
+//
+// foo.c:10: x = y + + 5;
+//                   ^ 式ではありません
+void error_at(char *loc, char *fmt, ...) {
+	// locが含まれている行の開始地点と終了地点を取得
+	char *line = loc;
+	while (user_input < line && line[-1] != '\n')
+		line--;
+
+	char *end = loc;
+	while (*end != '\n')
+		end++;
+
+	// 見つかった行が全体の何行目なのかを調べる
+	int line_num = 1;
+	for (char *p = user_input; p < line; p++)
+		if (*p == '\n')
+			line_num++;
+
+	// 見つかった行を、ファイル名と行番号と一緒に表示
+	int indent = fprintf(stderr, "%s:%d: ", filename, line_num);
+	fprintf(stderr, "%.*s\n", (int)(end - line), line);
+
+	// エラー箇所を"^"で指し示して、エラーメッセージを表示
+	int pos = loc - line + indent;
+	fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
 	va_list ap;
 	va_start(ap, fmt);
-
-	//int pos = loc->str - user_input;
-	int posline = 0;
-	int pos = 0;
-	for (int i = 0;; i++) {
-		if (loc->str[i] == '\n')
-			break;
-		fprintf(stderr, "%c", loc->str[i]);
-	}
-	fprintf(stderr, "\n%*s", pos, ""); // pos個の空白を出力
 	fprintf(stderr, "^ ");
 	vfprintf(stderr, fmt, ap);
 	fprintf(stderr, "\n");
@@ -70,7 +89,7 @@ int consume_number() {
 void expect(char *op) {
 	if (token->kind != TK_RESERVED || memcmp(token->str, op, strlen(op)))
 		// error("'%c'ではありません", op);
-		error_at(token, "'%s'ではありません", op);
+		error_at(token->str, "'%s'ではありません", op);
 	token = token->next;
 }
 
@@ -78,7 +97,7 @@ void expect(char *op) {
 // それ以外の場合にはエラーを報告する。
 int expect_number() {
 	if (token->kind != TK_NUM)
-		error_at(token, "数ではありません");
+		error_at(token->str, "数ではありません");
 	int val = token->val;
 	token = token->next;
 	return val;
@@ -198,7 +217,8 @@ Token *tokenize(char *p) {
 			is_reserved(&p, &cur, "else") ||
 			is_reserved(&p, &cur, "while") ||
 			is_reserved(&p, &cur, "for") ||
-			is_reserved(&p, &cur, "sizeof")) {
+			is_reserved(&p, &cur, "sizeof") ||
+			is_reserved(&p, &cur, "extern")) {
 			continue;
 		}
 
@@ -233,6 +253,7 @@ Token *tokenize(char *p) {
 Node *code[100];
 // ローカル変数
 LVar *locals;
+LVar *globals;
 // 関数
 Func *funcs;
 Func *extern_funcs;
@@ -241,7 +262,7 @@ Node *new_node(int type, Node *lhs, Node *rhs) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = type;
 	if ((type != ND_ADD && type != ND_SUB) && lhs->type && rhs->type && lhs->type->ty != rhs->type->ty) {
-		error_at(token, "相違な型です%d %d\n", lhs->type->ty, rhs->type->ty);
+		error_at(token->str, "相違な型です%d %d\n", lhs->type->ty, rhs->type->ty);
 	}
 	node->type = lhs->type;
 	node->side[0] = lhs;
@@ -286,15 +307,11 @@ Node *new_node_num(int val) {
 	return node;
 }
 
-Node *new_node_ident(char name) {
-	Node *node = calloc(1, sizeof(Node));
-	node->kind = ND_LVAR;
-	node->offset = name;
-	return node;
-}
-
 LVar *find_lvar(Token *tok) {
 	for (LVar *var = locals; var; var = var->next)
+		if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+			return var;
+	for (LVar *var = globals; var; var = var->next)
 		if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
 			return var;
 	return NULL;
@@ -305,6 +322,7 @@ LVar *new_lvar(LVar *pre, Token *tok, Type *type) {
 	lvar->next = pre;
 	lvar->name = tok->str;
 	lvar->len = tok->len;
+	lvar->scope = 0;
 	lvar->offset = pre->offset + 8;
 	lvar->type = type;
 	return lvar;
@@ -421,7 +439,7 @@ Node *term() {
 			locals = lvar;
 
 			node->kind = ND_VARDECL;
-			node->offset = lvar->offset;
+			node->var = lvar;
 			node->type = lvar->type;
 
 			if (consume("=")) {
@@ -447,7 +465,7 @@ Node *term() {
 			while (!consume(")")) {
 				arg = expr();
 				if (!arg) {
-					error_at(token, "関数の引数が','で終わっています");
+					error_at(token->str, "関数の引数が','で終わっています");
 					break;
 				}
 				push_back(args, arg);
@@ -465,10 +483,10 @@ Node *term() {
 
 		LVar *lvar = find_lvar(tok);
 		if (lvar) {
-			node->offset = lvar->offset;
+			node->var = lvar;
 			node->type = lvar->type;
 		}else{
-			error_at(token, "その変数は宣言されていません");
+			error_at(token->str, "その変数は宣言されていません");
 		}
 		return node;
 	}
@@ -478,8 +496,7 @@ Node *term() {
 	if (val != -1)
 		return new_node_num(val);
 
-	//fprintf(stderr, "%s\n", token->str);
-	error_at(token, "項がありません");
+	error_at(token->str, "項がありません");
 	return NULL;
 }
 
@@ -514,7 +531,7 @@ Node *unary() {
 			if (node->side[0]->type && node->side[0]->type->ty == PTR)
 				node->type = node->side[0]->type->ptr_to;
 		}else
-			error_at(token, "error: indirection requires pointer operand ('int' invalid)");
+			error_at(token->str, "error: indirection requires pointer operand ('int' invalid)");
 		return node;
 	}
 	if (consume("&")) {
@@ -658,7 +675,7 @@ Node *lvalue() {
 
 		LVar *lvar = find_lvar(tok);
 		if (lvar) {
-			node->offset = lvar->offset;
+			node->var = lvar;
 			node->type = lvar->type;
 
 			if (consume("[")) {
@@ -689,7 +706,7 @@ Node *lvalue() {
 				token = backup;
 				return NULL;
 			}
-			error_at(token, "その変数は宣言されていません");
+			error_at(token->str, "その変数は宣言されていません");
 		}
 		return node;
 	}
@@ -783,6 +800,7 @@ Node *stmts() {
 	if (consume("{")) {
 		Vec *nodes = new_vector();
 		for(;;) {
+			cu();
 			push_back(nodes, stmt());
 			if (consume("}")) {
 				break;
@@ -802,12 +820,14 @@ Node *stmts() {
 
 Node *func() {
 	Node *node = NULL;
-	Type *func_type = type();
+	Type *ident_type = type();
 
-	if (func_type) {
+	if (ident_type) {
 		Token *tok = consume_ident();
+		fprintf(stderr, "%s\n", tok->str);
 
 		if (tok) {
+			// 関数
 			if (consume("(")) {
 				node = calloc(1, sizeof(Node));
 				Func *func;
@@ -823,7 +843,7 @@ Node *func() {
 						break;
 					arg = consume_ident();
 					if (!arg) {
-						error_at(token, "関数の引数が','で終わっています");
+						error_at(token->str, "関数の引数が','で終わっています");
 						break;
 					}
 
@@ -833,7 +853,7 @@ Node *func() {
 					lvar = new_lvar(locals, arg, arg_type);
 					locals = lvar;
 
-					node->offset = lvar->offset;
+					node->var = lvar;
 					node->type = lvar->type;
 
 					if (!consume(",")) {
@@ -844,21 +864,52 @@ Node *func() {
 
 				node->ident = tok->str;
 				node->len = tok->len;
-				node->type = func_type;
+				node->type = ident_type;
 
+				// 関数宣言
 				if (consume(";")) {
-					func = new_func(extern_funcs, tok, func_type, arg_first);
+					func = new_func(extern_funcs, tok, ident_type, arg_first);
 					extern_funcs = func;
 					node->kind = ND_DECL;
 					node->func = func;
+				// 関数定義
 				}else{
-					func = new_func(funcs, tok, func_type, arg_first);
+					func = new_func(funcs, tok, ident_type, arg_first);
 					funcs = func;
 					node->kind = ND_DEF;
 					node->side[0] = stmts();
+					cu();
 					func->locals = locals;
 					node->func = func;
 				}
+				return node;
+			// 変数
+			}else{
+				if (consume("[")) {
+					int array_size = consume_number();
+					expect("]");
+
+					Type *type = calloc(1, sizeof(Type));
+					type->ty = ARRAY;
+					type->ptr_to = ident_type;
+					type->type_size = ident_type->type_size * ident_type->array_size;
+					type->array_size = array_size;
+					ident_type = type;
+				}
+				Node *node = calloc(1, sizeof(Node));
+				LVar *lvar = new_lvar(globals, tok, ident_type);
+				lvar->scope = 1;
+				globals = lvar;
+
+				node->kind = ND_VARDECL;
+				node->var = lvar;
+				node->type = lvar->type;
+
+				if (consume("=")) {
+					node = new_node(ND_ASSIGN, node, expr());
+				}
+
+				expect(";");
 				return node;
 			}
 		}
@@ -877,14 +928,16 @@ Node *global() {
 		node = func();
 		if (node)
 			return node;
-		error_at(token, "It is not valid token after extern");
+		error_at(token->str, "It is not valid token after extern");
 	}
+	fprintf(stderr, "%s\n", token->str);
 
 	return stmt();
 }
 
 // program    = stmt*
 void program() {
+	globals = calloc(1, sizeof(LVar));
 	int i = 0;
 	while (!at_eof()) {
 		locals = calloc(1, sizeof(LVar));

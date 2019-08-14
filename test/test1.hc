@@ -1,4 +1,4 @@
-int print(int a);
+extern int print(int a);
 
 int fibo(int a, int b, int i) {
 	if (i == 20) return 0;

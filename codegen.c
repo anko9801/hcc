@@ -47,16 +47,26 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 }
 
 void gen_lvalue(Node *node) {
+	char str[100];
 	switch (node->kind) {
 	case ND_LVAR:
-		printf("	mov rax, rbp\n");
-		printf("	sub rax, %d\n", node->offset);
-		printf("	push rax\n");
+		if (node->var->scope == 0) {
+			printf("	mov rax, rbp\n");
+			printf("	sub rax, %d\n", node->var->offset);
+			printf("	push rax\n");
+		}else{
+			strncpy(str, node->var->name, node->var->len);
+			str[node->len-1] = '\0';
+			printf("	eax, DWORD PTR %s[rip]\n", str);
+			printf("	push rax\n");
+		}
 		return;
 	case ND_VARDECL:
-		printf("	lea rax, [rbp-%d]\n", node->offset);
-		//printf("	sub rax, %d\n", );
-		printf("	push rax\n");
+		if (node->var->scope == 0) {
+			printf("	lea rax, [rbp-%d]\n", node->var->offset);
+			//printf("	sub rax, %d\n", );
+			printf("	push rax\n");
+		}
 		return;
 	case ND_ADDR:
 		gen_lvalue(node->side[0]);
