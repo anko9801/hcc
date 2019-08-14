@@ -10,11 +10,6 @@ _main:
 	sub rax, 8
 	push rax
 	push 0
-	push 4
-	pop rbx
-	pop rax
-	mul rbx
-	push rax
 	pop rbx
 	pop rax
 	add rax, rbx
@@ -28,11 +23,6 @@ _main:
 	sub rax, 8
 	push rax
 	push 1
-	push 4
-	pop rbx
-	pop rax
-	mul rbx
-	push rax
 	pop rbx
 	pop rax
 	add rax, rbx

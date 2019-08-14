@@ -65,10 +65,11 @@ struct Node {
 	Vec *nodes;    // ND_BLOCK, ND_CALL, ND_DEFの場合
 	int val;       // kindがND_NUMの場合のみ使う
 	Type *type;
-	LVar *var;    // kindがND_LVARの場合のみ使う
+	
 	char *ident;
 	int len;
-	Func *func;
+	LVar *var;    // ND_VARDECL ND_LVAR
+	Func *func;   // ND_DEF
 };
 
 // ローカル変数の型
@@ -92,7 +93,7 @@ struct Func {
 };
 
 struct Type {
-	enum { INT, PTR, ARRAY } ty;
+	enum { INT, CHAR, PTR, ARRAY } ty;
 	struct Type *ptr_to;
 	int type_size;
 	int array_size;

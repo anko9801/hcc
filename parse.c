@@ -182,17 +182,12 @@ Token *tokenize(char *p) {
 			is_reserved(&p, &cur, "!=") ||
 			is_reserved(&p, &cur, "<=") ||
 			is_reserved(&p, &cur, ">=")*/
-			
-			
-			
-			
-			
 			) {
 			continue;
 		}
 		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' ||
 			*p == ';' || *p == '=' || *p == ',' || *p == '&' ||
-			*p == '(' || *p == ')' ||
+			*p == '(' || *p == ')' || *p == '\'' || *p == '\"' ||
 			*p == '[' || *p == ']' ||
 			*p == '<' || *p == '>' ||
 			*p == '{' || *p == '}') {
@@ -212,6 +207,7 @@ Token *tokenize(char *p) {
 		}
 
 		if (is_reserved(&p, &cur, "int") ||
+			is_reserved(&p, &cur, "char") ||
 			is_reserved(&p, &cur, "return") ||
 			is_reserved(&p, &cur, "if") ||
 			is_reserved(&p, &cur, "else") ||
@@ -286,11 +282,12 @@ Node *new_nodev(int type, int num, Node *sides, ...) {
 	return node;
 }
 
-Node *new_node_single(int type, Node *lhs) {
+Node *new_node_s(int kind, Token *tok, Type *type) {
 	Node *node = calloc(1, sizeof(Node));
-	node->kind = type;
-	node->side[0] = lhs;
-	node->type = NULL;
+	node->kind = kind;
+	node->ident = tok->str;
+	node->len = tok->len;
+	node->type = type;
 	return node;
 }
 
@@ -380,38 +377,95 @@ Node *expr();
 Node *stmts();
 Node *rvalue();
 
-Type *wrap_pointer(Type *ptr_to) {
+Type *int_type() {
 	Type *type = calloc(1, sizeof(Type));
-	type->ty = PTR;
-	type->type_size = 8;
-	type->ptr_to = ptr_to;
+	type->ty = INT;
+	type->ptr_to = NULL;
+	type->type_size = 4;
 	type->array_size = 1;
 	return type;
 }
 
-Type *type() {
+Type *char_type() {
+	Type *type = calloc(1, sizeof(Type));
+	type->ty = CHAR;
+	type->ptr_to = NULL;
+	type->type_size = 1;
+	type->array_size = 1;
+	return type;
+}
+
+Type *wrap_pointer(Type *ptr_to) {
+	Type *type = calloc(1, sizeof(Type));
+	type->ty = PTR;
+	type->ptr_to = ptr_to;
+	type->type_size = 8;
+	type->array_size = 1;
+	return type;
+}
+
+Type *array_type(Type *element_type, int size) {
+	Type *type = calloc(1, sizeof(Type));
+	type->ty = ARRAY;
+	type->ptr_to = element_type;
+	type->type_size = element_type->type_size * size;
+	type->array_size = size;
+	return type;
+}
+
+Node *cast(Node *node, Type *type) {
+	if (node->type) {
+		fprintf(stderr, "%d %d\n", node->type->ty, type->ty);
+		switch (node->type->ty) {
+		case ARRAY:
+			switch (type->ty) {
+			case PTR:
+				node = new_nodev(ND_ADDR, 1, node);
+				node->type = type;
+				break;
+			default:
+				break;
+			}
+			break;
+		case INT:
+			switch (type->ty) {
+			case PTR:
+				if (type->ptr_to)
+					node = new_node(ND_MUL, node, new_node_num(type->ptr_to->type_size));
+				break;
+			default:
+				break;
+			}
+			break;
+		default:
+			break;
+		}
+	}else{
+		error_at(token->str, "型がありません\n");
+	}
+
+	return node;
+}
+
+Type *type_spec() {
 	Type *type_addr;
 	Type *type = NULL;
 
 	if (consume("int")) {
-		type = calloc(1, sizeof(Type));
-		type->ty = INT;
-		type->type_size = 4;
-		type->ptr_to = NULL;
-		type->array_size = 1;
+		type = int_type();
+	}else if (consume("char")) {
+		type = char_type();
 	}
+
 	while (consume("*")) {
-		type_addr = calloc(1, sizeof(Type));
-		type_addr->ty = PTR;
-		type_addr->type_size = 8;
-		type_addr->ptr_to = type;
-		type = type_addr;
+		type = wrap_pointer(type);
 	}
 	return type;
 }
 
 Node *term() {
 	// 次のトークンが"("なら、"(" expr ")"のはず
+
 	if (consume("(")) {
 		Node *node = expr();
 		expect(")");
@@ -419,7 +473,7 @@ Node *term() {
 	}
 
 	Token *tok;
-	Type *ident_type = type();
+	Type *ident_type = type_spec();
 	if (ident_type) {
 		tok = consume_ident();
 		if (tok) {
@@ -427,37 +481,28 @@ Node *term() {
 				int array_size = consume_number();
 				expect("]");
 
-				Type *type = calloc(1, sizeof(Type));
-				type->ty = ARRAY;
-				type->ptr_to = ident_type;
-				type->type_size = ident_type->type_size * ident_type->array_size;
-				type->array_size = array_size;
+				Type *type = array_type(ident_type, array_size);
 				ident_type = type;
 			}
-			Node *node = calloc(1, sizeof(Node));
 			LVar *lvar = new_lvar(locals, tok, ident_type);
 			locals = lvar;
 
-			node->kind = ND_VARDECL;
+			Node *node = new_node_s(ND_VARDECL, tok, lvar->type);
 			node->var = lvar;
-			node->type = lvar->type;
 
 			if (consume("=")) {
 				node = new_node(ND_ASSIGN, node, expr());
 			}
-			return node;
-		}
+			return node; }
 	}
 
 	tok = consume_ident();
+	Node *node;
 	if (tok) {
-		Node *node = calloc(1, sizeof(Node));
+		// 関数
 		if (consume("(")) {
-			node->kind = ND_CALL;
-			// 関数名
-			node->ident = tok->str;
-			node->len = tok->len+1;
 			Func *func = find_func(tok);
+			node = new_node_s(ND_CALL, tok, ident_type);
 
 			// 引数
 			Node *arg;
@@ -479,16 +524,15 @@ Node *term() {
 				node->type = func->type;
 			return node;
 		}
-		node->kind = ND_LVAR;
 
 		LVar *lvar = find_lvar(tok);
 		if (lvar) {
+			node = new_node_s(ND_LVAR, tok, lvar->type);
 			node->var = lvar;
-			node->type = lvar->type;
+			return node;
 		}else{
 			error_at(token->str, "その変数は宣言されていません");
 		}
-		return node;
 	}
 
 	// そうでなければ数値のはず
@@ -530,6 +574,8 @@ Node *unary() {
 			node = new_nodev(ND_DEREF, 1, node);
 			if (node->side[0]->type && node->side[0]->type->ty == PTR)
 				node->type = node->side[0]->type->ptr_to;
+			else
+				error_at(token->str, "型がありません\n");
 		}else
 			error_at(token->str, "error: indirection requires pointer operand ('int' invalid)");
 		return node;
@@ -547,24 +593,19 @@ Node *unary() {
 
 	if (consume("[")) {
 		Node *rhs = rvalue();
-		if (node->type->ty == ARRAY) {
-			node = new_nodev(ND_ADDR, 1, node);
-			node->type = wrap_pointer(node->side[0]->type->ptr_to);
-		}
-		if (rhs->type->ty == ARRAY) {
-			rhs = new_nodev(ND_ADDR, 1, rhs);
-			rhs->type = wrap_pointer(rhs->side[0]->type->ptr_to);
-		}
+		node = cast(node, wrap_pointer(node->type->ptr_to));
+		rhs = cast(rhs, wrap_pointer(rhs->type->ptr_to));
 
 		if (node->type->ty == PTR)
-			rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
+			rhs = cast(rhs, node->type);
 		if (rhs->type->ty == PTR)
-			node = new_node(ND_MUL, node, new_node_num(node->type->ptr_to->type_size));
+			node = cast(node, rhs->type);
 
 		//*(a+3)
+		Type *type = node->type->ptr_to;
 		node = new_node(ND_ADD, node, rhs);
 		node = new_nodev(ND_DEREF, 1, node);
-		node->type = node->side[0]->side[0]->type->ptr_to;
+		node->type = type;
 		expect("]");
 		return node;
 	}
@@ -584,12 +625,14 @@ Node *mul_expr() {
 				return node;
 		}
 	}
+
 	return node;
 }
 
 Node *add_expr() {
 	Node *node = mul_expr();
 	Node *rhs;
+
 	if (node->type && node->type->ty == ARRAY) {
 		node = new_nodev(ND_ADDR, 1, node);
 		node->type = wrap_pointer(node->side[0]->type->ptr_to);
@@ -598,14 +641,16 @@ Node *add_expr() {
 	for (;;) {
 		if (consume("+")) {
 			rhs = mul_expr();
+
 			if (node->type->ty == PTR)
-				rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
+				rhs = cast(rhs, node->type);
 			else if (rhs->type->ty == PTR)
-				node = new_node(ND_MUL, node, new_node_num(node->type->ptr_to->type_size));
+				node = cast(node, rhs->type);
 
 			node = new_node(ND_ADD, node, rhs);
 		}else if (consume("-")) {
 			rhs = mul_expr();
+
 			if (node->type->ty == PTR)
 				rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
 			else if (rhs->type->ty == PTR)
@@ -661,8 +706,12 @@ Node *lvalue() {
 
 	if (consume("*")) {
 		node = rvalue();
-		if (node->type && node->type->ty == PTR)
-			return new_nodev(ND_DEREF, 1, node);
+		if (node->type && node->type->ty == PTR) {
+			Type *type = node->type->ptr_to;
+			node = new_nodev(ND_DEREF, 1, node);
+			node->type = type;
+			return node;
+		}
 	}
 	if (consume("&"))
 		return new_nodev(ND_ADDR, 1, lvalue());
@@ -670,34 +719,27 @@ Node *lvalue() {
 
 	tok = consume_ident();
 	if (tok) {
-		node = calloc(1, sizeof(Node));
-		node->kind = ND_LVAR;
-
 		LVar *lvar = find_lvar(tok);
 		if (lvar) {
+			node = new_node_s(ND_LVAR, tok, lvar->type);
 			node->var = lvar;
-			node->type = lvar->type;
 
 			if (consume("[")) {
 				Node *rhs = rvalue();
-				if (node->type->ty == ARRAY) {
-					node = new_nodev(ND_ADDR, 1, node);
-					node->type = wrap_pointer(node->side[0]->type->ptr_to);
-				}
-				if (rhs->type->ty == ARRAY) {
-					rhs = new_nodev(ND_ADDR, 1, rhs);
-					rhs->type = wrap_pointer(rhs->side[0]->type->ptr_to);
-				}
+				rhs = cast(rhs, wrap_pointer(rhs->type->ptr_to));
+				node = cast(node, wrap_pointer(node->type->ptr_to));
 
 				if (node->type->ty == PTR)
-					rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
+					rhs = cast(rhs, int_type());
 				if (rhs->type->ty == PTR)
-					node = new_node(ND_MUL, node, new_node_num(node->type->ptr_to->type_size));
+					node = cast(node, int_type());
 
 				//*(a+3)
+				Type *type = node->type->ptr_to;
 				node = new_node(ND_ADD, node, rhs);
 				node = new_nodev(ND_DEREF, 1, node);
-				node->type = node->side[0]->side[0]->type->ptr_to;
+				node->type = type;
+
 				expect("]");
 				return node;
 			}
@@ -720,9 +762,9 @@ Node *expr() {
 	Node *node = NULL;
 	Token *backup = token;
 	Node *lval = lvalue();
-	Node *rval;
 
 	if (lval) {
+		Node *rval;
 		if (consume("=")) {
 			rval = expr();
 			node = new_node(ND_ASSIGN, lval, rval);
@@ -800,7 +842,6 @@ Node *stmts() {
 	if (consume("{")) {
 		Vec *nodes = new_vector();
 		for(;;) {
-			cu();
 			push_back(nodes, stmt());
 			if (consume("}")) {
 				break;
@@ -820,16 +861,14 @@ Node *stmts() {
 
 Node *func() {
 	Node *node = NULL;
-	Type *ident_type = type();
+	Type *ident_type = type_spec();
 
 	if (ident_type) {
 		Token *tok = consume_ident();
-		fprintf(stderr, "%s\n", tok->str);
 
 		if (tok) {
 			// 関数
 			if (consume("(")) {
-				node = calloc(1, sizeof(Node));
 				Func *func;
 				Token *arg;
 				LVar *args = calloc(1, sizeof(LVar));
@@ -838,7 +877,7 @@ Node *func() {
 				LVar *lvar;
 
 				while (!consume(")")) {
-					arg_type = type();
+					arg_type = type_spec();
 					if (!arg_type)
 						break;
 					arg = consume_ident();
@@ -853,32 +892,26 @@ Node *func() {
 					lvar = new_lvar(locals, arg, arg_type);
 					locals = lvar;
 
-					node->var = lvar;
-					node->type = lvar->type;
-
 					if (!consume(",")) {
 						expect(")");
 						break;
 					}
 				}
 
-				node->ident = tok->str;
-				node->len = tok->len;
-				node->type = ident_type;
-
 				// 関数宣言
 				if (consume(";")) {
 					func = new_func(extern_funcs, tok, ident_type, arg_first);
 					extern_funcs = func;
-					node->kind = ND_DECL;
+
+					node = new_node_s(ND_DECL, tok, ident_type);
 					node->func = func;
 				// 関数定義
 				}else{
 					func = new_func(funcs, tok, ident_type, arg_first);
 					funcs = func;
-					node->kind = ND_DEF;
+
+					node = new_node_s(ND_DEF, tok, ident_type);
 					node->side[0] = stmts();
-					cu();
 					func->locals = locals;
 					node->func = func;
 				}
@@ -889,24 +922,15 @@ Node *func() {
 					int array_size = consume_number();
 					expect("]");
 
-					Type *type = calloc(1, sizeof(Type));
-					type->ty = ARRAY;
-					type->ptr_to = ident_type;
-					type->type_size = ident_type->type_size * ident_type->array_size;
-					type->array_size = array_size;
+					Type *type = array_type(ident_type, array_size);
 					ident_type = type;
 				}
-				Node *node = calloc(1, sizeof(Node));
 				LVar *lvar = new_lvar(globals, tok, ident_type);
 				lvar->scope = 1;
 				globals = lvar;
 
-				node->kind = ND_VARDECL;
+				node = new_node_s(ND_VARDECL, tok, ident_type);
 				node->var = lvar;
-				node->ident = lvar->name;
-				node->len = lvar->len;
-				//fprintf(stderr, "%s\n", lvar->name);
-				node->type = lvar->type;
 
 				if (consume("=")) {
 					node = new_node(ND_ASSIGN, node, expr());
