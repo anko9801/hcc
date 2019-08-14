@@ -258,7 +258,7 @@ Node *new_node(int type, Node *lhs, Node *rhs) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = type;
 	if ((type != ND_ADD && type != ND_SUB) && lhs->type && rhs->type && lhs->type->ty != rhs->type->ty) {
-		error_at(token->str, "相違な型です%d %d\n", lhs->type->ty, rhs->type->ty);
+		//error_at(token->str, "相違な型です%d %d\n", lhs->type->ty, rhs->type->ty);
 	}
 	node->type = lhs->type;
 	node->side[0] = lhs;
@@ -415,7 +415,7 @@ Type *array_type(Type *element_type, int size) {
 
 Node *cast(Node *node, Type *type) {
 	if (node->type) {
-		fprintf(stderr, "%d %d\n", node->type->ty, type->ty);
+		//fprintf(stderr, "%d %d\n", node->type->ty, type->ty);
 		switch (node->type->ty) {
 		case ARRAY:
 			switch (type->ty) {
@@ -902,14 +902,12 @@ Node *func() {
 				if (consume(";")) {
 					func = new_func(extern_funcs, tok, ident_type, arg_first);
 					extern_funcs = func;
-
 					node = new_node_s(ND_DECL, tok, ident_type);
 					node->func = func;
 				// 関数定義
 				}else{
 					func = new_func(funcs, tok, ident_type, arg_first);
 					funcs = func;
-
 					node = new_node_s(ND_DEF, tok, ident_type);
 					node->side[0] = stmts();
 					func->locals = locals;

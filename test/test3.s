@@ -13,7 +13,6 @@ _main:
 	pop rbx
 	pop rax
 	mov [rax], rbx
-	push rbx
 	mov rax, rbp
 	sub rax, 16
 	push rax
@@ -24,7 +23,6 @@ _main:
 	pop rbx
 	pop rax
 	mov [rax], rbx
-	push rbx
 	mov rax, rbp
 	sub rax, 8
 	push rax

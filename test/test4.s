@@ -48,7 +48,6 @@ call.end0:
 	pop rbx
 	pop rax
 	mov [rax], rbx
-	push rbx
 	mov rax, rbp
 	sub rax, 16
 	push rax
@@ -125,7 +124,6 @@ call.end3:
 	pop rbx
 	pop rax
 	mov [rax], rbx
-	push rbx
 	mov rax, rbp
 	sub rax, 16
 	push rax
