@@ -159,10 +159,16 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
-		if (strncmp(p, "==", 2) == 0) {
-			cur = new_token(TK_RESERVED, cur, p, line);
-			p+= 2;
-			cur->len = 2;
+		if (is_reserved(&p, &cur, "==")/* ||
+			is_reserved(&p, &cur, "!=") ||
+			is_reserved(&p, &cur, "<=") ||
+			is_reserved(&p, &cur, ">=")*/
+			
+			
+			
+			
+			
+			) {
 			continue;
 		}
 		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' ||
@@ -229,7 +235,7 @@ Node *code[100];
 LVar *locals;
 // 関数
 Func *funcs;
-Func *cur_func;
+Func *extern_funcs;
 
 Node *new_node(int type, Node *lhs, Node *rhs) {
 	Node *node = calloc(1, sizeof(Node));
@@ -304,6 +310,15 @@ LVar *new_lvar(LVar *pre, Token *tok, Type *type) {
 	return lvar;
 }
 
+LVar *new_arg(LVar *pre, Token *tok, Type *type) {
+	LVar *lvar = calloc(1, sizeof(LVar));
+	lvar->name = tok->str;
+	lvar->len = tok->len;
+	lvar->offset = pre->offset + 8;
+	lvar->type = type;
+	return lvar;
+}
+
 Func *find_func(Token *tok) {
 	for (Func *func = funcs; func; func = func->next)
 		if (func->len == tok->len && !memcmp(tok->str, func->name, func->len))
@@ -313,7 +328,7 @@ Func *find_func(Token *tok) {
 
 Func *new_func(Func *pre, Token *tok, Type *type, LVar *args) {
 	Func *func = calloc(1, sizeof(Func));
-	func->next = funcs;
+	func->next = pre;
 	func->name = tok->str;
 	func->len = tok->len;
 	func->args = args;
@@ -379,7 +394,6 @@ Type *type() {
 
 Node *term() {
 	// 次のトークンが"("なら、"(" expr ")"のはず
-	cu();
 	if (consume("(")) {
 		Node *node = expr();
 		expect(")");
@@ -501,7 +515,6 @@ Node *unary() {
 				node->type = node->side[0]->type->ptr_to;
 		}else
 			error_at(token, "error: indirection requires pointer operand ('int' invalid)");
-		cu();
 		return node;
 	}
 	if (consume("&")) {
@@ -781,14 +794,14 @@ Node *stmts() {
 		node->nodes = nodes;
 	}else{
 		node = stmt();
+		fprintf(stderr, "stmts is stmt\n");
 	}
 
 	return node;
 }
 
-// int foo(int x, int y) { ... }
-Node *global() {
-	Node *node;
+Node *func() {
+	Node *node = NULL;
 	Type *func_type = type();
 
 	if (func_type) {
@@ -800,6 +813,7 @@ Node *global() {
 				Func *func;
 				Token *arg;
 				LVar *args = calloc(1, sizeof(LVar));
+				LVar *arg_first = args;
 				Type *arg_type;
 				LVar *lvar;
 
@@ -813,9 +827,10 @@ Node *global() {
 						break;
 					}
 
-					lvar = new_lvar(args, arg, arg_type);
-					lvar = new_lvar(locals, arg, arg_type);
+					lvar = new_arg(args, arg, arg_type);
+					args->next = lvar;
 					args = lvar;
+					lvar = new_lvar(locals, arg, arg_type);
 					locals = lvar;
 
 					node->offset = lvar->offset;
@@ -827,25 +842,42 @@ Node *global() {
 					}
 				}
 
-				func = new_func(funcs, tok, func_type, args);
-				funcs = func;
-
 				node->ident = tok->str;
 				node->len = tok->len;
-				node->type = func->type;
+				node->type = func_type;
 
 				if (consume(";")) {
+					func = new_func(extern_funcs, tok, func_type, arg_first);
+					extern_funcs = func;
 					node->kind = ND_DECL;
+					node->func = func;
 				}else{
+					func = new_func(funcs, tok, func_type, arg_first);
+					funcs = func;
 					node->kind = ND_DEF;
 					node->side[0] = stmts();
 					func->locals = locals;
 					node->func = func;
-					cur_func = func;
 				}
 				return node;
 			}
 		}
+	}
+	return node;
+}
+
+// int foo(int x, int y) { ... }
+Node *global() {
+	Node *node;
+
+	node = func();
+	if (node)
+		return node;
+	if (consume("extern")) {
+		node = func();
+		if (node)
+			return node;
+		error_at(token, "It is not valid token after extern");
 	}
 
 	return stmt();
@@ -853,9 +885,9 @@ Node *global() {
 
 // program    = stmt*
 void program() {
-	locals = calloc(1, sizeof(LVar));
 	int i = 0;
 	while (!at_eof()) {
+		locals = calloc(1, sizeof(LVar));
 		code[i++] = global();
 	}
 	code[i] = NULL;

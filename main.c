@@ -4,6 +4,7 @@ extern char *user_input;
 extern Token *token;
 extern Node *code[100];
 extern Func *funcs;
+extern Func *extern_funcs;
 
 int main(int argc, char **argv) {
 	if (argc != 2) {
@@ -30,7 +31,7 @@ int main(int argc, char **argv) {
 	fprintf(stderr, "トークナイズ完了！\n");
 	program();
 	fprintf(stderr, "パース完了！\n");
-	gen_pre(code, funcs);
+	gen_pre(code, funcs, extern_funcs);
 	fprintf(stderr, "CodeGen完了！\n");
 	return 0;
 }

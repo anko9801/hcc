@@ -1,13 +1,10 @@
-# hcc
-## これは何？
-低レイヤを知りたい人のためのCコンパイラ作成入門 Rui Ueyamaを参考にセルフホストCコンパイラを作っているもの
+# HCC
+- hcc is a small toy compiler for C language.
 
-## 実際どうなの？
-道が長い...
-
-## 使い方
-
+# Install
 ```
-$ ./hcc <ソースファイル名>
+make
+make install
 ```
 
+# BUILD ON

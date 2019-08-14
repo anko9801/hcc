@@ -1,5 +1,4 @@
 .intel_syntax noprefix
-.extern _print, _alloc4
 .global _main
 _main:
 	push rbp
@@ -12,47 +11,47 @@ _main:
 	push rax
 	push 0
 	push 4
-	pop rdi
+	pop rbx
 	pop rax
-	mul rdi
+	mul rbx
 	push rax
-	pop rdi
+	pop rbx
 	pop rax
-	add rax, rdi
+	add rax, rbx
 	push rax
 	push 1
-	pop rdi
+	pop rbx
 	pop rax
-	mov [rax], rdi
-	push rdi
+	mov [rax], rbx
+	push rbx
 	mov rax, rbp
 	sub rax, 8
 	push rax
 	push 1
 	push 4
-	pop rdi
+	pop rbx
 	pop rax
-	mul rdi
+	mul rbx
 	push rax
-	pop rdi
+	pop rbx
 	pop rax
-	add rax, rdi
+	add rax, rbx
 	push rax
 	push 2
-	pop rdi
+	pop rbx
 	pop rax
-	mov [rax], rdi
-	push rdi
+	mov [rax], rbx
+	push rbx
 	mov rax, rbp
 	sub rax, 16
 	push rax
 	mov rax, rbp
 	sub rax, 8
 	push rax
-	pop rdi
+	pop rbx
 	pop rax
-	mov [rax], rdi
-	push rdi
+	mov [rax], rbx
+	push rbx
 	mov rax, rbp
 	sub rax, 16
 	push rax
@@ -61,13 +60,13 @@ _main:
 	push rax
 	push 0
 	push 4
-	pop rdi
+	pop rbx
 	pop rax
-	mul rdi
+	mul rbx
 	push rax
-	pop rdi
+	pop rbx
 	pop rax
-	add rax, rdi
+	add rax, rbx
 	push rax
 	pop rax
 	mov rax, [rax]
@@ -91,13 +90,13 @@ call.end0:
 	push rax
 	push 1
 	push 4
-	pop rdi
+	pop rbx
 	pop rax
-	mul rdi
+	mul rbx
 	push rax
-	pop rdi
+	pop rbx
 	pop rax
-	add rax, rdi
+	add rax, rbx
 	push rax
 	pop rax
 	mov rax, [rax]
@@ -121,13 +120,13 @@ call.end1:
 	push rax
 	push 0
 	push 4
-	pop rdi
+	pop rbx
 	pop rax
-	mul rdi
+	mul rbx
 	push rax
-	pop rdi
+	pop rbx
 	pop rax
-	add rax, rdi
+	add rax, rbx
 	push rax
 	pop rax
 	mov rax, [rax]
@@ -140,20 +139,20 @@ call.end1:
 	push rax
 	push 1
 	push 4
-	pop rdi
+	pop rbx
 	pop rax
-	mul rdi
+	mul rbx
 	push rax
-	pop rdi
+	pop rbx
 	pop rax
-	add rax, rdi
+	add rax, rbx
 	push rax
 	pop rax
 	mov rax, [rax]
 	push rax
-	pop rdi
+	pop rbx
 	pop rax
-	add rax, rdi
+	add rax, rbx
 	push rax
 	pop rax
 	mov rsp, rbp

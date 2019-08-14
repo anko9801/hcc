@@ -1,5 +1,4 @@
 .intel_syntax noprefix
-.extern _print, _alloc4
 .global _main
 _main:
 	push rbp
@@ -11,10 +10,10 @@ _main:
 	mov rax, rbp
 	sub rax, 8
 	push rax
-	pop rdi
+	pop rbx
 	pop rax
-	mov [rax], rdi
-	push rdi
+	mov [rax], rbx
+	push rbx
 	mov rax, rbp
 	sub rax, 16
 	push rax
@@ -22,10 +21,10 @@ _main:
 	mov rax, [rax]
 	push rax
 	push 3
-	pop rdi
+	pop rbx
 	pop rax
-	mov [rax], rdi
-	push rdi
+	mov [rax], rbx
+	push rbx
 	mov rax, rbp
 	sub rax, 8
 	push rax

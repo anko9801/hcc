@@ -1,5 +1,4 @@
 .intel_syntax noprefix
-.extern _print, _alloc4
 .global _main
 _main:
 	push rbp
@@ -38,18 +37,18 @@ call.end0:
 	push rax
 	push 2
 	push 4
-	pop rdi
+	pop rbx
 	pop rax
-	mul rdi
+	mul rbx
 	push rax
-	pop rdi
+	pop rbx
 	pop rax
-	add rax, rdi
+	add rax, rbx
 	push rax
-	pop rdi
+	pop rbx
 	pop rax
-	mov [rax], rdi
-	push rdi
+	mov [rax], rbx
+	push rbx
 	mov rax, rbp
 	sub rax, 16
 	push rax
@@ -115,18 +114,18 @@ call.end3:
 	push rax
 	push 3
 	push 4
-	pop rdi
+	pop rbx
 	pop rax
-	mul rdi
+	mul rbx
 	push rax
-	pop rdi
+	pop rbx
 	pop rax
-	add rax, rdi
+	add rax, rbx
 	push rax
-	pop rdi
+	pop rbx
 	pop rax
-	mov [rax], rdi
-	push rdi
+	mov [rax], rbx
+	push rbx
 	mov rax, rbp
 	sub rax, 16
 	push rax

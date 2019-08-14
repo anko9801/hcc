@@ -105,4 +105,4 @@ void gen(Node *node);
 Vec *new_vector();
 void push_back(Vec *vec, void *elem);
 void runtest();
-void gen_pre(Node **code, Func *funcs);
+void gen_pre(Node **code, Func *funcs, Func *extern_funcs);
