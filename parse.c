@@ -903,6 +903,9 @@ Node *func() {
 
 				node->kind = ND_VARDECL;
 				node->var = lvar;
+				node->ident = lvar->name;
+				node->len = lvar->len;
+				//fprintf(stderr, "%s\n", lvar->name);
 				node->type = lvar->type;
 
 				if (consume("=")) {

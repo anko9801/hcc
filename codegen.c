@@ -6,6 +6,7 @@ int for_cnt = 0;
 int call_cnt = 0;
 extern Node *new_node(int type, Node *lhs, Node *rhs);
 extern Node *new_node_num(int val);
+extern LVar *globals;
 
 void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 	printf(".intel_syntax noprefix\n");
@@ -40,9 +41,36 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 	str[funcs->len] = '\0';
 	printf("_%s\n", str);
 
-	gen(code[0]);
-	for (int i = 1;code[i];i++) {
-		gen(code[i]);
+	Node *lhs, *rhs;
+	for (int i = 0;code[i];i++) {
+		switch (code[i]->kind) {
+		case ND_VARDECL:
+			lhs = code[i];
+			strncpy(str, lhs->ident, lhs->len);
+			str[lhs->len+1] = '\0';
+
+			printf("%s:\n", str);
+			printf("	.zero %d\n", lhs->type->type_size);
+			break;
+		case ND_ASSIGN:
+			lhs = code[i]->side[0];
+			rhs = code[i]->side[1];
+			fprintf(stderr, "%s\n",lhs->ident);
+			strncpy(str, lhs->ident, lhs->len);
+			str[lhs->len] = '\0';
+
+			printf("%s:\n", str);
+			printf("	.long %d\n", rhs->val);
+			break;
+		case ND_DECL:
+			break;
+		case ND_DEF:
+			gen(code[i]);
+			break;
+		default:
+			gen(code[i]);
+			break;
+		}
 	}
 }
 
@@ -56,8 +84,8 @@ void gen_lvalue(Node *node) {
 			printf("	push rax\n");
 		}else{
 			strncpy(str, node->var->name, node->var->len);
-			str[node->len-1] = '\0';
-			printf("	eax, DWORD PTR %s[rip]\n", str);
+			str[node->len+1] = '\0';
+			printf("	lea rax, DWORD PTR %s[rip]\n", str);
 			printf("	push rax\n");
 		}
 		return;
