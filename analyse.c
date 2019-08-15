@@ -129,17 +129,37 @@ void analyse(Node *node) {
 			print_node("");
 			break;
 
-		case ND_ADD:
+		case ND_ADD: {
+			Node *lhs = node->side[0];
+			Node *rhs = node->side[1];
+			if (lhs->kind == ND_NUM && rhs->kind == ND_NUM) {
+				node->kind = ND_NUM;
+				node->type = lhs->type;
+				node->val = lhs->val + rhs->val;
+				print_node("NUM %d", node->val);
+				break;
+			}
 			print_node("ADD");
 			analyse(node->side[0]);
 			analyse(node->side[1]);
 			break;
+		}
 
-		case ND_SUB:
+		case ND_SUB: {
+			Node *lhs = node->side[0];
+			Node *rhs = node->side[1];
+			if (lhs->kind == ND_NUM && rhs->kind == ND_NUM) {
+				node->kind = ND_NUM;
+				node->type = lhs->type;
+				node->val = lhs->val - rhs->val;
+				print_node("NUM %d", node->val);
+				break;
+			}
 			print_node("SUB");
 			analyse(node->side[0]);
 			analyse(node->side[1]);
 			break;
+		}
 
 		case ND_MUL: {
 			Node *lhs = node->side[0];
@@ -149,19 +169,29 @@ void analyse(Node *node) {
 				node->type = lhs->type;
 				node->val = lhs->val * rhs->val;
 				print_node("NUM %d", node->val);
-			}else{
-				print_node("MUL");
-				analyse(node->side[0]);
-				analyse(node->side[1]);
+				break;
 			}
+			print_node("MUL");
+			analyse(node->side[0]);
+			analyse(node->side[1]);
 			break;
 		}
 
-		case ND_DIV:
+		case ND_DIV: {
+			Node *lhs = node->side[0];
+			Node *rhs = node->side[1];
+			if (lhs->kind == ND_NUM && rhs->kind == ND_NUM) {
+				node->kind = ND_NUM;
+				node->type = lhs->type;
+				node->val = lhs->val / rhs->val;
+				print_node("NUM %d", node->val);
+				break;
+			}
 			print_node("DIV");
 			analyse(node->side[0]);
 			analyse(node->side[1]);
 			break;
+		}
 
 		case ND_LT:
 			print_node("LT");
