@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 void print(int a) { printf("%d\n", a); }
+void print_s(char *s) { printf("%s\n", s); }
 void alloc4(int *p, int a, int b, int c, int d) {
 	int *t;
 	t = (int*)malloc(sizeof(int) * 4);

@@ -15,6 +15,7 @@ typedef struct {
 typedef enum {
 	TK_RESERVED,
 	TK_NUM,
+	TK_STRING,
 	TK_IDENT,
 	TK_RETURN,
 	TK_EOF
@@ -42,6 +43,7 @@ typedef enum {
 	ND_ASSIGN, // =
 	ND_LVAR,   // ローカル変数
 	ND_NUM,    // 整数
+	ND_STRING,
 	ND_RETURN,
 	ND_IF,
 	ND_WHILE,
@@ -65,7 +67,6 @@ struct Node {
 	Vec *nodes;    // ND_BLOCK, ND_CALL, ND_DEFの場合
 	int val;       // kindがND_NUMの場合のみ使う
 	Type *type;
-	
 	char *ident;
 	int len;
 	LVar *var;    // ND_VARDECL ND_LVAR

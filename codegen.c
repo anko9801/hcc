@@ -7,6 +7,7 @@ int call_cnt = 0;
 extern Node *new_node(int type, Node *lhs, Node *rhs);
 extern Node *new_node_num(int val);
 extern LVar *globals;
+extern Vec *strings;
 
 void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 	printf(".intel_syntax noprefix\n");
@@ -39,6 +40,15 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 	strncpy(str, funcs->name, funcs->len);
 	str[funcs->len] = '\0';
 	printf("_%s\n", str);
+
+
+	for (int i = 0;strings->data[i];i++) {
+		Token *tok = (Token *)strings->data[i];
+		strncpy(str, tok->str, tok->len);
+		str[tok->len] = '\0';
+		printf(".LC0:\n");
+		printf("	.string \"%s\"\n", str);
+	}
 
 	Node *lhs, *rhs;
 	for (int i = 0;code[i];i++) {
@@ -76,6 +86,7 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 
 
 void gen_lvalue(Node *node) {
+	fprintf(stderr, "lvalue\n");
 	char str[100];
 	switch (node->kind) {
 	case ND_LVAR:
@@ -126,7 +137,7 @@ void gen_lvalue(Node *node) {
 		gen(node->side[0]);
 		return;
 	default:
-		error("It is not lvalue!");
+		error("It is not lvalue! %s\n", node->ident);
 	}
 }
 
@@ -142,7 +153,7 @@ void gen_mov(Node *node) {
 		if (node->var->type->ptr_to->ty == INT)
 			printf("	mov rax, [rax]\n");
 		else
-			printf("	movsx eax, BYTE PTR [rax]\n");
+			printf("	mov rax, [rax]\n");
 		break;
 	case ARRAY:
 		if (node->var->type->ptr_to->ty == INT)
@@ -165,7 +176,7 @@ void gen_assign(Node *node) {
 		if (node->var->type->ptr_to->ty == INT)
 			printf("	mov [rax], rbx\n");
 		else
-			printf("	mov BYTE PTR [rax], bl\n");
+			printf("	mov [rax], rbx\n");
 		break;
 	case ARRAY:
 		if (node->var->type->ptr_to->ty == INT)
@@ -183,6 +194,11 @@ void gen(Node *node) {
 	case ND_NUM:
 		fprintf(stderr, "num\n");
 		printf("	push %d\n", node->val);
+		return;
+
+	case ND_STRING:
+		printf("	lea rax, qword ptr [rip + .LC0]\n");
+		printf("	push rax\n");
 		return;
 
 	case ND_LVAR:

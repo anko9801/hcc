@@ -56,34 +56,6 @@ void error_at(char *loc, char *fmt, ...) {
 	exit(1);
 }
 
-// 次のトークンが期待している記号のときには、トークンを1つ読み進めて
-// 真を返す。それ以外の場合には偽を返す。
-bool consume(char *op) {
-	//fprintf(stderr, "%dと%d %sと%s\n", strlen(op), token->len, op, token->str);
-	if (token->kind != TK_RESERVED ||
-		strlen(op) != token->len ||
-		memcmp(token->str, op, token->len))
-		return false;
-	token = token->next;
-	return true;
-}
-
-Token *consume_ident() {
-	Token *tok = token;
-	if (token->kind != TK_IDENT)
-		return NULL;
-	token = token->next;
-	return tok;
-}
-
-int consume_number() {
-	if (token->kind != TK_NUM)
-		return -1;
-	int val = token->val;
-	token = token->next;
-	return val;
-}
-
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
 void expect(char *op) {
@@ -141,6 +113,7 @@ Token *tokenize(char *p) {
 	head.next = NULL;
 	Token *cur = &head;
 	int commented = 0;
+	int string = 0;
 
 	while (*p) {
 		// 空白文字をスキップ
@@ -178,16 +151,39 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
-		if (is_reserved(&p, &cur, "==")/* ||
-			is_reserved(&p, &cur, "!=") ||
-			is_reserved(&p, &cur, "<=") ||
-			is_reserved(&p, &cur, ">=")*/
-			) {
+		if (*p == '\'') {
+			p++;
+		}
+
+		if (string == 1) {
+			int len = 0;
+			while (*p != '\"') {
+				fprintf(stderr, "%c", *p);
+				p++;
+				len++;
+			}
+			cur = new_token(TK_STRING, cur, p-len, line);
+			cur->len = len;
+			fprintf(stderr, "%c", *p);
+			cur = new_token(TK_RESERVED, cur, p++, line);
+			cur->len = 1;
+			string = 0;
+		}
+
+		if (*p == '\"') {
+			string = 1;
+			fprintf(stderr, "%c", *p);
+			cur = new_token(TK_RESERVED, cur, p++, line);
+			cur->len = 1;
+			continue;
+		}
+
+		if (is_reserved(&p, &cur, "==")) {
 			continue;
 		}
 		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' ||
 			*p == ';' || *p == '=' || *p == ',' || *p == '&' ||
-			*p == '(' || *p == ')' || *p == '\'' || *p == '\"' ||
+			*p == '(' || *p == ')' ||
 			*p == '[' || *p == ']' ||
 			*p == '<' || *p == '>' ||
 			*p == '{' || *p == '}') {
@@ -254,6 +250,72 @@ LVar *globals;
 Func *funcs;
 Func *extern_funcs;
 
+Vec *strings;
+
+Type *int_type() {
+	Type *type = calloc(1, sizeof(Type));
+	type->ty = INT;
+	type->ptr_to = NULL;
+	type->type_size = 4;
+	type->array_size = 1;
+	return type;
+}
+
+Type *char_type() {
+	Type *type = calloc(1, sizeof(Type));
+	type->ty = CHAR;
+	type->ptr_to = NULL;
+	type->type_size = 1;
+	type->array_size = 1;
+	return type;
+}
+
+Type *wrap_pointer(Type *ptr_to) {
+	Type *type = calloc(1, sizeof(Type));
+	type->ty = PTR;
+	type->ptr_to = ptr_to;
+	type->type_size = 8;
+	type->array_size = 1;
+	return type;
+}
+
+Type *array_type(Type *element_type, int size) {
+	Type *type = calloc(1, sizeof(Type));
+	type->ty = ARRAY;
+	type->ptr_to = element_type;
+	type->type_size = element_type->type_size * size;
+	type->array_size = size;
+	return type;
+}
+
+// 次のトークンが期待している記号のときには、トークンを1つ読み進めて
+// 真を返す。それ以外の場合には偽を返す。
+bool consume(char *op) {
+	//fprintf(stderr, "%dと%d %sと%s\n", strlen(op), token->len, op, token->str);
+	if (token->kind != TK_RESERVED ||
+		strlen(op) != token->len ||
+		memcmp(token->str, op, token->len))
+		return false;
+	token = token->next;
+	return true;
+}
+
+Token *consume_ident() {
+	Token *tok = token;
+	if (token->kind != TK_IDENT && token->kind != TK_STRING)
+		return NULL;
+	token = token->next;
+	return tok;
+}
+
+int consume_number() {
+	if (token->kind != TK_NUM)
+		return -1;
+	int val = token->val;
+	token = token->next;
+	return val;
+}
+
 Node *new_node(int type, Node *lhs, Node *rhs) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = type;
@@ -295,12 +357,7 @@ Node *new_node_num(int val) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = ND_NUM;
 	node->val = val;
-	Type *type = calloc(1, sizeof(Type));
-	type->ty = INT;
-	type->type_size = 4;
-	type->ptr_to = NULL;
-	type->array_size = 1;
-	node->type = type;
+	node->type = int_type();
 	return node;
 }
 
@@ -376,42 +433,6 @@ void cu() {
 Node *expr();
 Node *stmts();
 Node *rvalue();
-
-Type *int_type() {
-	Type *type = calloc(1, sizeof(Type));
-	type->ty = INT;
-	type->ptr_to = NULL;
-	type->type_size = 4;
-	type->array_size = 1;
-	return type;
-}
-
-Type *char_type() {
-	Type *type = calloc(1, sizeof(Type));
-	type->ty = CHAR;
-	type->ptr_to = NULL;
-	type->type_size = 1;
-	type->array_size = 1;
-	return type;
-}
-
-Type *wrap_pointer(Type *ptr_to) {
-	Type *type = calloc(1, sizeof(Type));
-	type->ty = PTR;
-	type->ptr_to = ptr_to;
-	type->type_size = 8;
-	type->array_size = 1;
-	return type;
-}
-
-Type *array_type(Type *element_type, int size) {
-	Type *type = calloc(1, sizeof(Type));
-	type->ty = ARRAY;
-	type->ptr_to = element_type;
-	type->type_size = element_type->type_size * size;
-	type->array_size = size;
-	return type;
-}
 
 Node *cast(Node *node, Type *type) {
 	if (node->type) {
@@ -490,6 +511,7 @@ Node *term() {
 			Node *node = new_node_s(ND_VARDECL, tok, lvar->type);
 			node->var = lvar;
 
+			// 初期化
 			if (consume("=")) {
 				node = new_node(ND_ASSIGN, node, expr());
 			}
@@ -533,6 +555,17 @@ Node *term() {
 		}else{
 			error_at(token->str, "その変数は宣言されていません");
 		}
+	}
+
+	if (consume("\"")) {
+		tok = consume_ident();
+		if (tok) {
+			node = new_node_s(ND_STRING, tok, wrap_pointer(char_type()));
+			push_back(strings, (void *)tok);
+		}
+		fprintf(stderr, "%s\n", tok->str);
+		expect("\"");
+		return node;
 	}
 
 	// そうでなければ数値のはず
@@ -962,6 +995,7 @@ Node *global() {
 
 // program    = stmt*
 void program() {
+	strings = new_vector();
 	globals = calloc(1, sizeof(LVar));
 	int i = 0;
 	while (!at_eof()) {
