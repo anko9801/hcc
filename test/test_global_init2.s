@@ -36,7 +36,7 @@ msg:
 	.byte 'f'
 	.byte 'o'
 	.byte 'o'
-	.byte '\'
+	.byte '\0'
 _main:
 	push rbp
 	mov rbp, rsp

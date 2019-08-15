@@ -9,11 +9,9 @@ extern Node *new_node_num(int val);
 extern LVar *globals;
 extern Vec *strings;
 
-void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
-	fprintf(stderr, "gen_pre\n");
-	printf(".intel_syntax noprefix\n");
+char str[100];
 
-	char str[100];
+void gen_extern(Func *extern_funcs) {
 	if (extern_funcs) {
 		printf(".extern ");
 
@@ -28,7 +26,9 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 		str[extern_funcs->len] = '\0';
 		printf("_%s\n", str);
 	}
+}
 
+void gen_funcs(Func *funcs) {
 	if (funcs) {
 		printf(".global ");
 
@@ -43,7 +43,9 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 		str[funcs->len] = '\0';
 		printf("_%s\n", str);
 	}
+}
 
+void gen_strings() {
 	for (int i = 0;strings->data[i];i++) {
 		Token *tok = (Token *)strings->data[i];
 		strncpy(str, tok->str, tok->len);
@@ -51,107 +53,99 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 		printf(".LC%d:\n", i);
 		printf("	.string \"%s\"\n", str);
 	}
+}
+
+char *str_copy(Node *node) {
+	strncpy(str, node->ident, node->len);
+	str[node->len] = '\0';
+	return str;
+}
+
+void gen_global(Node *code) {
+	Node *node, *lhs, *rhs;
+	switch (code->kind) {
+	case ND_VARDECL:
+		printf("%s:\n", str_copy(code));
+		printf("	.zero %d\n", code->type->type_size);
+		break;
+
+	case ND_ASSIGN:
+		lhs = code->side[0];
+		rhs = code->side[1];
+
+		printf("%s:\n", str_copy(lhs));
+		switch (lhs->type->ty) {
+		case INT:
+			printf("	.long %d\n", rhs->val);
+			break;
+
+		case CHAR:
+			printf("	.byte %s\n", str_copy(rhs));
+			break;
+
+		case ARRAY: {
+			Node *node;
+			switch (rhs->kind) {
+			case ND_INITIALIZER:
+				for (int i = 0; i < rhs->nodes->len; i++) {
+					node = (Node *)rhs->nodes->data[i];
+					if (node->type->ty == INT)
+						printf("	.long %d\n", node->val);
+					if (node->type->ty == CHAR)
+						printf("	.byte '%s'\n", str_copy(node));
+				}
+				for (int i = rhs->nodes->len; i < lhs->type->array_size;i++) {
+					if (node->type->ty == INT)
+						printf("	.long 0\n");
+					if (node->type->ty == CHAR)
+						printf("	.byte 0\n");
+				}
+				break;
+			case ND_STRING:
+				printf("	.ascii \"%s\\0\"\n", str_copy(rhs));
+				break;
+			}
+			break;
+		}
+
+		case PTR:
+			switch (rhs->kind) {
+			case ND_ADDR:
+				printf("	.quad %s\n", str_copy(rhs->side[0]));
+				break;
+			case ND_ADD:
+				printf("	.quad %s + %d\n", str_copy(rhs->side[0]), rhs->side[1]->val);
+				break;
+			case ND_SUB:
+				printf("	.quad %s - %d\n", str_copy(rhs->side[0]), rhs->side[1]->val);
+				break;
+			case ND_STRING:
+				printf("	.ascii \"%s\\0\"\n", str_copy(rhs));
+				break;
+			}
+			break;
+		}
+		break;
+	case ND_DEF:
+		gen(code);
+		break;
+
+	default:
+		break;
+	}
+}
+
+void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
+	fprintf(stderr, "gen_pre\n");
+	printf(".intel_syntax noprefix\n");
+
+	gen_extern(extern_funcs);
+	gen_funcs(funcs);
+	gen_strings();
 
 	Node *lhs, *rhs;
 	for (int i = 0;code[i];i++) {
-		switch (code[i]->kind) {
-		case ND_VARDECL:
-			lhs = code[i];
-			strncpy(str, lhs->ident, lhs->len);
-			str[lhs->len] = '\0';
-
-			printf("%s:\n", str);
-			printf("	.zero %d\n", lhs->type->type_size);
-			break;
-		case ND_ASSIGN:
-			lhs = code[i]->side[0];
-			rhs = code[i]->side[1];
-
-			strncpy(str, lhs->ident, lhs->len);
-			str[lhs->len] = '\0';
-
-			printf("%s:\n", str);
-			switch (lhs->type->ty) {
-			case INT:
-				printf("	.long %d\n", rhs->val);
-				break;
-
-			case CHAR:
-				printf("	.byte %c\n", rhs->ident[0]);
-				break;
-
-			case ARRAY: {
-				Node *node;
-				switch (rhs->kind) {
-				case ND_INITIALIZER:
-					for (int i = 0; i < rhs->nodes->len; i++) {
-						node = (Node *)rhs->nodes->data[i];
-						switch (node->type->ty) {
-						case INT:
-							printf("	.long %d\n", node->val);
-							break;
-
-						case CHAR:
-							printf("	.byte '%c'\n", node->ident[0]);
-							break;
-						}
-					}
-					for (int i = rhs->nodes->len; i < lhs->type->array_size;i++) {
-						switch (node->type->ty) {
-						case INT:
-							printf("	.long 0\n");
-							break;
-
-						case CHAR:
-							printf("	.byte 0\n");
-							break;
-						}
-					}
-					break;
-				case ND_STRING:
-					strncpy(str, rhs->ident, rhs->len);
-					str[rhs->len+1] = '\0';
-					printf("	.ascii \"%s\\0\"\n", str);
-					break;
-				}
-				
-				break;
-			}
-
-			case PTR:
-				switch (rhs->kind) {
-				case ND_ADDR:
-					strncpy(str, rhs->side[0]->ident, rhs->side[0]->len);
-					str[rhs->side[0]->len] = '\0';
-					printf("	.quad %s\n", str);
-					break;
-				case ND_ADD:
-					strncpy(str, rhs->side[0]->ident, rhs->side[0]->len);
-					str[rhs->side[0]->len+1] = '\0';
-					printf("	.quad %s + %d\n", str, rhs->side[1]->val);
-					break;
-				case ND_SUB:
-					strncpy(str, rhs->side[0]->ident, rhs->side[0]->len);
-					str[rhs->side[0]->len+1] = '\0';
-					printf("	.quad %s - %d\n", str, rhs->side[1]->val);
-					break;
-				case ND_STRING:
-					strncpy(str, rhs->ident, rhs->len);
-					str[rhs->len+1] = '\0';
-					printf("	.ascii \"%s\\0\"\n", str);
-				}
-				break;
-			}
-			break;
-		case ND_DECL:
-			break;
-		case ND_DEF:
-			gen(code[i]);
-			break;
-		default:
-			gen(code[i]);
-			break;
-		}
+		gen_global(code[i]);
 	}
 }
 
