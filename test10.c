@@ -1,5 +1,4 @@
 int main() {
-	int a = 3 == 2;
-	int *b = *a;
+	char a = 'aa';
 	return a;
 }

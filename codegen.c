@@ -80,7 +80,44 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 				printf("	.byte %c\n", rhs->ident[0]);
 				break;
 
-			case ARRAY:
+			case ARRAY: {
+				Node *node;
+				switch (rhs->kind) {
+				case ND_INITIALIZER:
+					for (int i = 0; i < rhs->nodes->len; i++) {
+						node = (Node *)rhs->nodes->data[i];
+						switch (node->type->ty) {
+						case INT:
+							printf("	.long %d\n", node->val);
+							break;
+
+						case CHAR:
+							printf("	.byte '%c'\n", node->ident[0]);
+							break;
+						}
+					}
+					for (int i = rhs->nodes->len; i < lhs->type->array_size;i++) {
+						switch (node->type->ty) {
+						case INT:
+							printf("	.long 0\n");
+							break;
+
+						case CHAR:
+							printf("	.byte 0\n");
+							break;
+						}
+					}
+					break;
+				case ND_STRING:
+					strncpy(str, rhs->ident, rhs->len);
+					str[rhs->len+1] = '\0';
+					printf("	.ascii \"%s\\0\"\n", str);
+					break;
+				}
+				
+				break;
+			}
+
 			case PTR:
 				switch (rhs->kind) {
 				case ND_ADDR:
@@ -162,8 +199,6 @@ void gen_lvalue(Node *node) {
 	case ND_DEREF:
 		gen(node->side[0]);
 		return;
-	case ND_INITIALIZER:
-		//fprintf(stderr, "init %d\n", node->kind);
 	default:
 		break;
 		//error("It is not lvalue! %s %d\n", node->ident, node->type->ty);
@@ -233,13 +268,18 @@ void gen(Node *node) {
 		fprintf(stderr, "");
 		Node *lhs = node->side[0];
 		Node *rhs = node->side[1];
-		//fprintf(stderr, "lhs kind:%d\nrhs kind:%d\n", lhs->kind, rhs->kind);
+
 		if (rhs->kind == ND_INITIALIZER) {
-			//fprintf(stderr, "init %d\n", rhs->kind);
 			for (int i = 0; i < rhs->nodes->len;i++) {
 				gen((Node*)rhs->nodes->data[i]);
 				printf("	pop rax\n");
 				printf("	mov %s [rbp-%d], rax\n", gen_type(lhs->type), lhs->var->offset + i * lhs->type->type_size / lhs->type->array_size);
+			}
+			// 配列のサイズより初期化子が少ない時
+			if (lhs->type->array_size > rhs->nodes->len) {
+				for (int i = rhs->nodes->len; i < lhs->type->array_size;i++) {
+					printf("	mov %s [rbp-%d], 0\n", gen_type(lhs->type), lhs->var->offset + i * lhs->type->type_size / lhs->type->array_size);
+				}
 			}
 		}else{
 			gen_lvalue(node->side[0]);
@@ -252,12 +292,7 @@ void gen(Node *node) {
 		}
 		return;
 
-	case ND_INITIALIZER:
-		//fprintf(stderr, "init\n");
-		return;
-
 	case ND_RETURN:
-		//fprintf(stderr, "return\n");
 		gen(node->side[0]);
 
 		printf("	pop rax\n");

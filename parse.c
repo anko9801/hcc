@@ -151,13 +151,9 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
-		if (*p == '\'') {
-			p++;
-		}
-
 		if (string == 1) {
 			int len = 0;
-			while (*p != '\"') {
+			while (*p != '\"' && *p != '\'') {
 				fprintf(stderr, "%c", *p);
 				p++;
 				len++;
@@ -168,9 +164,10 @@ Token *tokenize(char *p) {
 			cur = new_token(TK_RESERVED, cur, p++, line);
 			cur->len = 1;
 			string = 0;
+			continue;
 		}
 
-		if (*p == '\"') {
+		if (*p == '\"' || *p == '\'') {
 			string = 1;
 			fprintf(stderr, "%c", *p);
 			cur = new_token(TK_RESERVED, cur, p++, line);
@@ -181,9 +178,10 @@ Token *tokenize(char *p) {
 		if (is_reserved(&p, &cur, "==")) {
 			continue;
 		}
+
 		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' ||
 			*p == ';' || *p == '=' || *p == ',' || *p == '&' ||
-			*p == '(' || *p == ')' ||
+			*p == '(' || *p == ')' || *p == '\\' ||
 			*p == '[' || *p == ']' ||
 			*p == '<' || *p == '>' ||
 			*p == '{' || *p == '}') {
@@ -485,6 +483,19 @@ Type *type_spec() {
 	return type;
 }
 
+//postfix_exp	::= <primary_exp>
+//				| <postfix_exp> “[“ <exp> “]”
+//				| <postfix_exp> “(“ <argument_exp_list> “)”
+//				| <postfix_exp> “(“			“)”
+//				| <postfix_exp> “.” id
+//				| <postfix_exp> “->” id
+//				| <postfix_exp> “++”
+//				| <postfix_exp> “—-"
+Node *postfix_expr() {
+	Node *node = NULL;
+	return node;
+}
+
 Node *term() {
 	// 次のトークンが"("なら、"(" expr ")"のはず
 
@@ -494,25 +505,28 @@ Node *term() {
 		return node;
 	}
 
+	cu();
 	Token *tok;
 	Type *ident_type = type_spec();
 	if (ident_type) {
 		tok = consume_ident();
 		if (tok) {
+			cu();
 			Node *rhs = NULL;
 			if (consume("[")) {
 				int array_size = consume_number();
 				expect("]");
 
+				cu();
 				if (consume("=")) {
 					rhs = initializer();
-					// 配列なら
-					if (rhs->nodes) {
+					cu();
+				}
+				if (array_size == -1) {
+					if (rhs->nodes)
 						array_size = rhs->nodes->len;
-						fprintf(stderr, "len %d\n", rhs->nodes->len);
-					}else{
-						fprintf(stderr, "len %d\n", rhs->len);
-					}
+					else
+						array_size = rhs->len;
 				}
 				Type *type = array_type(ident_type, array_size);
 				ident_type = type;
@@ -582,6 +596,18 @@ Node *term() {
 			push_back(strings, (void *)tok);
 		}
 		expect("\"");
+		return node;
+	}
+
+	if (consume("\'")) {
+		tok = consume_ident();
+		if (tok) {
+			node = new_node_s(ND_STRING, tok, wrap_pointer(char_type()));
+			node->type = char_type();
+			node->type->array_size = node->len;
+			push_back(strings, (void *)tok);
+		}
+		expect("\'");
 		return node;
 	}
 
@@ -992,24 +1018,39 @@ Node *func() {
 				return node;
 			// 変数
 			}else{
+				Node *rhs = NULL;
 				if (consume("[")) {
 					int array_size = consume_number();
 					expect("]");
 
+					cu();
+					if (consume("=")) {
+						rhs = initializer();
+						cu();
+					}
+					if (array_size == -1) {
+						if (rhs->nodes)
+							array_size = rhs->nodes->len;
+						else
+							array_size = rhs->len;
+					}
 					Type *type = array_type(ident_type, array_size);
 					ident_type = type;
 				}
-				LVar *lvar = new_lvar(globals, tok, ident_type);
+				LVar *lvar = new_lvar(locals, tok, ident_type);
 				lvar->scope = 1;
 				globals = lvar;
 
-				node = new_node_s(ND_VARDECL, tok, ident_type);
+				Node *node = new_node_s(ND_VARDECL, tok, ident_type);
 				node->var = lvar;
 
-				if (consume("=")) {
-					node = new_node(ND_ASSIGN, node, expr());
+				// 初期化
+				if (rhs) {
+					node = new_node(ND_ASSIGN, node, rhs);
+				}else if (consume("=")) {
+					rhs = initializer();
+					node = new_node(ND_ASSIGN, node, rhs);
 				}
-
 				expect(";");
 				return node;
 			}
