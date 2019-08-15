@@ -10,7 +10,7 @@ extern LVar *globals;
 extern Vec *strings;
 
 void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
-	fprintf(stderr, "gen_pre");
+	fprintf(stderr, "gen_pre\n");
 	printf(".intel_syntax noprefix\n");
 
 	char str[100];
@@ -29,19 +29,20 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 		printf("_%s\n", str);
 	}
 
-	printf(".global ");
+	if (funcs) {
+		printf(".global ");
 
-	while (funcs->next) {
+		while (funcs->next) {
+			strncpy(str, funcs->name, funcs->len);
+			str[funcs->len] = '\0';
+
+			printf("_%s, ", str);
+			funcs = funcs->next;
+		}
 		strncpy(str, funcs->name, funcs->len);
 		str[funcs->len] = '\0';
-
-		printf("_%s, ", str);
-		funcs = funcs->next;
+		printf("_%s\n", str);
 	}
-	strncpy(str, funcs->name, funcs->len);
-	str[funcs->len] = '\0';
-	printf("_%s\n", str);
-
 
 	for (int i = 0;strings->data[i];i++) {
 		Token *tok = (Token *)strings->data[i];
@@ -65,12 +66,45 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 		case ND_ASSIGN:
 			lhs = code[i]->side[0];
 			rhs = code[i]->side[1];
-			//fprintf(stderr, "%s\n", lhs->ident);
+
 			strncpy(str, lhs->ident, lhs->len);
 			str[lhs->len] = '\0';
 
 			printf("%s:\n", str);
-			printf("	.long %d\n", rhs->val);
+			switch (lhs->type->ty) {
+			case INT:
+				printf("	.long %d\n", rhs->val);
+				break;
+
+			case CHAR:
+				printf("	.byte %c\n", rhs->ident[0]);
+				break;
+
+			case ARRAY:
+			case PTR:
+				switch (rhs->kind) {
+				case ND_ADDR:
+					strncpy(str, rhs->side[0]->ident, rhs->side[0]->len);
+					str[rhs->side[0]->len] = '\0';
+					printf("	.quad %s\n", str);
+					break;
+				case ND_ADD:
+					strncpy(str, rhs->side[0]->ident, rhs->side[0]->len);
+					str[rhs->side[0]->len+1] = '\0';
+					printf("	.quad %s + %d\n", str, rhs->side[1]->val);
+					break;
+				case ND_SUB:
+					strncpy(str, rhs->side[0]->ident, rhs->side[0]->len);
+					str[rhs->side[0]->len+1] = '\0';
+					printf("	.quad %s - %d\n", str, rhs->side[1]->val);
+					break;
+				case ND_STRING:
+					strncpy(str, rhs->ident, rhs->len);
+					str[rhs->len+1] = '\0';
+					printf("	.ascii \"%s\\0\"\n", str);
+				}
+				break;
+			}
 			break;
 		case ND_DECL:
 			break;
@@ -158,7 +192,15 @@ void gen(Node *node) {
 		return;
 
 	case ND_STRING:
-		printf("	lea rax, qword ptr [rip + .LC0]\n");
+		printf("");
+
+		int i = 0;
+		for (i = 0;strings->data[i];i++) {
+			Token *tok = (Token *)strings->data[i];
+			if (node->ident == tok->str && node->len == tok->len)
+				break;
+		}
+		printf("	lea rax, qword ptr [rip + .LC%d]\n", i);
 		printf("	push rax\n");
 		return;
 

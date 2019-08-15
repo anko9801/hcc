@@ -141,11 +141,21 @@ void analyse(Node *node) {
 			analyse(node->side[1]);
 			break;
 
-		case ND_MUL:
-			print_node("MUL");
-			analyse(node->side[0]);
-			analyse(node->side[1]);
+		case ND_MUL: {
+			Node *lhs = node->side[0];
+			Node *rhs = node->side[1];
+			if (lhs->kind == ND_NUM && rhs->kind == ND_NUM) {
+				node->kind = ND_NUM;
+				node->type = lhs->type;
+				node->val = lhs->val * rhs->val;
+				print_node("NUM %d", node->val);
+			}else{
+				print_node("MUL");
+				analyse(node->side[0]);
+				analyse(node->side[1]);
+			}
 			break;
+		}
 
 		case ND_DIV:
 			print_node("DIV");

@@ -8,10 +8,21 @@ _main:
 	push rbp
 	mov rbp, rsp
 	sub rsp, 32
-	mov  [rbp-8], 3
-	mov  [rbp-16], 1
-	mov  [rbp-20], 2
-	mov  [rbp-24], 3
+	lea rax, [rbp-8]
+	push rax
+	push 3
+	pop rbx
+	pop rax
+	mov  [rax], rbx
+	push 1
+	pop rax
+	mov  [rbp-16], rax
+	push 2
+	pop rax
+	mov  [rbp-20], rax
+	push 3
+	pop rax
+	mov  [rbp-24], rax
 	lea rax, [rbp-24]
 	push rax
 	lea rax, qword ptr [rip + .LC0]
@@ -21,7 +32,7 @@ _main:
 	mov  [rax], rbx
 	lea rax, [rbp-32]
 	push rax
-	lea rax, qword ptr [rip + .LC0]
+	lea rax, qword ptr [rip + .LC1]
 	push rax
 	pop rbx
 	pop rax
