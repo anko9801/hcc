@@ -10,6 +10,7 @@ extern LVar *globals;
 extern Vec *strings;
 
 void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
+	fprintf(stderr, "gen_pre");
 	printf(".intel_syntax noprefix\n");
 
 	char str[100];
@@ -46,7 +47,7 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 		Token *tok = (Token *)strings->data[i];
 		strncpy(str, tok->str, tok->len);
 		str[tok->len] = '\0';
-		printf(".LC0:\n");
+		printf(".LC%d:\n", i);
 		printf("	.string \"%s\"\n", str);
 	}
 
@@ -64,7 +65,7 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 		case ND_ASSIGN:
 			lhs = code[i]->side[0];
 			rhs = code[i]->side[1];
-			fprintf(stderr, "%s\n", lhs->ident);
+			//fprintf(stderr, "%s\n", lhs->ident);
 			strncpy(str, lhs->ident, lhs->len);
 			str[lhs->len] = '\0';
 
@@ -83,10 +84,24 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 	}
 }
 
-
+char *gen_type(Type *type) {
+	switch (type->ty) {
+	case INT:
+		return "";
+		return "DWORD PTR";
+	case CHAR:
+		return "BYTE PTR";
+	case PTR:
+		return "";
+		return "DWORD PTR";
+	case ARRAY:
+		return "";
+		return "DWORD PTR";
+	}
+}
 
 void gen_lvalue(Node *node) {
-	fprintf(stderr, "lvalue\n");
+	//fprintf(stderr, "lvalue kind:%d\n", node->kind);
 	char str[100];
 	switch (node->kind) {
 	case ND_LVAR:
@@ -98,30 +113,7 @@ void gen_lvalue(Node *node) {
 			strncpy(str, node->var->name, node->var->len);
 			str[node->len] = '\0';
 
-			switch (node->var->type->ty) {
-			case INT:
-				printf("	lea rax, DWORD PTR [rip + %s@GOTPCREL]\n", str);
-				printf("	push rax\n");
-				break;
-			case CHAR:
-				printf("	lea rax, DWORD PTR [rip + %s@GOTPCREL]\n", str);
-				printf("	push rax\n");
-				break;
-			case PTR:
-				if (node->var->type->ptr_to->ty == INT)
-					printf("	lea rax, DWORD PTR [rip + %s@GOTPCREL]\n", str);
-				else
-					printf("	lea rax, BYTE PTR [rip + %s@GOTPCREL]\n", str);
-				printf("	push eax\n");
-				break;
-			case ARRAY:
-				if (node->var->type->ptr_to->ty == INT)
-					printf("	lea rax, DWORD PTR [rip + %s@GOTPCREL]\n", str);
-				else
-					printf("	lea rax, BYTE PTR [rip + %s@GOTPCREL]\n", str);
-				printf("	push rax\n");
-				break;
-			}
+			printf("	lea rax, %s [rip + %s@GOTPCREL]\n", gen_type(node->var->type), str);
 		}
 		return;
 	case ND_VARDECL:
@@ -136,55 +128,24 @@ void gen_lvalue(Node *node) {
 	case ND_DEREF:
 		gen(node->side[0]);
 		return;
+	case ND_INITIALIZER:
+		//fprintf(stderr, "init %d\n", node->kind);
 	default:
-		error("It is not lvalue! %s\n", node->ident);
+		break;
+		//error("It is not lvalue! %s %d\n", node->ident, node->type->ty);
 	}
 }
 
 void gen_mov(Node *node) {
-	switch (node->type->ty) {
-	case INT:
-		printf("	mov rax, [rax]\n");
-		break;
-	case CHAR:
-		printf("	movsx eax, BYTE PTR [rax]\n");
-		break;
-	case PTR:
-		if (node->var->type->ptr_to->ty == INT)
-			printf("	mov rax, [rax]\n");
-		else
-			printf("	mov rax, [rax]\n");
-		break;
-	case ARRAY:
-		if (node->var->type->ptr_to->ty == INT)
-			printf("	mov rax, [rax]\n");
-		else
-			printf("	movsx eax, BYTE PTR [rax]\n");
-		break;
+	if (node->type->ty == CHAR) {
+		printf("	mov rax, %s [rax]\n", gen_type(node->type));
+	}else{
+		printf("	movsx eax, %s [rax]\n", gen_type(node->type));
 	}
 }
 
 void gen_assign(Node *node) {
-	switch (node->type->ty) {
-	case INT:
-		printf("	mov [rax], rbx\n");
-		break;
-	case CHAR:
-		printf("	mov BYTE PTR [rax], bl\n");
-		break;
-	case PTR:
-		if (node->var->type->ptr_to->ty == INT)
-			printf("	mov [rax], rbx\n");
-		else
-			printf("	mov [rax], rbx\n");
-		break;
-	case ARRAY:
-		if (node->var->type->ptr_to->ty == INT)
-			printf("	mov [rax], rbx\n");
-		else
-			printf("	mov BYTE PTR [rax], bl\n");
-		break;
-	}
+	printf("	mov %s [rax], rbx\n", gen_type(node->type));
 }
 
 void gen(Node *node) {
@@ -192,7 +153,7 @@ void gen(Node *node) {
 	char *args_list[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 	switch (node->kind) {
 	case ND_NUM:
-		fprintf(stderr, "num\n");
+		//fprintf(stderr, "num\n");
 		printf("	push %d\n", node->val);
 		return;
 
@@ -202,7 +163,7 @@ void gen(Node *node) {
 		return;
 
 	case ND_LVAR:
-		fprintf(stderr, "lvar\n");
+		//fprintf(stderr, "lvar\n");
 		gen_lvalue(node);
 
 		printf("	pop rax\n");
@@ -223,23 +184,38 @@ void gen(Node *node) {
 
 		printf("	pop rax\n");
 		gen_mov(node);
-		//printf("	mov rax, [rax]\n");
 		printf("	push rax\n");
 		return;
 
 	case ND_ASSIGN:
-		fprintf(stderr, "assign\n");
-		gen_lvalue(node->side[0]);
-		gen(node->side[1]);
+		fprintf(stderr, "");
+		Node *lhs = node->side[0];
+		Node *rhs = node->side[1];
+		//fprintf(stderr, "lhs kind:%d\nrhs kind:%d\n", lhs->kind, rhs->kind);
+		if (rhs->kind == ND_INITIALIZER) {
+			//fprintf(stderr, "init %d\n", rhs->kind);
+			for (int i = 0; i < rhs->nodes->len;i++) {
+				gen((Node*)rhs->nodes->data[i]);
+				printf("	pop rax\n");
+				printf("	mov %s [rbp-%d], rax\n", gen_type(lhs->type), lhs->var->offset + i * lhs->type->type_size / lhs->type->array_size);
+			}
+		}else{
+			gen_lvalue(node->side[0]);
+			gen(node->side[1]);
 
-		printf("	pop rbx\n");
-		printf("	pop rax\n");
-		gen_assign(node->side[0]);
-		//printf("	push rbx\n");
+			printf("	pop rbx\n");
+			printf("	pop rax\n");
+			gen_assign(node->side[0]);
+			//printf("	push rbx\n");
+		}
+		return;
+
+	case ND_INITIALIZER:
+		//fprintf(stderr, "init\n");
 		return;
 
 	case ND_RETURN:
-		fprintf(stderr, "return\n");
+		//fprintf(stderr, "return\n");
 		gen(node->side[0]);
 
 		printf("	pop rax\n");

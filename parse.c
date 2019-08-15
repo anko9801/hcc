@@ -433,6 +433,7 @@ void cu() {
 Node *expr();
 Node *stmts();
 Node *rvalue();
+Node *initializer();
 
 Node *cast(Node *node, Type *type) {
 	if (node->type) {
@@ -498,10 +499,21 @@ Node *term() {
 	if (ident_type) {
 		tok = consume_ident();
 		if (tok) {
+			Node *rhs = NULL;
 			if (consume("[")) {
 				int array_size = consume_number();
 				expect("]");
 
+				if (consume("=")) {
+					rhs = initializer();
+					// 配列なら
+					if (rhs->nodes) {
+						array_size = rhs->nodes->len;
+						fprintf(stderr, "len %d\n", rhs->nodes->len);
+					}else{
+						fprintf(stderr, "len %d\n", rhs->len);
+					}
+				}
 				Type *type = array_type(ident_type, array_size);
 				ident_type = type;
 			}
@@ -512,10 +524,14 @@ Node *term() {
 			node->var = lvar;
 
 			// 初期化
-			if (consume("=")) {
-				node = new_node(ND_ASSIGN, node, expr());
+			if (rhs) {
+				node = new_node(ND_ASSIGN, node, rhs);
+			}else if (consume("=")) {
+				rhs = initializer();
+				node = new_node(ND_ASSIGN, node, rhs);
 			}
-			return node; }
+			return node;
+		}
 	}
 
 	tok = consume_ident();
@@ -561,9 +577,10 @@ Node *term() {
 		tok = consume_ident();
 		if (tok) {
 			node = new_node_s(ND_STRING, tok, wrap_pointer(char_type()));
+			node->type = wrap_pointer(char_type());
+			node->type->array_size = node->len;
 			push_back(strings, (void *)tok);
 		}
-		fprintf(stderr, "%s\n", tok->str);
 		expect("\"");
 		return node;
 	}
@@ -666,14 +683,13 @@ Node *add_expr() {
 	Node *node = mul_expr();
 	Node *rhs;
 
-	if (node->type && node->type->ty == ARRAY) {
-		node = new_nodev(ND_ADDR, 1, node);
-		node->type = wrap_pointer(node->side[0]->type->ptr_to);
-	}
-
 	for (;;) {
 		if (consume("+")) {
 			rhs = mul_expr();
+			if (node->type && node->type->ty == ARRAY) {
+				node = new_nodev(ND_ADDR, 1, node);
+				node->type = wrap_pointer(node->side[0]->type->ptr_to);
+			}
 
 			if (node->type->ty == PTR)
 				rhs = cast(rhs, node->type);
@@ -683,6 +699,10 @@ Node *add_expr() {
 			node = new_node(ND_ADD, node, rhs);
 		}else if (consume("-")) {
 			rhs = mul_expr();
+			if (node->type && node->type->ty == ARRAY) {
+				node = new_nodev(ND_ADDR, 1, node);
+				node->type = wrap_pointer(node->side[0]->type->ptr_to);
+			}
 
 			if (node->type->ty == PTR)
 				rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
@@ -789,6 +809,30 @@ Node *lvalue() {
 	return node;
 }
 
+// initiallizer = { (rvalue (, rvalue)*)? }
+//				| rvalue
+//				|
+Node *initializer() {
+	Node *node;
+	if (consume("{")) {
+		Vec *nodes = new_vector();
+		for(;;) {
+			push_back(nodes, rvalue());
+			if (!consume(",")) {
+				expect("}");
+				break;
+			}
+		}
+
+		node = calloc(1, sizeof(Node));
+		node->kind = ND_INITIALIZER;
+		node->nodes = nodes;
+		return node;
+	}else{
+		node = rvalue();
+	}
+	return node;
+}
 // expr		= lvalue (= expr)
 //			| rvalue
 Node *expr() {
@@ -886,7 +930,6 @@ Node *stmts() {
 		node->nodes = nodes;
 	}else{
 		node = stmt();
-		fprintf(stderr, "stmts is stmt\n");
 	}
 
 	return node;

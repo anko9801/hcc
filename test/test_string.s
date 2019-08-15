@@ -13,12 +13,12 @@ _main:
 	push rax
 	pop rbx
 	pop rax
-	mov [rax], rbx
+	mov  [rax], rbx
 	mov rax, rbp
 	sub rax, 8
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov rax,  [rax]
 	push rax
 	pop rdi
 	mov rax, 1

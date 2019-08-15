@@ -7,7 +7,6 @@ extern Func *funcs;
 extern Func *extern_funcs;
 extern char *filename;
 
-
 // 指定されたファイルの内容を返す
 char *read_file(char *path) {
 	// ファイルを開く
@@ -50,6 +49,10 @@ int main(int argc, char **argv) {
 	fprintf(stderr, "トークナイズ完了！\n");
 	program();
 	fprintf(stderr, "パース完了！\n");
+	for (int i = 0;code[i];i++) {
+		analyse(code[i]);
+	}
+	fprintf(stderr, "AST出力完了！\n");
 	gen_pre(code, funcs, extern_funcs);
 	fprintf(stderr, "CodeGen完了！\n");
 	return 0;

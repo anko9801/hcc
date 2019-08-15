@@ -44,6 +44,7 @@ typedef enum {
 	ND_LVAR,   // ローカル変数
 	ND_NUM,    // 整数
 	ND_STRING,
+	ND_INITIALIZER,
 	ND_RETURN,
 	ND_IF,
 	ND_WHILE,
@@ -110,3 +111,4 @@ Vec *new_vector();
 void push_back(Vec *vec, void *elem);
 void runtest();
 void gen_pre(Node **code, Func *funcs, Func *extern_funcs);
+void analyse(Node *node);

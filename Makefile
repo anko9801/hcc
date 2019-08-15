@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-std=c11 -g -static
-SRCS=main.c parse.c codegen.c container.c
+SRCS=main.c parse.c codegen.c container.c analyse.c
 OBJS=$(SRCS:.c=.o)
 TEST=$(wildcard *.hc)
 TESTO=$(TEST:.hc=.o)

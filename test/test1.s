@@ -12,7 +12,7 @@ _fibo:
 	sub rax, 24
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov rax,  [rax]
 	push rax
 	push 20
 	pop rbx
@@ -37,7 +37,7 @@ if.end0:
 	sub rax, 8
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov rax,  [rax]
 	push rax
 	pop rdi
 	mov rax, 1
@@ -54,13 +54,13 @@ call.end0:
 	sub rax, 8
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov rax,  [rax]
 	push rax
 	mov rax, rbp
 	sub rax, 16
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov rax,  [rax]
 	push rax
 	pop rbx
 	pop rax
@@ -71,14 +71,14 @@ call.end0:
 	sub rax, 8
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov rax,  [rax]
 	push rax
 	pop rsi
 	mov rax, rbp
 	sub rax, 24
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov rax,  [rax]
 	push rax
 	push 1
 	pop rbx
