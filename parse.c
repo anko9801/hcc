@@ -205,6 +205,8 @@ Node *expr();
 Node *stmts();
 Node *rvalue();
 Node *initializer();
+Node *new_add(Node *lhs, Node *rhs);
+Node *new_sub(Node *lhs, Node *rhs);
 
 /*type_spec	::= “void” | “char” | “short” | “int” | “long” 
 			| “float”
@@ -239,19 +241,6 @@ Type *type_spec() {
 	return type;
 }
 
-//postfix_exp	::= <primary_exp>
-//				| <postfix_exp> “[“ <exp> “]”
-//				| <postfix_exp> “(“ <argument_exp_list> “)”
-//				| <postfix_exp> “(“			“)”
-//				| <postfix_exp> “.” id
-//				| <postfix_exp> “->” id
-//				| <postfix_exp> “++”
-//				| <postfix_exp> “—-"
-Node *postfix_expr() {
-	Node *node = NULL;
-	return node;
-}
-
 Node *term() {
 	// 次のトークンが"("なら、"(" expr ")"のはず
 
@@ -265,6 +254,7 @@ Node *term() {
 	Token *tok;
 	Type *ident_type = type_spec();
 	if (ident_type) {
+		cu();
 		tok = consume_ident();
 		if (tok) {
 			Node *rhs = NULL;
@@ -381,6 +371,54 @@ Node *term() {
 	return NULL;
 }
 
+
+//postfix_exp	::= <primary_exp>
+//				| <postfix_exp> “[“ <exp> “]”
+//				| <postfix_exp> “(“ <argument_exp_list> “)”
+//				| <postfix_exp> “(“			“)”
+//				| <postfix_exp> “.” id
+//				| <postfix_exp> “->” id
+//				| <postfix_exp> “++”
+//				| <postfix_exp> “—-"
+Node *postfix() {
+	Node *node = term();
+	Node *rhs;
+
+	if (consume("[")) {
+		rhs = rvalue();
+		expect("]");
+
+		if (node->type->ty == PTR /*&& rhs->type->ty == INT*/ && node->type->ptr_to) {
+			rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
+			rhs->type = node->type;
+		}
+		else if (/*node->type->ty == INT &&*/ rhs->type->ty == PTR && rhs->type->ptr_to) {
+			node = new_node(ND_MUL, node, new_node_num(rhs->type->ptr_to->type_size));
+			node->type = rhs->type;
+		}
+
+		//*(a+3)
+		fprintf(stderr, "ptr int\n");
+		Type *type = node->type->ptr_to;
+		node = new_node(ND_ADD, node, rhs);
+		node = new_nodev(ND_DEREF, 1, node);
+		node->type = type;
+		return node;
+	}
+
+	if (consume("++")) {
+		rhs = new_add(node, new_node_num(1));
+		return new_node(ND_ASSIGN, node, rhs);
+	}
+
+	if (consume("--")) {
+		rhs = new_sub(node, new_node_num(1));
+		return new_node(ND_ASSIGN, node, rhs);
+	}
+	
+	return node;
+}
+
 // unary = "+"? term
 //       | "-"? term
 //       | "*" unary
@@ -398,10 +436,16 @@ Node *unary() {
 	}
 
 	if (consume("+"))
-		return term();
+		return postfix();
 
 	if (consume("-"))
-		return new_node(ND_SUB, new_node_num(0), term());
+		return new_node(ND_SUB, new_node_num(0), postfix());
+
+	if (consume("++"))
+		return new_node(ND_ADD, unary(), new_node_num(1));
+
+	if (consume("--"))
+		return new_node(ND_SUB, unary(), new_node_num(1));
 
 	if (consume("*")) {
 		node = unary();
@@ -427,34 +471,13 @@ Node *unary() {
 		return node;
 	}
 
-	node = term();
-	Node *rhs;
-
-	if (consume("[")) {
-		rhs = rvalue();
-		expect("]");
-
-		if (node->type->ty == PTR /*&& rhs->type->ty == INT*/ && node->type->ptr_to) {
-			rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
-			rhs->type = node->type;
-		}
-		else if (/*node->type->ty == INT &&*/ rhs->type->ty == PTR && rhs->type->ptr_to) {
-			node = new_node(ND_MUL, node, new_node_num(rhs->type->ptr_to->type_size));
-			node->type = rhs->type;
-		}
-
-		//*(a+3)
-		fprintf(stderr, "ptr int\n");
-		Type *type = node->type->ptr_to;
-		node = new_node(ND_ADD, node, rhs);
-		node = new_nodev(ND_DEREF, 1, node);
-		node->type = type;
-		return node;
-	}
+	node = postfix();
 	return node;
 }
 
+
 Node *mul_expr() {
+	cu();
 	Node *node = unary();
 
 	if (node->type && node->type->ty == INT) {
@@ -531,6 +554,7 @@ Node *relational() {
 
 // equality   = relational ("==" relational | "!=" relational)*
 Node *equality() {
+	cu();
 	Node *node = relational();
 
 	for (;;) {
@@ -669,6 +693,7 @@ Node *expr() {
 			node = rvalue();
 		}
 	}else{
+		token = backup;
 		node = rvalue();
 	}
 	return node;

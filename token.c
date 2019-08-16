@@ -158,7 +158,9 @@ Token *tokenize(char *p) {
 			is_reserved_sign(&p, &cur, "+=") ||
 			is_reserved_sign(&p, &cur, "-=") ||
 			is_reserved_sign(&p, &cur, "*=") ||
-			is_reserved_sign(&p, &cur, "/=")
+			is_reserved_sign(&p, &cur, "/=") ||
+			is_reserved_sign(&p, &cur, "++") ||
+			is_reserved_sign(&p, &cur, "--")
 			) {
 			continue;
 		}
