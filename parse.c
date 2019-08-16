@@ -80,10 +80,15 @@ bool at_eof() {
 }
 
 int is_alnum(char c) {
-	return ('a' <= c && c <= 'z') ||
-		('A' <= c && c <= 'Z') ||
-		('0' <= c && c <= '9') ||
-		(c == '_');
+	return	('a' <= c && c <= 'z') ||
+			('A' <= c && c <= 'Z') ||
+			('0' <= c && c <= '9') ||
+			(c == '_');
+}
+
+int is_alpha(char c) {
+	return	('a' <= c && c <= 'z') ||
+			('A' <= c && c <= 'Z');
 }
 
 // 新しいトークンを作成してcurに繋げる
@@ -116,18 +121,17 @@ Token *tokenize(char *p) {
 	int string = 0;
 
 	while (*p) {
-		// 空白文字をスキップ
+		if (commented == 1 && *p == '\n') {
+			commented = 0;
+			p++;
+			continue;
+		}
+		if (commented == 2 && strncmp(p, "*/", 2) == 0) {
+			commented = 0;
+			p += 2;
+			continue;
+		}
 		if (commented > 0) {
-			if (commented == 1 && *p == '\n') {
-				commented = 0;
-				p++;
-				continue;
-			}
-			if (commented == 2 && strncmp(p, "*/", 2) == 0) {
-				commented = 0;
-				p += 2;
-				continue;
-			}
 			p++;
 			continue;
 		}
@@ -141,19 +145,25 @@ Token *tokenize(char *p) {
 			p += 2;
 			continue;
 		}
-		if (isspace(*p)) {
-			p++;
-			continue;
-		}
-		if (*p == '\n') {
-			line++;
-			p++;
-			continue;
-		}
 
 		if (string == 1) {
 			int len = 0;
-			while (*p != '\"' && *p != '\'') {
+			while (*p != '\'') {
+				fprintf(stderr, "%c", *p);
+				p++;
+				len++;
+			}
+			cur = new_token(TK_STRING, cur, p-len, line);
+			cur->len = len;
+			fprintf(stderr, "%c", *p);
+			cur = new_token(TK_RESERVED, cur, p++, line);
+			cur->len = 1;
+			string = 0;
+			continue;
+		}
+		if (string == 2) {
+			int len = 0;
+			while (*p != '\"') {
 				fprintf(stderr, "%c", *p);
 				p++;
 				len++;
@@ -167,7 +177,25 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
-		if (*p == '\"' || *p == '\'') {
+		// 空白文字をスキップ
+		if (isspace(*p)) {
+			p++;
+			continue;
+		}
+		if (*p == '\n') {
+			line++;
+			p++;
+			continue;
+		}
+
+		if (*p == '\"') {
+			string = 2;
+			fprintf(stderr, "%c", *p);
+			cur = new_token(TK_RESERVED, cur, p++, line);
+			cur->len = 1;
+			continue;
+		}
+		if (*p == '\'') {
 			string = 1;
 			fprintf(stderr, "%c", *p);
 			cur = new_token(TK_RESERVED, cur, p++, line);
@@ -179,11 +207,11 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
-		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' ||
-			*p == ';' || *p == '=' || *p == ',' || *p == '&' ||
-			*p == '(' || *p == ')' || *p == '\\' ||
-			*p == '[' || *p == ']' ||
-			*p == '<' || *p == '>' ||
+		if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '%' ||
+			*p == ';' || *p == '=' || *p == ',' || *p == '&' || *p == ':' ||
+			*p == '(' || *p == ')' || *p == '\\' || *p == '#' ||
+			*p == '[' || *p == ']' || *p == '.' || *p == '!' ||
+			*p == '<' || *p == '>' || *p == '&' || *p == '|' ||
 			*p == '{' || *p == '}') {
 			fprintf(stderr, "%c", *p);
 			cur = new_token(TK_RESERVED, cur, p++, line);
@@ -208,11 +236,12 @@ Token *tokenize(char *p) {
 			is_reserved(&p, &cur, "while") ||
 			is_reserved(&p, &cur, "for") ||
 			is_reserved(&p, &cur, "sizeof") ||
-			is_reserved(&p, &cur, "extern")) {
+			is_reserved(&p, &cur, "extern") ||
+			is_reserved(&p, &cur, "__LINE__")) {
 			continue;
 		}
 
-		if ('a' <= *p && *p <= 'z') {
+		if (is_alpha(*p)) {
 			int len = 0;
 			fprintf(stderr, "%c", *p);
 			p++;
@@ -231,7 +260,7 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
-		error("cannot tokenize");
+		error("cannot tokenize %c", *p);
 	}
 
 	new_token(TK_EOF, cur, p, line);
@@ -249,6 +278,15 @@ Func *funcs;
 Func *extern_funcs;
 
 Vec *strings;
+
+Type *void_type() {
+	Type *type = calloc(1, sizeof(Type));
+	type->ty = INT;
+	type->ptr_to = NULL;
+	type->type_size = 4;
+	type->array_size = 1;
+	return type;
+}
 
 Type *int_type() {
 	Type *type = calloc(1, sizeof(Type));
@@ -433,14 +471,31 @@ Node *stmts();
 Node *rvalue();
 Node *initializer();
 
+/*type_spec	::= “void” | “char” | “short” | “int” | “long” 
+			| “float”
+			| “double” | “signed” | “unsigned”
+			| <struct_or_union_spec>
+			| <enum_spec>
+			| <typedef_name>*/
 Type *type_spec() {
-	Type *type_addr;
 	Type *type = NULL;
 
-	if (consume("int")) {
-		type = int_type();
+	if (consume("void")) {
+		type = void_type();
 	}else if (consume("char")) {
 		type = char_type();
+	}else if (consume("short")) {
+		type = int_type();
+	}else if (consume("int")) {
+		type = int_type();
+	}else if (consume("long")) {
+		type = int_type();
+	}else if (consume("float")) {
+		type = int_type();
+	}else if (consume("signed")) {
+		type = int_type();
+	}else if (consume("unsigned")) {
+		type = int_type();
 	}
 
 	while (consume("*")) {
