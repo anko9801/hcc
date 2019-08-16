@@ -349,13 +349,13 @@ void gen(Node *node) {
 		return;
 
 	case ND_IF:
-		printf("	%s if.then%d\n", gen_cond(node->side[0]), if_cnt);
-		printf("	jmp if.else%d\n", if_cnt);
-		printf("if.then%d:\n", if_cnt);
-
-		gen(node->side[1]);
-
 		if (node->side[2]) {
+			printf("	%s if.then%d\n", gen_cond(node->side[0]), if_cnt);
+			printf("	jmp if.else%d\n", if_cnt);
+			printf("if.then%d:\n", if_cnt);
+
+			gen(node->side[1]);
+
 			printf("	jmp if.end%d\n", if_cnt);
 			printf("if.else%d:\n", if_cnt);
 
@@ -364,8 +364,12 @@ void gen(Node *node) {
 			printf("	jmp if.end%d\n", if_cnt);
 			printf("if.end%d:\n", if_cnt);
 		}else{
-			printf("if.else%d:\n", if_cnt);
+			printf("	%s if.then%d\n", gen_cond(node->side[0]), if_cnt);
 			printf("	jmp if.end%d\n", if_cnt);
+			printf("if.then%d:\n", if_cnt);
+
+			gen(node->side[1]);
+
 			printf("if.end%d:\n", if_cnt);
 		}
 		if_cnt += 1;
