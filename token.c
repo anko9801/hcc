@@ -34,7 +34,18 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int line) {
 bool is_reserved(char **p, Token **cur, char *str) {
 	if (strncmp(*p, str, strlen(str)) == 0 && !is_alnum((*p)[strlen(str)])) {
 		*cur = new_token(TK_RESERVED, *cur, *p, line);
-		fprintf(stderr, "%s", str);
+		fprintf(stderr, "(%s)", str);
+		(*cur)->len = strlen(str);
+		*p += strlen(str);
+		return true;
+	}
+	return false;
+}
+
+bool is_reserved_sign(char **p, Token **cur, char *str) {
+	if (strncmp(*p, str, strlen(str)) == 0) {
+		*cur = new_token(TK_RESERVED, *cur, *p, line);
+		fprintf(stderr, "(%s)", str);
 		(*cur)->len = strlen(str);
 		*p += strlen(str);
 		return true;
@@ -133,7 +144,22 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
-		if (is_reserved(&p, &cur, "==")) {
+		if (is_reserved(&p, &cur, "int") ||
+			is_reserved(&p, &cur, "char") ||
+			is_reserved(&p, &cur, "return") ||
+			is_reserved(&p, &cur, "if") ||
+			is_reserved(&p, &cur, "else") ||
+			is_reserved(&p, &cur, "while") ||
+			is_reserved(&p, &cur, "for") ||
+			is_reserved(&p, &cur, "sizeof") ||
+			is_reserved(&p, &cur, "extern") ||
+			is_reserved(&p, &cur, "__LINE__") ||
+			is_reserved_sign(&p, &cur, "==") ||
+			is_reserved_sign(&p, &cur, "+=") ||
+			is_reserved_sign(&p, &cur, "-=") ||
+			is_reserved_sign(&p, &cur, "*=") ||
+			is_reserved_sign(&p, &cur, "/=")
+			) {
 			continue;
 		}
 
@@ -155,19 +181,6 @@ Token *tokenize(char *p) {
 			cur->val = strtol(p, &p, 10);
 			cur->len = p - q;
 			fprintf(stderr, "%d", cur->val);
-			continue;
-		}
-
-		if (is_reserved(&p, &cur, "int") ||
-			is_reserved(&p, &cur, "char") ||
-			is_reserved(&p, &cur, "return") ||
-			is_reserved(&p, &cur, "if") ||
-			is_reserved(&p, &cur, "else") ||
-			is_reserved(&p, &cur, "while") ||
-			is_reserved(&p, &cur, "for") ||
-			is_reserved(&p, &cur, "sizeof") ||
-			is_reserved(&p, &cur, "extern") ||
-			is_reserved(&p, &cur, "__LINE__")) {
 			continue;
 		}
 

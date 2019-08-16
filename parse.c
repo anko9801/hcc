@@ -255,6 +255,7 @@ Node *postfix_expr() {
 Node *term() {
 	// 次のトークンが"("なら、"(" expr ")"のはず
 
+	cu();
 	if (consume("(")) {
 		Node *node = expr();
 		expect(")");
@@ -470,6 +471,28 @@ Node *mul_expr() {
 	return node;
 }
 
+Node *new_add(Node *lhs, Node *rhs) {
+	if (lhs->type->ty == PTR && lhs->type->ptr_to) {
+		rhs = new_node(ND_MUL, rhs, new_node_num(lhs->type->ptr_to->type_size));
+		rhs->type = lhs->type;
+	}else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
+		lhs = new_node(ND_MUL, lhs, new_node_num(rhs->type->ptr_to->type_size));
+		lhs->type = rhs->type;
+	}
+	return new_node(ND_ADD, lhs, rhs);
+}
+
+Node *new_sub(Node *lhs, Node *rhs) {
+	if (lhs->type->ty == PTR && lhs->type->ptr_to) {
+		rhs = new_node(ND_MUL, rhs, new_node_num(lhs->type->ptr_to->type_size));
+		rhs->type = lhs->type;
+	}else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
+		lhs = new_node(ND_MUL, lhs, new_node_num(rhs->type->ptr_to->type_size));
+		lhs->type = rhs->type;
+	}
+	return new_node(ND_SUB, lhs, rhs);
+}
+
 Node *add_expr() {
 	Node *node = mul_expr();
 	Node *rhs;
@@ -477,28 +500,10 @@ Node *add_expr() {
 	for (;;) {
 		if (consume("+")) {
 			rhs = mul_expr();
-			if (node->type->ty == PTR && rhs->type->ty == INT && node->type->ptr_to) {
-				rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
-				rhs->type = node->type;
-			}
-			else if (node->type->ty == INT && rhs->type->ty == PTR && rhs->type->ptr_to) {
-				node = new_node(ND_MUL, node, new_node_num(rhs->type->ptr_to->type_size));
-				node->type = rhs->type;
-			}
-
-			node = new_node(ND_ADD, node, rhs);
+			node = new_add(node, rhs);
 		}else if (consume("-")) {
 			rhs = mul_expr();
-
-			if (node->type->ty == PTR && rhs->type->ty == INT && node->type->ptr_to) {
-				rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
-				rhs->type = node->type;
-			}
-			else if (node->type->ty == INT && rhs->type->ty == PTR && rhs->type->ptr_to) {
-				node = new_node(ND_MUL, node, new_node_num(rhs->type->ptr_to->type_size));
-				node->type = rhs->type;
-			}
-			node = new_node(ND_SUB, node, rhs);
+			node = new_sub(node, rhs);
 		}else
 			return node;
 	}
@@ -640,7 +645,23 @@ Node *expr() {
 
 	if (lval) {
 		Node *rval;
-		if (consume("=")) {
+		if (consume("+=")) {
+			rval = expr();
+			rval = new_add(lval, rval);
+			node = new_node(ND_ASSIGN, lval, rval);
+		}else if (consume("-=")) {
+			rval = expr();
+			rval = new_sub(lval, rval);
+			node = new_node(ND_ASSIGN, lval, rval);
+		}else if (consume("*=")) {
+			rval = expr();
+			rval = new_node(ND_MUL, lval, rval);
+			node = new_node(ND_ASSIGN, lval, rval);
+		}else if (consume("/=")) {
+			rval = expr();
+			rval = new_node(ND_DIV, lval, rval);
+			node = new_node(ND_ASSIGN, lval, rval);
+		}else if (consume("=")) {
 			rval = expr();
 			node = new_node(ND_ASSIGN, lval, rval);
 		}else{
