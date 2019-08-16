@@ -2,5 +2,5 @@
 *.o
 tmp*
 hcc
-.peda-session-*.txt
+.peda*
 .gdb_history
