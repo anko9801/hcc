@@ -214,13 +214,46 @@ void gen_mov(Node *node) {
 
 void gen_assign(Node *node) {
 	printf("	mov [rax], rbx\n");
-	/*if (node->type->ty == CHAR) {
-		printf("	mov %s [rax], bl\n", gen_type(node->type));
-	}else if (node->type->ty == INT) {
-		printf("	mov %s [rax], ebx\n", gen_type(node->type));
-	}else{
-		printf("	mov %s [rax], rbx\n", gen_type(node->type));
-	}*/
+}
+
+char *gen_cond(Node *node) {
+	fprintf(stderr, "cond\n");
+	switch(node->kind) {
+	case ND_LT:
+		gen(node->side[0]);
+		gen(node->side[1]);
+
+		printf("	pop rbx\n");
+		printf("	pop rax\n");
+		printf("	cmp rax, rbx\n");
+		return "jl";
+	case ND_LE:
+		gen(node->side[0]);
+		gen(node->side[1]);
+
+		printf("	pop rbx\n");
+		printf("	pop rax\n");
+		printf("	cmp rax, rbx\n");
+		return "jle";
+	case ND_EQ:
+		gen(node->side[0]);
+		gen(node->side[1]);
+
+		printf("	pop rbx\n");
+		printf("	pop rax\n");
+		printf("	cmp rax, rbx\n");
+		return "je";
+	case ND_NE:
+		gen(node->side[0]);
+		gen(node->side[1]);
+
+		printf("	pop rbx\n");
+		printf("	pop rax\n");
+		printf("	cmp rax, rbx\n");
+		return "jne";
+	default:
+		return NULL;
+	}
 }
 
 void gen(Node *node) {
@@ -316,13 +349,8 @@ void gen(Node *node) {
 		return;
 
 	case ND_IF:
-		gen(node->side[0]);
-
-		printf("	cmp rax, 1\n");
-		printf("	je if.then%d\n", if_cnt);
-
+		printf("	%s if.then%d\n", gen_cond(node->side[0]), if_cnt);
 		printf("	jmp if.else%d\n", if_cnt);
-
 		printf("if.then%d:\n", if_cnt);
 
 		gen(node->side[1]);

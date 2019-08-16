@@ -17,10 +17,6 @@ _fibo:
 	pop rbx
 	pop rax
 	cmp rax, rbx
-	sete al
-	movzx rax, al
-	push rax
-	cmp rax, 1
 	je if.then0
 	jmp if.else0
 if.then0:
