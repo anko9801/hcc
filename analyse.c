@@ -121,6 +121,14 @@ void analyse(Node *node) {
 			print_node("LOOP");
 			analyse(node->side[3]);
 			break;
+		
+		case ND_BREAK:
+			print_node("BREAK");
+			break;
+
+		case ND_CONTINUE:
+			print_node("CONTINUE");
+			break;
 
 		case ND_BLOCK:
 			tab--;

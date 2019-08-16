@@ -87,6 +87,12 @@ int consume_number() {
 	return val;
 }
 
+Node *new_node0(int type) {
+	Node *node = calloc(1, sizeof(Node));
+	node->kind = type;
+	return node;
+}
+
 Node *new_node(int type, Node *lhs, Node *rhs) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = type;
@@ -362,6 +368,14 @@ Node *term() {
 		return node;
 	}
 
+	if (consume("break")) {
+		return new_node0(ND_BREAK);
+	}
+
+	if (consume("continue")) {
+		return new_node0(ND_CONTINUE);
+	}
+
 	// そうでなければ数値のはず
 	int val = consume_number();
 	if (val != -1)
@@ -415,7 +429,7 @@ Node *postfix() {
 		rhs = new_sub(node, new_node_num(1));
 		return new_node(ND_ASSIGN, node, rhs);
 	}
-	
+
 	return node;
 }
 

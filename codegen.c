@@ -11,6 +11,13 @@ extern Vec *strings;
 
 char str[100];
 
+typedef struct {
+	int which; // while: 1, for: 2
+	int nth;
+} loop_info;
+
+loop_info cur_loop = {0, 0};
+
 void gen_extern(Func *extern_funcs) {
 	if (extern_funcs) {
 		printf(".extern ");
@@ -350,63 +357,101 @@ void gen(Node *node) {
 
 	case ND_IF:
 		if (node->side[2]) {
-			printf("	%s if.then%d\n", gen_cond(node->side[0]), if_cnt);
-			printf("	jmp if.else%d\n", if_cnt);
-			printf("if.then%d:\n", if_cnt);
+			printf("	%s .Lif.then%d\n", gen_cond(node->side[0]), if_cnt);
+			printf("	jmp .Lif.else%d\n", if_cnt);
+			printf(".Lif.then%d:\n", if_cnt);
 
 			gen(node->side[1]);
 
-			printf("	jmp if.end%d\n", if_cnt);
-			printf("if.else%d:\n", if_cnt);
+			printf("	jmp .Lif.end%d\n", if_cnt);
+			printf(".Lif.else%d:\n", if_cnt);
 
 			gen(node->side[2]);
 
-			printf("	jmp if.end%d\n", if_cnt);
-			printf("if.end%d:\n", if_cnt);
+			printf("	jmp .Lif.end%d\n", if_cnt);
+			printf(".Lif.end%d:\n", if_cnt);
 		}else{
-			printf("	%s if.then%d\n", gen_cond(node->side[0]), if_cnt);
-			printf("	jmp if.end%d\n", if_cnt);
-			printf("if.then%d:\n", if_cnt);
+			printf("	%s .Lif.then%d\n", gen_cond(node->side[0]), if_cnt);
+			printf("	jmp .Lif.end%d\n", if_cnt);
+			printf(".Lif.then%d:\n", if_cnt);
 
 			gen(node->side[1]);
 
-			printf("if.end%d:\n", if_cnt);
+			printf(".Lif.end%d:\n", if_cnt);
 		}
 		if_cnt += 1;
 		return;
 
-	case ND_WHILE:
-		printf("while.loop%d:\n", while_cnt);
+	case ND_WHILE: {
+		loop_info pre_loop = {cur_loop.which, cur_loop.nth};
+		cur_loop.which = 1;
+		cur_loop.nth = while_cnt;
+
+		printf(".Lwhile.loop%d:\n", while_cnt);
 
 		gen(node->side[0]);
 
 		printf("	cmp rax, 0\n");
-		printf("	je while.end%d\n", while_cnt);
+		printf("	je .Lwhile.end%d\n", while_cnt);
 
 		gen(node->side[1]);
 
-		printf("	jmp while.loop%d\n", while_cnt);
-		printf("while.end%d:\n", while_cnt);
+		printf("	jmp .Lwhile.loop%d\n", while_cnt);
+		printf(".Lwhile.end%d:\n", while_cnt);
+
+		cur_loop = pre_loop;
 		while_cnt += 1;
 		return;
+	}
 
-	case ND_FOR:
+	case ND_FOR: {
+		loop_info pre_loop = cur_loop;
+		cur_loop.which = 2;
+		cur_loop.nth = for_cnt;
+
 		gen(node->side[0]);
 
-		printf("for.loop%d:\n", for_cnt);
+		printf(".Lfor.loop%d:\n", for_cnt);
 
 		gen(node->side[1]);
 
 		printf("	cmp rax, 0\n");
-		printf("	je for.end%d\n", for_cnt);
+		printf("	je .Lfor.end%d\n", for_cnt);
 
-		gen(node->side[2]);
 		gen(node->side[3]);
 
-		printf("	jmp for.loop%d\n", for_cnt);
-		printf("for.end%d:\n", for_cnt);
+		printf(".Lfor.inc%d:\n", for_cnt);
+		gen(node->side[2]);
 
+		printf("	jmp .Lfor.loop%d\n", for_cnt);
+		printf(".Lfor.end%d:\n", for_cnt);
+
+		cur_loop = pre_loop;
 		for_cnt += 1;
+		return;
+	}
+
+	// break -> end
+	// continue -> side[3] -> loop
+	case ND_BREAK:
+		if (cur_loop.which == 1) {
+			printf("	jmp .Lwhile.end%d\n", cur_loop.nth);
+		}else if (cur_loop.which == 2) {
+			printf("	jmp .Lfor.end%d\n", cur_loop.nth);
+		}else{
+
+		}
+		
+		return;
+
+	case ND_CONTINUE:
+		if (cur_loop.which == 1) {
+			printf("	jmp .Lwhile.loop%d\n", cur_loop.nth);
+		}else if (cur_loop.which == 2) {
+			printf("	jmp .Lfor.inc%d\n", cur_loop.nth);
+		}else{
+			
+		}
 		return;
 
 	case ND_BLOCK:

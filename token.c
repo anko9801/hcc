@@ -151,6 +151,8 @@ Token *tokenize(char *p) {
 			is_reserved(&p, &cur, "else") ||
 			is_reserved(&p, &cur, "while") ||
 			is_reserved(&p, &cur, "for") ||
+			is_reserved(&p, &cur, "break") ||
+			is_reserved(&p, &cur, "continue") ||
 			is_reserved(&p, &cur, "sizeof") ||
 			is_reserved(&p, &cur, "extern") ||
 			is_reserved(&p, &cur, "__LINE__") ||
