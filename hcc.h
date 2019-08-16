@@ -114,3 +114,10 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs);
 void analyse(Node *node);
 char *str_copy(Node *node);
 char *print_type(Type *type);
+
+extern char *user_input;
+extern Token *token;
+extern Node *code[100];
+extern Func *funcs;
+extern Func *extern_funcs;
+extern char *filename;

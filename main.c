@@ -1,12 +1,5 @@
 #include <hcc.h>
 
-extern char *user_input;
-extern Token *token;
-extern Node *code[100];
-extern Func *funcs;
-extern Func *extern_funcs;
-extern char *filename;
-
 // 指定されたファイルの内容を返す
 char *read_file(char *path) {
 	// ファイルを開く
