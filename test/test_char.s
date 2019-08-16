@@ -3,28 +3,21 @@
 _main:
 	push rbp
 	mov rbp, rsp
-	sub rsp, 16
-	lea rax, [rbp-8]
-	push rax
+	sub rsp, 7
 	mov rax, rbp
-	sub rax, 8
+	sub rax, 3
 	push rax
 	push 0
 	pop rbx
 	pop rax
 	add rax, rbx
 	push rax
-	push 0
-	push 1
+	push -1
 	pop rbx
 	pop rax
-	sub rax, rbx
-	push rax
-	pop rbx
-	pop rax
-	mov BYTE PTR [rax], bl
+	mov BYTE PTR [rax], rbx
 	mov rax, rbp
-	sub rax, 8
+	sub rax, 3
 	push rax
 	push 1
 	pop rbx
@@ -34,23 +27,18 @@ _main:
 	push 2
 	pop rbx
 	pop rax
-	mov BYTE PTR [rax], bl
+	mov BYTE PTR [rax], rbx
 	mov rax, rbp
-	sub rax, 16
+	sub rax, 7
 	push rax
 	push 4
 	pop rbx
 	pop rax
-	mov [rax], rbx
+	mov  [rax], rbx
 	mov rax, rbp
-	sub rax, 8
+	sub rax, 3
 	push rax
 	push 0
-	push 1
-	pop rbx
-	pop rax
-	mul rbx
-	push rax
 	pop rbx
 	pop rax
 	add rax, rbx
@@ -59,10 +47,10 @@ _main:
 	movsx eax, BYTE PTR [rax]
 	push rax
 	mov rax, rbp
-	sub rax, 16
+	sub rax, 7
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov rax,  [rax]
 	push rax
 	pop rbx
 	pop rax

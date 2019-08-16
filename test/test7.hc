@@ -1,3 +1,4 @@
+extern int print(int a);
 int main() {
 	int a[2];
 	a[0] = 1;

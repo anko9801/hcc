@@ -112,3 +112,5 @@ void push_back(Vec *vec, void *elem);
 void runtest();
 void gen_pre(Node **code, Func *funcs, Func *extern_funcs);
 void analyse(Node *node);
+char *str_copy(Node *node);
+char *print_type(Type *type);

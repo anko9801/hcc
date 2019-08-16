@@ -8,42 +8,35 @@ _main:
 	push rbp
 	mov rbp, rsp
 	sub rsp, 0
-	lea rax, DWORD PTR [rip + x@GOTPCREL]
+	lea rax, QWORD PTR [rip + x@GOTPCREL]
+	push rax
 	push 0
 	pop rbx
 	pop rax
 	add rax, rbx
 	push rax
-	lea rax, DWORD PTR [rip + y@GOTPCREL]
-	push 1
-	push 1
-	pop rbx
-	pop rax
-	mul rbx
+	lea rax, QWORD PTR [rip + y@GOTPCREL]
 	push rax
+	push 1
 	pop rbx
 	pop rax
 	add rax, rbx
 	push rax
 	pop rax
-	mov rax, BYTE PTR [rax]
+	movsx eax, BYTE PTR [rax]
 	push rax
 	pop rbx
 	pop rax
-	mov BYTE PTR [rax], rbx
-	lea rax, DWORD PTR [rip + x@GOTPCREL]
+	mov [rax], rbx
+	lea rax, QWORD PTR [rip + x@GOTPCREL]
+	push rax
 	push 0
-	push 1
-	pop rbx
-	pop rax
-	mul rbx
-	push rax
 	pop rbx
 	pop rax
 	add rax, rbx
 	push rax
 	pop rax
-	mov rax, BYTE PTR [rax]
+	movsx eax, BYTE PTR [rax]
 	push rax
 	pop rax
 	mov rsp, rbp

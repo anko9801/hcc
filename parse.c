@@ -375,7 +375,7 @@ LVar *new_lvar(LVar *pre, Token *tok, Type *type) {
 	lvar->name = tok->str;
 	lvar->len = tok->len;
 	lvar->scope = 0;
-	lvar->offset = pre->offset + 8;
+	lvar->offset = pre->offset + type->type_size;
 	lvar->type = type;
 	return lvar;
 }
@@ -384,7 +384,7 @@ LVar *new_arg(LVar *pre, Token *tok, Type *type) {
 	LVar *lvar = calloc(1, sizeof(LVar));
 	lvar->name = tok->str;
 	lvar->len = tok->len;
-	lvar->offset = pre->offset + 8;
+	lvar->offset = pre->offset + type->type_size;
 	lvar->type = type;
 	return lvar;
 }
@@ -433,40 +433,6 @@ Node *stmts();
 Node *rvalue();
 Node *initializer();
 
-Node *cast(Node *node, Type *type) {
-	if (node->type) {
-		//fprintf(stderr, "%d %d\n", node->type->ty, type->ty);
-		switch (node->type->ty) {
-		case ARRAY:
-			switch (type->ty) {
-			case PTR:
-				node = new_nodev(ND_ADDR, 1, node);
-				node->type = type;
-				break;
-			default:
-				break;
-			}
-			break;
-		case INT:
-			switch (type->ty) {
-			case PTR:
-				if (type->ptr_to)
-					node = new_node(ND_MUL, node, new_node_num(type->ptr_to->type_size));
-				break;
-			default:
-				break;
-			}
-			break;
-		default:
-			break;
-		}
-	}else{
-		error_at(token->str, "型がありません\n");
-	}
-
-	return node;
-}
-
 Type *type_spec() {
 	Type *type_addr;
 	Type *type = NULL;
@@ -505,22 +471,18 @@ Node *term() {
 		return node;
 	}
 
-	cu();
 	Token *tok;
 	Type *ident_type = type_spec();
 	if (ident_type) {
 		tok = consume_ident();
 		if (tok) {
-			cu();
 			Node *rhs = NULL;
 			if (consume("[")) {
 				int array_size = consume_number();
 				expect("]");
 
-				cu();
 				if (consume("=")) {
 					rhs = initializer();
-					cu();
 				}
 				if (array_size == -1) {
 					if (rhs->nodes)
@@ -528,6 +490,7 @@ Node *term() {
 					else
 						array_size = rhs->len;
 				}
+				fprintf(stderr, "%d\n", array_size);
 				Type *type = array_type(ident_type, array_size);
 				ident_type = type;
 			}
@@ -581,6 +544,13 @@ Node *term() {
 		if (lvar) {
 			node = new_node_s(ND_LVAR, tok, lvar->type);
 			node->var = lvar;
+
+			if (node->type && node->type->ty == ARRAY) {
+				fprintf(stderr, "%s -> ", print_type(node->type));
+				node = new_nodev(ND_ADDR, 1, node);
+				node->type = wrap_pointer(node->side[0]->type->ptr_to);
+				fprintf(stderr, "%s\n", print_type(node->type));
+			}
 			return node;
 		}else{
 			error_at(token->str, "その変数は宣言されていません");
@@ -626,6 +596,7 @@ Node *term() {
 //       | "&" unary
 Node *unary() {
 	Node *node;
+
 	if (consume("sizeof")) {
 		node = unary();
 		if (node && node->type) {
@@ -634,16 +605,15 @@ Node *unary() {
 			return new_node_num(0);
 		}
 	}
+
 	if (consume("+"))
 		return term();
+
 	if (consume("-"))
 		return new_node(ND_SUB, new_node_num(0), term());
+
 	if (consume("*")) {
 		node = unary();
-		if (node->type && node->type->ty == ARRAY) {
-			node = new_nodev(ND_ADDR, 1, node);
-			node->type = wrap_pointer(node->side[0]->type->ptr_to);
-		}
 
 		// PTRならばそのDEREFした型を代入
 		if (node->type && node->type->ty == PTR) {
@@ -656,33 +626,38 @@ Node *unary() {
 			error_at(token->str, "error: indirection requires pointer operand ('int' invalid)");
 		return node;
 	}
-	if (consume("&")) {
-		Node *node = unary();
 
+	if (consume("&")) {
+		node = unary();
 		// 全ての型
 		node = new_nodev(ND_ADDR, 1, node);
 		// nodeのaddrを型に代入
 		node->type = wrap_pointer(node->side[0]->type);
 		return node;
 	}
+
 	node = term();
+	Node *rhs;
 
 	if (consume("[")) {
-		Node *rhs = rvalue();
-		node = cast(node, wrap_pointer(node->type->ptr_to));
-		rhs = cast(rhs, wrap_pointer(rhs->type->ptr_to));
+		rhs = rvalue();
+		expect("]");
 
-		if (node->type->ty == PTR)
-			rhs = cast(rhs, node->type);
-		if (rhs->type->ty == PTR)
-			node = cast(node, rhs->type);
+		if (node->type->ty == PTR /*&& rhs->type->ty == INT*/ && node->type->ptr_to) {
+			rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
+			rhs->type = node->type;
+		}
+		else if (/*node->type->ty == INT &&*/ rhs->type->ty == PTR && rhs->type->ptr_to) {
+			node = new_node(ND_MUL, node, new_node_num(rhs->type->ptr_to->type_size));
+			node->type = rhs->type;
+		}
 
 		//*(a+3)
+		fprintf(stderr, "ptr int\n");
 		Type *type = node->type->ptr_to;
 		node = new_node(ND_ADD, node, rhs);
 		node = new_nodev(ND_DEREF, 1, node);
 		node->type = type;
-		expect("]");
 		return node;
 	}
 	return node;
@@ -712,29 +687,27 @@ Node *add_expr() {
 	for (;;) {
 		if (consume("+")) {
 			rhs = mul_expr();
-			if (node->type && node->type->ty == ARRAY) {
-				node = new_nodev(ND_ADDR, 1, node);
-				node->type = wrap_pointer(node->side[0]->type->ptr_to);
+			if (node->type->ty == PTR && rhs->type->ty == INT && node->type->ptr_to) {
+				rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
+				rhs->type = node->type;
 			}
-
-			if (node->type->ty == PTR)
-				rhs = cast(rhs, node->type);
-			else if (rhs->type->ty == PTR)
-				node = cast(node, rhs->type);
+			else if (node->type->ty == INT && rhs->type->ty == PTR && rhs->type->ptr_to) {
+				node = new_node(ND_MUL, node, new_node_num(rhs->type->ptr_to->type_size));
+				node->type = rhs->type;
+			}
 
 			node = new_node(ND_ADD, node, rhs);
 		}else if (consume("-")) {
 			rhs = mul_expr();
-			if (node->type && node->type->ty == ARRAY) {
-				node = new_nodev(ND_ADDR, 1, node);
-				node->type = wrap_pointer(node->side[0]->type->ptr_to);
-			}
 
-			if (node->type->ty == PTR)
+			if (node->type->ty == PTR && rhs->type->ty == INT && node->type->ptr_to) {
 				rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
-			else if (rhs->type->ty == PTR)
-				node = new_node(ND_MUL, node, new_node_num(node->type->ptr_to->type_size));
-
+				rhs->type = node->type;
+			}
+			else if (node->type->ty == INT && rhs->type->ty == PTR && rhs->type->ptr_to) {
+				node = new_node(ND_MUL, node, new_node_num(rhs->type->ptr_to->type_size));
+				node->type = rhs->type;
+			}
 			node = new_node(ND_SUB, node, rhs);
 		}else
 			return node;
@@ -803,15 +776,24 @@ Node *lvalue() {
 			node = new_node_s(ND_LVAR, tok, lvar->type);
 			node->var = lvar;
 
+			if (node->type && node->type->ty == ARRAY) {
+				fprintf(stderr, "%s -> ", print_type(node->type));
+				node = new_nodev(ND_ADDR, 1, node);
+				node->type = wrap_pointer(node->side[0]->type->ptr_to);
+				fprintf(stderr, "%s\n", print_type(node->type));
+			}
+
 			if (consume("[")) {
 				Node *rhs = rvalue();
-				rhs = cast(rhs, wrap_pointer(rhs->type->ptr_to));
-				node = cast(node, wrap_pointer(node->type->ptr_to));
 
-				if (node->type->ty == PTR)
-					rhs = cast(rhs, int_type());
-				if (rhs->type->ty == PTR)
-					node = cast(node, int_type());
+				if (node->type->ty == PTR && /*rhs->type->ty == INT &&*/ node->type->ptr_to) {
+					rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
+					rhs->type = node->type;
+				}
+				else if (/*node->type->ty == INT &&*/ rhs->type->ty == PTR && rhs->type->ptr_to) {
+					node = new_node(ND_MUL, node, new_node_num(rhs->type->ptr_to->type_size));
+					node->type = rhs->type;
+				}
 
 				//*(a+3)
 				Type *type = node->type->ptr_to;
@@ -1023,10 +1005,8 @@ Node *func() {
 					int array_size = consume_number();
 					expect("]");
 
-					cu();
 					if (consume("=")) {
 						rhs = initializer();
-						cu();
 					}
 					if (array_size == -1) {
 						if (rhs->nodes)
@@ -1037,7 +1017,7 @@ Node *func() {
 					Type *type = array_type(ident_type, array_size);
 					ident_type = type;
 				}
-				LVar *lvar = new_lvar(locals, tok, ident_type);
+				LVar *lvar = new_lvar(globals, tok, ident_type);
 				lvar->scope = 1;
 				globals = lvar;
 
@@ -1072,7 +1052,6 @@ Node *global() {
 			return node;
 		error_at(token->str, "It is not valid token after extern");
 	}
-	fprintf(stderr, "%s\n", token->str);
 
 	return stmt();
 }

@@ -45,6 +45,7 @@ int main(int argc, char **argv) {
 	user_input = src;
 	filename = argv[1];
 
+	fprintf(stderr, "%s\n", src);
 	token = tokenize(src);
 	fprintf(stderr, "トークナイズ完了！\n");
 	program();

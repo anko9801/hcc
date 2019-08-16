@@ -2,12 +2,45 @@
 
 int tab = -1;
 void print_node(char *fmt, ...) {
-	for (int i = 0; i < tab; i++)
+	for (int i = 0; i < tab; i++) {
 		fprintf(stderr, "  ");
+	}
 	va_list ap;
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
 	fprintf(stderr, "\n");
+}
+
+char type_char[20] = "";
+char kari_char[20] = "";
+char *print_type(Type *type) {
+	strncpy(type_char, "", 20);
+	strncpy(kari_char, "", 20);
+	while (type->ptr_to) {
+		if (type->ty == PTR)
+			sprintf(kari_char, "*%s", type_char);
+		if (type->ty == ARRAY)
+			sprintf(kari_char, "%s[%d]", type_char, type->array_size);
+		strncpy(type_char, kari_char, 20);
+		type = type->ptr_to;
+	}
+	switch (type->ty) {
+	case INT:
+		sprintf(kari_char, "int%s", type_char);
+		break;
+	case CHAR:
+		sprintf(kari_char, "char%s", type_char);
+		break;
+	case ARRAY:
+		sprintf(kari_char, "[]%s", type_char);
+		break;
+	case PTR:
+		sprintf(kari_char, "(*)%s", type_char);
+		break;
+	}
+	strncpy(type_char, kari_char, 20);
+
+	return type_char;
 }
 
 void analyse(Node *node) {
@@ -20,25 +53,19 @@ void analyse(Node *node) {
 			break;
 
 		case ND_STRING:
-			strncpy(str, node->ident, node->len);
-			str[node->len] = '\0';
-			print_node("STRING %s", str);
+			print_node("STRING %s", str_copy(node));
 			break;
 
 		case ND_LVAR:
-			strncpy(str, node->ident, node->len);
-			str[node->len] = '\0';
-			print_node("LVAR %s", str);
+			print_node("LVAR %s %s", print_type(node->type), str_copy(node));
 			break;
 
 		case ND_VARDECL:
-			strncpy(str, node->ident, node->len);
-			str[node->len] = '\0';
-			print_node("VARDECL %s", str);
+			print_node("VARDECL %s %s", print_type(node->type), str_copy(node));
 			break;
 
 		case ND_ADDR:
-			print_node("ADDR");
+			print_node("ADDR %s", print_type(node->type));
 			analyse(node->side[0]);
 			break;
 
@@ -109,7 +136,6 @@ void analyse(Node *node) {
 			for (int i = 0;i < node->nodes->len;i++) {
 				analyse((Node*)node->nodes->data[i]);
 			}
-			print_node("");
 			break;
 
 		case ND_DEF:
@@ -120,13 +146,7 @@ void analyse(Node *node) {
 			break;
 
 		case ND_DECL:
-			strncpy(str, node->ident, node->len);
-			str[node->len] = '\0';
-			print_node("DECL %s", str);
-			for (int i = 0;i < node->nodes->len;i++) {
-				analyse((Node*)node->nodes->data[i]);
-			}
-			print_node("");
+			print_node("DECL %s", str_copy(node));
 			break;
 
 		case ND_ADD: {
@@ -168,7 +188,7 @@ void analyse(Node *node) {
 				node->kind = ND_NUM;
 				node->type = lhs->type;
 				node->val = lhs->val * rhs->val;
-				print_node("NUM %d", node->val);
+				print_node("NUM %d %s", node->val, print_type(node->type));
 				break;
 			}
 			print_node("MUL");

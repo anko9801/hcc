@@ -1,4 +1,2 @@
-tbreak main
-
-
+break term
 

@@ -1,13 +1,11 @@
 .intel_syntax noprefix
+.extern _print
 .global _main
 _main:
 	push rbp
 	mov rbp, rsp
 	sub rsp, 16
 	lea rax, [rbp-8]
-	push rax
-	mov rax, rbp
-	sub rax, 8
 	push rax
 	push 0
 	pop rbx
@@ -18,10 +16,9 @@ _main:
 	pop rbx
 	pop rax
 	mov [rax], rbx
-	mov rax, rbp
-	sub rax, 8
+	lea rax, [rbp-8]
 	push rax
-	push 1
+	push 4
 	pop rbx
 	pop rax
 	add rax, rbx
@@ -30,33 +27,25 @@ _main:
 	pop rbx
 	pop rax
 	mov [rax], rbx
-	mov rax, rbp
-	sub rax, 16
+	lea rax, [rbp-16]
 	push rax
-	mov rax, rbp
-	sub rax, 8
+	lea rax, [rbp-8]
 	push rax
 	pop rbx
 	pop rax
 	mov [rax], rbx
-	mov rax, rbp
-	sub rax, 16
+	lea rax, [rbp-16]
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov rax, QWORD PTR [rax]
 	push rax
 	push 0
-	push 4
-	pop rbx
-	pop rax
-	mul rbx
-	push rax
 	pop rbx
 	pop rax
 	add rax, rbx
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov eax, DWORD PTR [rax]
 	push rax
 	pop rdi
 	mov rax, 1
@@ -69,24 +58,18 @@ call.else0:
 	call _print
 	pop rsi
 call.end0:
-	mov rax, rbp
-	sub rax, 16
+	lea rax, [rbp-16]
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov rax, QWORD PTR [rax]
 	push rax
-	push 1
 	push 4
-	pop rbx
-	pop rax
-	mul rbx
-	push rax
 	pop rbx
 	pop rax
 	add rax, rbx
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov eax, DWORD PTR [rax]
 	push rax
 	pop rdi
 	mov rax, 1
@@ -99,43 +82,31 @@ call.else1:
 	call _print
 	pop rsi
 call.end1:
-	mov rax, rbp
-	sub rax, 16
+	lea rax, [rbp-16]
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov rax, QWORD PTR [rax]
 	push rax
 	push 0
-	push 4
-	pop rbx
-	pop rax
-	mul rbx
-	push rax
 	pop rbx
 	pop rax
 	add rax, rbx
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov eax, DWORD PTR [rax]
 	push rax
-	mov rax, rbp
-	sub rax, 16
+	lea rax, [rbp-16]
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov rax, QWORD PTR [rax]
 	push rax
-	push 1
 	push 4
-	pop rbx
-	pop rax
-	mul rbx
-	push rax
 	pop rbx
 	pop rax
 	add rax, rbx
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov eax, DWORD PTR [rax]
 	push rax
 	pop rbx
 	pop rax

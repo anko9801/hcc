@@ -7,10 +7,10 @@ _main:
 	push rbp
 	mov rbp, rsp
 	sub rsp, 0
-	lea rax, DWORD PTR b[rip]
+	lea rax, DWORD PTR [rip + b@GOTPCREL]
 	push rax
 	pop rax
-	mov rax, [rax]
+	mov eax, DWORD PTR [rax]
 	push rax
 	pop rdi
 	mov rax, 1

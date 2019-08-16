@@ -152,16 +152,13 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 char *gen_type(Type *type) {
 	switch (type->ty) {
 	case INT:
-		return "";
 		return "DWORD PTR";
 	case CHAR:
 		return "BYTE PTR";
 	case PTR:
-		return "";
-		return "DWORD PTR";
+		return "QWORD PTR";
 	case ARRAY:
-		return "";
-		return "DWORD PTR";
+		return "QWORD PTR";
 	}
 }
 
@@ -170,27 +167,33 @@ void gen_lvalue(Node *node) {
 	char str[100];
 	switch (node->kind) {
 	case ND_LVAR:
+		//fprintf(stderr, "lvar\n");
 		if (node->var->scope == 0) {
-			printf("	mov rax, rbp\n");
-			printf("	sub rax, %d\n", node->var->offset);
+			printf("	lea rax, [rbp-%d]\n", node->var->offset);
 			printf("	push rax\n");
 		}else{
 			strncpy(str, node->var->name, node->var->len);
 			str[node->len] = '\0';
 
 			printf("	lea rax, %s [rip + %s@GOTPCREL]\n", gen_type(node->var->type), str);
+			printf("	push rax\n");
 		}
 		return;
+
 	case ND_VARDECL:
 		if (node->var->scope == 0) {
 			printf("	lea rax, [rbp-%d]\n", node->var->offset);
 			printf("	push rax\n");
 		}
 		return;
+
 	case ND_ADDR:
+		//fprintf(stderr, "addr\n");
 		gen_lvalue(node->side[0]);
 		return;
+
 	case ND_DEREF:
+		//fprintf(stderr, "deref\n");
 		gen(node->side[0]);
 		return;
 	default:
@@ -201,28 +204,36 @@ void gen_lvalue(Node *node) {
 
 void gen_mov(Node *node) {
 	if (node->type->ty == CHAR) {
-		printf("	mov rax, %s [rax]\n", gen_type(node->type));
-	}else{
 		printf("	movsx eax, %s [rax]\n", gen_type(node->type));
+	}else if (node->type->ty == INT) {
+		printf("	mov eax, %s [rax]\n", gen_type(node->type));
+	}else{
+		printf("	mov rax, %s [rax]\n", gen_type(node->type));
 	}
 }
 
 void gen_assign(Node *node) {
-	printf("	mov %s [rax], rbx\n", gen_type(node->type));
+	printf("	mov [rax], rbx\n");
+	/*if (node->type->ty == CHAR) {
+		printf("	mov %s [rax], bl\n", gen_type(node->type));
+	}else if (node->type->ty == INT) {
+		printf("	mov %s [rax], ebx\n", gen_type(node->type));
+	}else{
+		printf("	mov %s [rax], rbx\n", gen_type(node->type));
+	}*/
 }
 
 void gen(Node *node) {
 	char str[100];
-	char *args_list[6] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+	char *args_list[6] = {"di", "si", "dx", "cx", "8", "9"};
 	switch (node->kind) {
 	case ND_NUM:
 		//fprintf(stderr, "num\n");
 		printf("	push %d\n", node->val);
 		return;
 
-	case ND_STRING:
-		printf("");
-
+	case ND_STRING: {
+		//fprintf(stderr, "string\n");
 		int i = 0;
 		for (i = 0;strings->data[i];i++) {
 			Token *tok = (Token *)strings->data[i];
@@ -232,9 +243,10 @@ void gen(Node *node) {
 		printf("	lea rax, qword ptr [rip + .LC%d]\n", i);
 		printf("	push rax\n");
 		return;
+	}
 
 	case ND_LVAR:
-		//fprintf(stderr, "lvar\n");
+		fprintf(stderr, "lvar\n");
 		gen_lvalue(node);
 
 		printf("	pop rax\n");
@@ -247,10 +259,12 @@ void gen(Node *node) {
 		return;
 
 	case ND_ADDR:
+		//fprintf(stderr, "addr\n");
 		gen_lvalue(node->side[0]);
 		return;
 
 	case ND_DEREF:
+		//fprintf(stderr, "deref\n");
 		gen(node->side[0]);
 
 		printf("	pop rax\n");
@@ -258,16 +272,20 @@ void gen(Node *node) {
 		printf("	push rax\n");
 		return;
 
-	case ND_ASSIGN:
-		fprintf(stderr, "");
+	case ND_ASSIGN: {
+		fprintf(stderr, "assign\n");
 		Node *lhs = node->side[0];
 		Node *rhs = node->side[1];
 
 		if (rhs->kind == ND_INITIALIZER) {
 			for (int i = 0; i < rhs->nodes->len;i++) {
-				gen((Node*)rhs->nodes->data[i]);
+				Node *node = (Node*)rhs->nodes->data[i];
+				gen(node);
 				printf("	pop rax\n");
-				printf("	mov %s [rbp-%d], rax\n", gen_type(lhs->type), lhs->var->offset + i * lhs->type->type_size / lhs->type->array_size);
+				if (node->type->ty == INT)
+					printf("	mov %s [rbp-%d], eax\n", gen_type(lhs->type), lhs->var->offset + i * lhs->type->type_size / lhs->type->array_size);
+				else
+					printf("	mov %s [rbp-%d], rax\n", gen_type(lhs->type), lhs->var->offset + i * lhs->type->type_size / lhs->type->array_size);
 			}
 			// 配列のサイズより初期化子が少ない時
 			if (lhs->type->array_size > rhs->nodes->len) {
@@ -285,6 +303,7 @@ void gen(Node *node) {
 			//printf("	push rbx\n");
 		}
 		return;
+	}
 
 	case ND_RETURN:
 		gen(node->side[0]);
@@ -370,7 +389,7 @@ void gen(Node *node) {
 		str[node->len] = '\0';
 		for (int i = 0;i < node->nodes->len && i < 6;i++) {
 			gen((Node*)node->nodes->data[i]);
-			printf("	pop %s\n", args_list[i]);
+			printf("	pop r%s\n", args_list[i]);
 		}
 		printf("	mov rax, %d\n", node->nodes->len);
 
@@ -383,22 +402,27 @@ void gen(Node *node) {
 		printf("	call _%s\n", str);
 		printf("	pop rsi\n");
 		printf("call.end%d:\n", call_cnt);
+		//printf("	push rax\n");
 		call_cnt++;
 		return;
 
 	case ND_DEF:
-		strncpy(str, node->ident, node->len);
-		str[node->len] = '\0';
-
-		printf("_%s:\n", str);
+		printf("_%s:\n", str_copy(node));
 		printf("	push rbp\n");
 		printf("	mov rbp, rsp\n");
-		printf("	sub rsp, %d\n", node->func->locals->offset);
+		printf("	sub rsp, %d\n", (node->func->locals->offset + 7) / 8 * 8);
 
 		LVar *arg = node->func->args;
 		arg = arg->next;
 		for (int i = 0;i < 6 && arg;i++) {
-			printf("	mov [rbp-%d], %s\n", arg->offset, args_list[i]);
+			if (node->type->ty == CHAR) {
+				printf("	movsx %s [rbp-%d], e%s\n", gen_type(node->type), arg->offset, args_list[i]);
+			}else if (node->type->ty == INT) {
+				printf("	mov %s [rbp-%d], e%s\n", gen_type(node->type), arg->offset, args_list[i]);
+			}else{
+				printf("	mov %s [rbp-%d], r%s\n", gen_type(node->type), arg->offset, args_list[i]);
+			}
+			//printf("	mov [rbp-%d], %s\n", arg->offset, args_list[i]);
 			arg = arg->next;
 		}
 

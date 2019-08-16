@@ -1,3 +1,4 @@
+extern int print(int a);
 int main() {
 	int a[2];
 	*a = 1;
@@ -8,4 +9,5 @@ int main() {
 	print(*(a+1));
 	print(*p + *(p + 1));
 	return *p + *(p + 1);  // → 3
+	return 0;
 }
