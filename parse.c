@@ -59,6 +59,14 @@ Type *array_type(Type *element_type, int size) {
 	return type;
 }
 
+bool check(char *op) {
+	if (token->kind != TK_RESERVED ||
+		strlen(op) != token->len ||
+		memcmp(token->str, op, token->len))
+		return false;
+	return true;
+}
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進めて
 // 真を返す。それ以外の場合には偽を返す。
 bool consume(char *op) {
@@ -208,6 +216,7 @@ void cu() {
 	fprintf(stderr, "%s\n", token->str);
 }
 Node *expr();
+Node *stmt();
 Node *stmts();
 Node *rvalue();
 Node *initializer();
@@ -250,7 +259,6 @@ Type *type_spec() {
 Node *term() {
 	// 次のトークンが"("なら、"(" expr ")"のはず
 
-	cu();
 	if (consume("(")) {
 		Node *node = expr();
 		expect(")");
@@ -260,7 +268,6 @@ Node *term() {
 	Token *tok;
 	Type *ident_type = type_spec();
 	if (ident_type) {
-		cu();
 		tok = consume_ident();
 		if (tok) {
 			Node *rhs = NULL;
@@ -491,7 +498,6 @@ Node *unary() {
 
 
 Node *mul_expr() {
-	cu();
 	Node *node = unary();
 
 	if (node->type && node->type->ty == INT) {
@@ -568,7 +574,6 @@ Node *relational() {
 
 // equality   = relational ("==" relational | "!=" relational)*
 Node *equality() {
-	cu();
 	Node *node = relational();
 
 	for (;;) {
@@ -719,6 +724,43 @@ Node *expr() {
 //         | "if" "(" expr ")" stmt ("else" stmt)?
 //         | "while" "(" expr ")" stmt
 //         | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+
+Node *switch_case() {
+	Node *node;
+	Node *case_def;
+	Vec *nodes;
+
+	if (consume("case")) {
+		case_def = rvalue();
+		expect(":");
+		fprintf(stderr, "case\n");
+		while(!check("case") && !check("}")) {
+			if (check("case")) break;
+			node = stmt();
+			if (node)
+				push_back(nodes, (void *)node);
+			else break;
+		}
+		fprintf(stderr, "test\n");
+		node = new_nodev(ND_CASE, 1, case_def);
+		node->nodes = nodes;
+		fprintf(stderr, "return\n");
+		return node;
+
+	}else if (consume("default")) {
+		case_def = NULL;
+		expect(":");
+		while(!check("case") && !check("}")) {
+			node = stmt();
+			push_back(nodes, (void *)node);
+		}
+		node = new_nodev(ND_CASE, 1, case_def);
+		node->nodes = nodes;
+		return node;
+	}
+	return NULL;
+}
+
 Node *stmt() {
 	Node *node;
 
@@ -740,6 +782,28 @@ Node *stmt() {
 			Else = NULL;
 
 		node = new_nodev(ND_IF, 3, Cond, Then, Else);
+
+	}else if (consume("switch")) {
+		Node *Cond;
+		Vec *cases;
+		Node *case_def;
+
+		expect("(");
+		Cond = expr();
+		expect(")");
+		expect("{");
+		cu();
+		case_def = switch_case();
+		fprintf(stderr, "uuuu\n");
+		while (case_def) {
+			push_back(cases, case_def);
+			fprintf(stderr, "test\n");
+			case_def = switch_case();
+		}
+		expect("}");
+
+		node = new_nodev(ND_SWITCH, 1, Cond);
+		node->nodes = cases;
 
 	}else if (consume("while")) {
 		Node *Cond, *Loop;
@@ -767,6 +831,7 @@ Node *stmt() {
 	}else{
 		node = expr();
 		expect(";");
+		// cu();
 	}
 	return node;
 }

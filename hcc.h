@@ -47,6 +47,8 @@ typedef enum {
 	ND_INITIALIZER,
 	ND_RETURN,
 	ND_IF,
+	ND_SWITCH,
+	ND_CASE,
 	ND_WHILE,
 	ND_FOR,
 	ND_BREAK,

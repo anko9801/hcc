@@ -149,6 +149,9 @@ Token *tokenize(char *p) {
 			is_reserved(&p, &cur, "return") ||
 			is_reserved(&p, &cur, "if") ||
 			is_reserved(&p, &cur, "else") ||
+			is_reserved(&p, &cur, "switch") ||
+			is_reserved(&p, &cur, "case") ||
+			is_reserved(&p, &cur, "default") ||
 			is_reserved(&p, &cur, "while") ||
 			is_reserved(&p, &cur, "for") ||
 			is_reserved(&p, &cur, "break") ||
