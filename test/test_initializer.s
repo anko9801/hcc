@@ -8,35 +8,35 @@ _main:
 	push rbp
 	mov rbp, rsp
 	sub rsp, 32
-	lea rax, [rbp-8]
+	lea rax, [rbp-4]
 	push rax
 	push 3
 	pop rbx
 	pop rax
-	mov  [rax], rbx
+	mov [rax], rbx
 	push 1
 	pop rax
-	mov  [rbp-16], rax
+	mov QWORD PTR [rbp-16], eax
 	push 2
 	pop rax
-	mov  [rbp-20], rax
+	mov QWORD PTR [rbp-20], eax
 	push 3
 	pop rax
-	mov  [rbp-24], rax
+	mov QWORD PTR [rbp-24], eax
 	lea rax, [rbp-24]
 	push rax
 	lea rax, qword ptr [rip + .LC0]
 	push rax
 	pop rbx
 	pop rax
-	mov  [rax], rbx
-	lea rax, [rbp-32]
+	mov [rax], rbx
+	lea rax, [rbp-27]
 	push rax
 	lea rax, qword ptr [rip + .LC1]
 	push rax
 	pop rbx
 	pop rax
-	mov  [rax], rbx
+	mov [rax], rbx
 	push 0
 	pop rax
 	mov rsp, rbp

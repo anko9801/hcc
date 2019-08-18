@@ -17,17 +17,15 @@ _fibo:
 	pop rbx
 	pop rax
 	cmp rax, rbx
-	je if.then0
-	jmp if.else0
-if.then0:
+	je .Lif.then0
+	jmp .Lif.end0
+.Lif.then0:
 	push 0
 	pop rax
 	mov rsp, rbp
 	pop rbp
 	ret
-if.else0:
-	jmp if.end0
-if.end0:
+.Lif.end0:
 	lea rax, [rbp-4]
 	push rax
 	pop rax
