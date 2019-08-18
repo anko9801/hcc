@@ -1,6 +1,5 @@
 *~
 *.o
 tmp*
-hcc
 .peda*
 .gdb_history
