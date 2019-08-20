@@ -189,9 +189,14 @@ LVar *new_arg(LVar *pre, Token *tok, Type *type) {
 }
 
 Func *find_func(Token *tok) {
-	for (Func *func = funcs; func; func = func->next)
+	for (Func *func = funcs; func; func = func->next) {
 		if (func->len == tok->len && !memcmp(tok->str, func->name, func->len))
 			return func;
+	}
+	for (Func *func = extern_funcs; func; func = func->next) {
+		if (func->len == tok->len && !memcmp(tok->str, func->name, func->len))
+			return func;
+	}
 	return NULL;
 }
 
@@ -237,6 +242,15 @@ Node *new_sub(Node *lhs, Node *rhs);
 Node *variable_decl(int glocal);
 
 Vec *aggr_list; // AGGREGATE
+AGGREGATE *find_aggr(Token *tok) {
+	for (int i = 0;i < aggr_list->len;i++) {
+		AGGREGATE *aggr = (AGGREGATE *)aggr_list->data[i];
+		if (strncmp(token->str, aggr->name, aggr->len) == 0 && token->len == aggr->len) {
+			return aggr;
+		}
+	}
+	return NULL;
+}
 
 /*type_spec	::= “void” | “char” | “short” | “int” | “long” 
 			| “float”
@@ -264,18 +278,13 @@ Type *type_spec() {
 	}else if (consume("unsigned")) {
 		type = int_type();
 	}else{
-		bool all_clear = true;
-		for (int i = 0;i < aggr_list->len;i++) {
-			AGGREGATE *aggr = (AGGREGATE *)aggr_list->data[i];
-			//fprintf(stderr, "%s %d %d\n", aggr->name, aggr->len, aggr->type_size);
-			if (strncmp(token->str, aggr->name, aggr->len) == 0 && token->len == aggr->len) {
-				cu();
-				type = struct_type(aggr, aggr->type_size);
-				token = token->next;
-				all_clear = false;
-			}
+		AGGREGATE *aggr = find_aggr(token);
+		if (aggr) {
+			type = struct_type(aggr, aggr->type_size);
+			token = token->next;
+		}else{
+			return NULL;
 		}
-		if (all_clear) return NULL;
 	}
 
 	while (consume("*")) {
@@ -302,12 +311,16 @@ Node *term() {
 		// 関数
 		if (consume("(")) {
 			Func *func = find_func(tok);
+			cu();
+			fprintf(stderr, "%d\n", func);
 			node = new_node_s(ND_CALL, tok, func->type);
+			cu();
 
 			// 引数
 			Node *arg;
 			Vec *args = new_vector();
 			while (!consume(")")) {
+				cu();
 				arg = expr();
 				if (!arg) {
 					error_at(token->str, "関数の引数が','で終わっています");
@@ -400,22 +413,38 @@ Node *postfix() {
 		rhs = rvalue();
 		expect("]");
 
-		if (node->type->ty == PTR /*&& rhs->type->ty == INT*/ && node->type->ptr_to) {
+		if (node->type->ty == PTR && node->type->ptr_to) {
 			rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
 			rhs->type = node->type;
 		}
-		else if (/*node->type->ty == INT &&*/ rhs->type->ty == PTR && rhs->type->ptr_to) {
+		else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
 			node = new_node(ND_MUL, node, new_node_num(rhs->type->ptr_to->type_size));
 			node->type = rhs->type;
 		}
 
 		//*(a+3)
-		fprintf(stderr, "ptr int\n");
 		Type *type = node->type->ptr_to;
 		node = new_node(ND_ADD, node, rhs);
 		node = new_nodev(ND_DEREF, 1, node);
 		node->type = type;
 		return node;
+	}
+
+	if (consume(".")) {
+		if (node->type->ty == STRUCT) {
+			Token *rhs_name = consume_ident();
+
+			AGGREGATE *aggr = node->type->aggr;
+			for (int i = 0;i < aggr->elem->len;i++) {
+				Node *var = (Node *)aggr->elem->data[i];
+				if (strncmp(rhs_name->str, var->name, var->len) == 0 && rhs_name->len == var->len) {
+					node = new_node(ND_DOT, node, var);
+					return node;
+				}
+			}
+			error_at(token->str, "構造体のドット演算子のrhsが存在しません");
+			return NULL;
+		}
 	}
 
 	if (consume("++")) {
@@ -581,6 +610,27 @@ Node *rvalue() {
 	return equality();
 }
 
+Node *dot(Node *node) {
+	if (consume(".")) {
+		if (node->type->ty == STRUCT) {
+			Token *rhs_name = consume_ident();
+
+			AGGREGATE *aggr = node->type->aggr;
+			fprintf(stderr, "%d %d\n", aggr, aggr->elem->len);
+			for (int i = 0;i < aggr->elem->len;i++) {
+				Node *var = (Node *)aggr->elem->data[i];
+
+				if (strncmp(rhs_name->str, var->name, var->len) == 0 && rhs_name->len == var->len) {
+					node = new_node(ND_DOT, node, var);
+					return node;
+				}
+			}
+			error_at(token->str, "構造体のドット演算子のrhsが存在しません");
+		}
+	}
+	return node;
+}
+
 Node *lvalue() {
 	Token *backup = token;
 	Node *node = NULL;
@@ -596,14 +646,17 @@ Node *lvalue() {
 	}
 	if (consume("&"))
 		return new_nodev(ND_ADDR, 1, lvalue());
-	Token *tok;
 
-	tok = consume_ident();
+	Token *tok = consume_ident();
 	if (tok) {
 		LVar *lvar = find_lvar(tok);
 		if (lvar) {
 			node = new_node_s(ND_LVAR, tok, lvar->type);
 			node->var = lvar;
+			//AGGREGATE *aggr = find_aggr(lvar->type->);
+			node->type->aggr = lvar->type->aggr;
+
+			node = dot(node);
 
 			if (node->type && node->type->ty == ARRAY) {
 				fprintf(stderr, "%s -> ", print_type(node->type));
@@ -615,11 +668,11 @@ Node *lvalue() {
 			if (consume("[")) {
 				Node *rhs = rvalue();
 
-				if (node->type->ty == PTR && /*rhs->type->ty == INT &&*/ node->type->ptr_to) {
+				if (node->type->ty == PTR && node->type->ptr_to) {
 					rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
 					rhs->type = node->type;
 				}
-				else if (/*node->type->ty == INT &&*/ rhs->type->ty == PTR && rhs->type->ptr_to) {
+				else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
 					node = new_node(ND_MUL, node, new_node_num(rhs->type->ptr_to->type_size));
 					node->type = rhs->type;
 				}
@@ -820,7 +873,6 @@ Node *stmt() {
 	}else{
 		node = expr();
 		expect(";");
-		// cu();
 	}
 	return node;
 }
@@ -831,6 +883,7 @@ Node *stmts() {
 	if (consume("{")) {
 		Vec *nodes = new_vector();
 		for(;;) {
+			cu();
 			push_back(nodes, stmt());
 			if (consume("}")) {
 				break;
@@ -990,7 +1043,7 @@ Node *struct_decl() {
 		aggr->name = id->str;
 		aggr->len = id->len;
 		aggr->type_size = size;
-		fprintf(stderr, "%s %d %d\n", aggr->name, aggr->len, aggr->type_size);
+
 		Type *type = struct_type(aggr, size);
 		push_back(aggr_list, aggr);
 		node = new_node_s(ND_STRUCT, id, type);

@@ -46,6 +46,7 @@ typedef enum {
 	ND_STRING,
 	ND_STRUCT,
 	ND_ENUM,
+	ND_DOT,
 	ND_INITIALIZER,
 	ND_RETURN,
 	ND_IF,
@@ -77,7 +78,7 @@ struct Node {
 	Type *type;
 	char *name;
 	int len;
-	LVar *var;    // ND_VARDECL ND_LVAR
+	LVar *var;    // ND_VARDECL ND_LVAR ND_DOT
 	Func *func;   // ND_DEF
 };
 

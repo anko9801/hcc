@@ -60,6 +60,10 @@ void analyse(Node *node) {
 			print_node("STRUCT");
 			break;
 
+		case ND_DOT:
+			print_node("DOT");
+			break;
+
 		case ND_LVAR:
 			print_node("LVAR %s %s", print_type(node->type), str_copy(node));
 			break;

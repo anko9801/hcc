@@ -203,19 +203,26 @@ void gen_lvalue(Node *node) {
 		//fprintf(stderr, "deref\n");
 		gen(node->side[0]);
 		return;
+
+	case ND_DOT:
+		printf("	lea rax, [rbp-%d]\n", node->side[1]->var->offset);
+		printf("	push rax\n");
+		return;
+
 	default:
+		fprintf(stderr, "It is not lvalue! %s %d\n", node->name, node->type->ty);
 		break;
-		//error("It is not lvalue! %s %d\n", node->name, node->type->ty);
+		error("It is not lvalue! %s %d\n", node->name, node->type->ty);
 	}
 }
 
-void gen_mov(Node *node) {
-	if (node->type->ty == CHAR) {
-		printf("	movsx eax, %s [rax]\n", gen_type(node->type));
-	}else if (node->type->ty == INT) {
-		printf("	mov eax, %s [rax]\n", gen_type(node->type));
+void gen_mov(Type *type) {
+	if (type->ty == CHAR) {
+		printf("	movsx eax, %s [rax]\n", gen_type(type));
+	}else if (type->ty == INT) {
+		printf("	mov eax, %s [rax]\n", gen_type(type));
 	}else{
-		printf("	mov rax, %s [rax]\n", gen_type(node->type));
+		printf("	mov rax, %s [rax]\n", gen_type(type));
 	}
 }
 
@@ -264,6 +271,7 @@ char *gen_cond(Node *node) {
 }
 
 void gen(Node *node) {
+	fprintf(stderr, "test\n");
 	char str[100];
 	char *args_list[6] = {"di", "si", "dx", "cx", "8", "9"};
 	switch (node->kind) {
@@ -288,12 +296,19 @@ void gen(Node *node) {
 	case ND_STRUCT:
 		return;
 
+	case ND_DOT:
+		fprintf(stderr, "DOT\n");
+		printf("	lea rax, [rbp-%d]\n", node->side[1]->var->offset);
+		gen_mov(node->side[1]->var->type);
+		printf("	push rax\n");
+		return;
+
 	case ND_LVAR:
 		fprintf(stderr, "lvar\n");
 		gen_lvalue(node);
 
 		printf("	pop rax\n");
-		gen_mov(node);
+		gen_mov(node->type);
 		//printf("	mov rax, [rax]\n");
 		printf("	push rax\n");
 		return;
@@ -311,7 +326,7 @@ void gen(Node *node) {
 		gen(node->side[0]);
 
 		printf("	pop rax\n");
-		gen_mov(node);
+		gen_mov(node->type);
 		printf("	push rax\n");
 		return;
 
