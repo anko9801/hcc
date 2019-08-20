@@ -1,4 +1,4 @@
-#include <hcc.h>
+#include "hcc.h"
 
 Vec *new_vector() {
 	Vec *vec = malloc(sizeof(Vec));

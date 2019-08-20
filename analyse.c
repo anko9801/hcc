@@ -1,4 +1,4 @@
-#include <hcc.h>
+#include "hcc.h"
 
 int tab = -1;
 void print_node(char *fmt, ...) {
@@ -54,6 +54,10 @@ void analyse(Node *node) {
 
 		case ND_STRING:
 			print_node("STRING %s", str_copy(node));
+			break;
+
+		case ND_STRUCT:
+			print_node("STRUCT");
 			break;
 
 		case ND_LVAR:
@@ -138,7 +142,7 @@ void analyse(Node *node) {
 			break;
 
 		case ND_CALL:
-			strncpy(str, node->ident, node->len);
+			strncpy(str, node->name, node->len);
 			str[node->len] = '\0';
 			print_node("CALL %s", str);
 			for (int i = 0;i < node->nodes->len;i++) {
@@ -147,7 +151,7 @@ void analyse(Node *node) {
 			break;
 
 		case ND_DEF:
-			strncpy(str, node->ident, node->len);
+			strncpy(str, node->name, node->len);
 			str[node->len] = '\0';
 			print_node("DEF %s", str);
 			analyse(node->side[0]);

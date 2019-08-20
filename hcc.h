@@ -44,6 +44,8 @@ typedef enum {
 	ND_LVAR,   // ローカル変数
 	ND_NUM,    // 整数
 	ND_STRING,
+	ND_STRUCT,
+	ND_ENUM,
 	ND_INITIALIZER,
 	ND_RETURN,
 	ND_IF,
@@ -66,13 +68,14 @@ typedef struct Node Node;
 typedef struct Func Func;
 typedef struct LVar LVar;
 typedef struct Type Type;
+typedef struct AGGREGATE AGGREGATE;
 struct Node {
 	NodeKind kind; // ノードの型
 	Node *side[10]; // 左辺・右辺/stmt/cond,then,else
 	Vec *nodes;    // ND_BLOCK, ND_CALL, ND_DEFの場合
 	int val;       // kindがND_NUMの場合のみ使う
 	Type *type;
-	char *ident;
+	char *name;
 	int len;
 	LVar *var;    // ND_VARDECL ND_LVAR
 	Func *func;   // ND_DEF
@@ -99,11 +102,20 @@ struct Func {
 };
 
 struct Type {
-	enum { INT, CHAR, PTR, ARRAY } ty;
-	struct Type *ptr_to;
+	enum { INT, CHAR, PTR, ARRAY, STRUCT } ty;
+	Type *ptr_to;
+	AGGREGATE *aggr;
 	int type_size;
 	int array_size;
 };
+
+struct AGGREGATE {
+	char *name;
+	int len;
+	Vec *elem; // Node
+	int type_size;
+};
+
 
 void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);

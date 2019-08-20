@@ -1,4 +1,4 @@
-#include <hcc.h>
+#include "hcc.h"
 
 // 現在着目しているトークン
 Token *token;
@@ -59,6 +59,14 @@ Type *array_type(Type *element_type, int size) {
 	return type;
 }
 
+Type *struct_type(AGGREGATE *aggr, int size) {
+	Type *type = calloc(1, sizeof(Type));
+	type->ty = STRUCT;
+	type->aggr = aggr;
+	type->type_size = size;
+	return type;
+}
+
 bool check(char *op) {
 	if (token->kind != TK_RESERVED ||
 		strlen(op) != token->len ||
@@ -93,6 +101,10 @@ int consume_number() {
 	int val = token->val;
 	token = token->next;
 	return val;
+}
+
+bool at_eof() {
+	return token->kind == TK_EOF;
 }
 
 Node *new_node0(int type) {
@@ -132,7 +144,7 @@ Node *new_nodev(int type, int num, Node *sides, ...) {
 Node *new_node_s(int kind, Token *tok, Type *type) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = kind;
-	node->ident = tok->str;
+	node->name = tok->str;
 	node->len = tok->len;
 	node->type = type;
 	return node;
@@ -222,6 +234,9 @@ Node *rvalue();
 Node *initializer();
 Node *new_add(Node *lhs, Node *rhs);
 Node *new_sub(Node *lhs, Node *rhs);
+Node *variable_decl(int glocal);
+
+Vec *aggr_list; // AGGREGATE
 
 /*type_spec	::= “void” | “char” | “short” | “int” | “long” 
 			| “float”
@@ -248,6 +263,19 @@ Type *type_spec() {
 		type = int_type();
 	}else if (consume("unsigned")) {
 		type = int_type();
+	}else{
+		bool all_clear = true;
+		for (int i = 0;i < aggr_list->len;i++) {
+			AGGREGATE *aggr = (AGGREGATE *)aggr_list->data[i];
+			//fprintf(stderr, "%s %d %d\n", aggr->name, aggr->len, aggr->type_size);
+			if (strncmp(token->str, aggr->name, aggr->len) == 0 && token->len == aggr->len) {
+				cu();
+				type = struct_type(aggr, aggr->type_size);
+				token = token->next;
+				all_clear = false;
+			}
+		}
+		if (all_clear) return NULL;
 	}
 
 	while (consume("*")) {
@@ -259,59 +287,22 @@ Type *type_spec() {
 Node *term() {
 	// 次のトークンが"("なら、"(" expr ")"のはず
 
+	Node *node;
 	if (consume("(")) {
 		Node *node = expr();
 		expect(")");
 		return node;
 	}
 
-	Token *tok;
-	Type *ident_type = type_spec();
-	if (ident_type) {
-		tok = consume_ident();
-		if (tok) {
-			Node *rhs = NULL;
-			if (consume("[")) {
-				int array_size = consume_number();
-				expect("]");
+	node = variable_decl(0);
+	if (node) return node;
 
-				if (consume("=")) {
-					rhs = initializer();
-				}
-				if (array_size == -1) {
-					if (rhs->nodes)
-						array_size = rhs->nodes->len;
-					else
-						array_size = rhs->len;
-				}
-				fprintf(stderr, "%d\n", array_size);
-				Type *type = array_type(ident_type, array_size);
-				ident_type = type;
-			}
-			LVar *lvar = new_lvar(locals, tok, ident_type);
-			locals = lvar;
-
-			Node *node = new_node_s(ND_VARDECL, tok, lvar->type);
-			node->var = lvar;
-
-			// 初期化
-			if (rhs) {
-				node = new_node(ND_ASSIGN, node, rhs);
-			}else if (consume("=")) {
-				rhs = initializer();
-				node = new_node(ND_ASSIGN, node, rhs);
-			}
-			return node;
-		}
-	}
-
-	tok = consume_ident();
-	Node *node;
+	Token *tok = consume_ident();
 	if (tok) {
 		// 関数
 		if (consume("(")) {
 			Func *func = find_func(tok);
-			node = new_node_s(ND_CALL, tok, ident_type);
+			node = new_node_s(ND_CALL, tok, func->type);
 
 			// 引数
 			Node *arg;
@@ -643,11 +634,10 @@ Node *lvalue() {
 				return node;
 			}
 		}else{
-			if (consume("(")) {
-				token = backup;
-				return NULL;
-			}
-			error_at(token->str, "その変数は宣言されていません");
+			token = backup;
+			return NULL;
+			
+			//error_at(token->str, "その変数は宣言されていません");
 		}
 		return node;
 	}
@@ -726,37 +716,36 @@ Node *expr() {
 //         | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 
 Node *switch_case() {
-	Node *node;
-	Node *case_def;
-	Vec *nodes;
+	Node *node_k;
+	Node *case_default;
+	Vec *nodes_stmt;
 
 	if (consume("case")) {
-		case_def = rvalue();
+		case_default = rvalue();
 		expect(":");
 		fprintf(stderr, "case\n");
 		while(!check("case") && !check("}")) {
-			if (check("case")) break;
-			node = stmt();
-			if (node)
-				push_back(nodes, (void *)node);
+			node_k = stmt();
+			if (node_k)
+				push_back(nodes_stmt, (void *)node_k);
 			else break;
 		}
 		fprintf(stderr, "test\n");
-		node = new_nodev(ND_CASE, 1, case_def);
-		node->nodes = nodes;
-		fprintf(stderr, "return\n");
-		return node;
+		node_k = new_nodev(ND_CASE, 1, case_default);
+		node_k->nodes = nodes_stmt;
+
+		return node_k;
 
 	}else if (consume("default")) {
-		case_def = NULL;
+		case_default = NULL;
 		expect(":");
 		while(!check("case") && !check("}")) {
-			node = stmt();
-			push_back(nodes, (void *)node);
+			node_k = stmt();
+			push_back(nodes_stmt, (void *)node_k);
 		}
-		node = new_nodev(ND_CASE, 1, case_def);
-		node->nodes = nodes;
-		return node;
+		node_k = new_nodev(ND_CASE, 1, case_default);
+		node_k->nodes = nodes_stmt;
+		return node_k;
 	}
 	return NULL;
 }
@@ -783,27 +772,27 @@ Node *stmt() {
 
 		node = new_nodev(ND_IF, 3, Cond, Then, Else);
 
-	}else if (consume("switch")) {
-		Node *Cond;
-		Vec *cases;
-		Node *case_def;
+	// }else if (consume("switch")) {
+	// 	Node *Cond;
+	// 	Vec *cases;
+	// 	Node *case_def;
 
-		expect("(");
-		Cond = expr();
-		expect(")");
-		expect("{");
-		cu();
-		case_def = switch_case();
-		fprintf(stderr, "uuuu\n");
-		while (case_def) {
-			push_back(cases, case_def);
-			fprintf(stderr, "test\n");
-			case_def = switch_case();
-		}
-		expect("}");
+	// 	expect("(");
+	// 	Cond = expr();
+	// 	expect(")");
+	// 	expect("{");
+	// 	cu();
+	// 	case_def = switch_case();
+	// 	fprintf(stderr, "uuuu\n");
+	// 	while (case_def) {
+	// 		push_back(cases, case_def);
+	// 		fprintf(stderr, "test\n");
+	// 		case_def = switch_case();
+	// 	}
+	// 	expect("}");
 
-		node = new_nodev(ND_SWITCH, 1, Cond);
-		node->nodes = cases;
+	// 	node = new_nodev(ND_SWITCH, 1, Cond);
+	// 	node->nodes = cases;
 
 	}else if (consume("while")) {
 		Node *Cond, *Loop;
@@ -858,13 +847,73 @@ Node *stmts() {
 	return node;
 }
 
-Node *func() {
+Node *variable_decl(int glocal) {
+	Node *node = NULL;
+	Token *backup = token;
+	Type *ident_type = type_spec();
+
+	if (ident_type) {
+		Token *tok = consume_ident();
+		Node *rhs = NULL;
+		if (tok) {
+			// 関数チェッカー
+			if (!check("(")) {
+				if (consume("[")) {
+					int array_size = consume_number();
+					expect("]");
+
+					if (consume("=")) {
+						rhs = initializer();
+					}
+					if (array_size == -1) {
+						if (rhs->nodes)
+							array_size = rhs->nodes->len;
+						else
+							array_size = rhs->len;
+					}
+					Type *type = array_type(ident_type, array_size);
+					ident_type = type;
+				}
+
+				LVar *lvar;
+				if (glocal == 0) {
+					lvar = new_lvar(locals, tok, ident_type);
+					locals = lvar;
+				}else if (glocal == 1) {
+					lvar = new_lvar(globals, tok, ident_type);
+					lvar->scope = 1;
+					globals = lvar;
+				}else{
+					error("無効なスコープです");
+				}
+
+				Node *node = new_node_s(ND_VARDECL, tok, ident_type);
+				node->var = lvar;
+
+				// 初期化
+				if (rhs) {
+					node = new_node(ND_ASSIGN, node, rhs);
+				}else if (consume("=")) {
+					rhs = initializer();
+					node = new_node(ND_ASSIGN, node, rhs);
+				}
+				if (glocal == 1) expect(";");
+				return node;
+			}else{
+				token = backup;
+			}
+		}
+	}
+
+	return node;
+}
+
+Node *func_decl_or_def() {
 	Node *node = NULL;
 	Type *ident_type = type_spec();
 
 	if (ident_type) {
 		Token *tok = consume_ident();
-
 		if (tok) {
 			// 関数
 			if (consume("(")) {
@@ -913,43 +962,39 @@ Node *func() {
 					node->func = func;
 				}
 				return node;
-			// 変数
-			}else{
-				Node *rhs = NULL;
-				if (consume("[")) {
-					int array_size = consume_number();
-					expect("]");
-
-					if (consume("=")) {
-						rhs = initializer();
-					}
-					if (array_size == -1) {
-						if (rhs->nodes)
-							array_size = rhs->nodes->len;
-						else
-							array_size = rhs->len;
-					}
-					Type *type = array_type(ident_type, array_size);
-					ident_type = type;
-				}
-				LVar *lvar = new_lvar(globals, tok, ident_type);
-				lvar->scope = 1;
-				globals = lvar;
-
-				Node *node = new_node_s(ND_VARDECL, tok, ident_type);
-				node->var = lvar;
-
-				// 初期化
-				if (rhs) {
-					node = new_node(ND_ASSIGN, node, rhs);
-				}else if (consume("=")) {
-					rhs = initializer();
-					node = new_node(ND_ASSIGN, node, rhs);
-				}
-				expect(";");
-				return node;
 			}
 		}
+	}
+	return node;
+}
+
+Node *struct_decl() {
+	Node *node = NULL;
+
+	if (consume("struct")) {
+		Token *id = consume_ident();
+		expect("{");
+
+		AGGREGATE *aggr = calloc(1, sizeof(AGGREGATE));
+		aggr->elem = new_vector();
+		int size;
+		Node *var = variable_decl(1);
+
+		while (var) {
+			push_back(aggr->elem, var);
+			size += var->type->type_size;
+			var = variable_decl(1);
+		}
+		expect("}");
+
+		aggr->name = id->str;
+		aggr->len = id->len;
+		aggr->type_size = size;
+		fprintf(stderr, "%s %d %d\n", aggr->name, aggr->len, aggr->type_size);
+		Type *type = struct_type(aggr, size);
+		push_back(aggr_list, aggr);
+		node = new_node_s(ND_STRUCT, id, type);
+		return node;
 	}
 	return node;
 }
@@ -958,11 +1003,15 @@ Node *func() {
 Node *global() {
 	Node *node;
 
-	node = func();
-	if (node)
-		return node;
+	node = variable_decl(1);
+	if (node) return node;
+	node = func_decl_or_def();
+	if (node) return node;
+	node = struct_decl();
+	if (node) return node;
+
 	if (consume("extern")) {
-		node = func();
+		node = func_decl_or_def();
 		if (node)
 			return node;
 		error_at(token->str, "It is not valid token after extern");
@@ -975,6 +1024,7 @@ Node *global() {
 void program() {
 	strings = new_vector();
 	globals = calloc(1, sizeof(LVar));
+	aggr_list = new_vector();
 	int i = 0;
 	while (!at_eof()) {
 		locals = calloc(1, sizeof(LVar));

@@ -1,4 +1,4 @@
-#include <hcc.h>
+#include "hcc.h"
 
 // 指定されたファイルの内容を返す
 char *read_file(char *path) {

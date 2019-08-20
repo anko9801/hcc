@@ -1,4 +1,4 @@
-#include <hcc.h>
+#include "hcc.h"
 
 // 入力プログラム
 char *user_input;

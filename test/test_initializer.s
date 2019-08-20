@@ -16,13 +16,13 @@ _main:
 	mov [rax], rbx
 	push 1
 	pop rax
-	mov QWORD PTR [rbp-16], eax
+	mov QWORD PTR [rbp-16], rax
 	push 2
 	pop rax
-	mov QWORD PTR [rbp-20], eax
+	mov QWORD PTR [rbp-20], rax
 	push 3
 	pop rax
-	mov QWORD PTR [rbp-24], eax
+	mov QWORD PTR [rbp-24], rax
 	lea rax, [rbp-24]
 	push rax
 	lea rax, qword ptr [rip + .LC0]

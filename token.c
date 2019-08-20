@@ -1,13 +1,9 @@
-#include <hcc.h>
+#include "hcc.h"
 
 // 現在着目しているトークン
 Token *token;
 
 int line = 0;
-
-bool at_eof() {
-	return token->kind == TK_EOF;
-}
 
 int is_alnum(char c) {
 	return	('a' <= c && c <= 'z') ||
@@ -146,6 +142,7 @@ Token *tokenize(char *p) {
 
 		if (is_reserved(&p, &cur, "int") ||
 			is_reserved(&p, &cur, "char") ||
+			is_reserved(&p, &cur, "struct") ||
 			is_reserved(&p, &cur, "return") ||
 			is_reserved(&p, &cur, "if") ||
 			is_reserved(&p, &cur, "else") ||

@@ -1,4 +1,4 @@
-#include <hcc.h>
+#include "hcc.h"
 
 int if_cnt = 0;
 int while_cnt = 0;
@@ -63,7 +63,7 @@ void gen_strings() {
 }
 
 char *str_copy(Node *node) {
-	strncpy(str, node->ident, node->len);
+	strncpy(str, node->name, node->len);
 	str[node->len] = '\0';
 	return str;
 }
@@ -205,7 +205,7 @@ void gen_lvalue(Node *node) {
 		return;
 	default:
 		break;
-		//error("It is not lvalue! %s %d\n", node->ident, node->type->ty);
+		//error("It is not lvalue! %s %d\n", node->name, node->type->ty);
 	}
 }
 
@@ -277,13 +277,16 @@ void gen(Node *node) {
 		int i = 0;
 		for (i = 0;strings->data[i];i++) {
 			Token *tok = (Token *)strings->data[i];
-			if (node->ident == tok->str && node->len == tok->len)
+			if (node->name == tok->str && node->len == tok->len)
 				break;
 		}
 		printf("	lea rax, qword ptr [rip + .LC%d]\n", i);
 		printf("	push rax\n");
 		return;
 	}
+
+	case ND_STRUCT:
+		return;
 
 	case ND_LVAR:
 		fprintf(stderr, "lvar\n");
@@ -322,7 +325,7 @@ void gen(Node *node) {
 				Node *node = (Node*)rhs->nodes->data[i];
 				gen(node);
 				printf("	pop rax\n");
-				if (node->type->ty == INT)
+				if (node->type->ty == INT && lhs->type->ty == INT)
 					printf("	mov %s [rbp-%d], eax\n", gen_type(lhs->type), lhs->var->offset + i * lhs->type->type_size / lhs->type->array_size);
 				else
 					printf("	mov %s [rbp-%d], rax\n", gen_type(lhs->type), lhs->var->offset + i * lhs->type->type_size / lhs->type->array_size);
@@ -462,7 +465,7 @@ void gen(Node *node) {
 		return;
 
 	case ND_CALL:
-		strncpy(str, node->ident, node->len);
+		strncpy(str, node->name, node->len);
 		str[node->len] = '\0';
 		for (int i = 0;i < node->nodes->len && i < 6;i++) {
 			gen((Node*)node->nodes->data[i]);
@@ -550,7 +553,7 @@ void gen(Node *node) {
 		printf("	movzx rax, al\n");
 		break;
 	default:
-		error("I don't know this nodekind");
+		error("I don't know this nodekind\n");
 	}
 
 	printf("	push rax\n");

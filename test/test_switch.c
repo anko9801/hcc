@@ -4,11 +4,11 @@ extern int fail(char *a);
 
 int test_switch() {
 	int a = 0;
-	switch (1+2) {
+	/*switch (1+2) {
 		case 0: fail("0");
 		case 3: a = 3; break;
 		case 1: fail("1");
-	}
+	}*/
 	expect(a, 3);
 
 	a = 0;
