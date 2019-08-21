@@ -173,7 +173,6 @@ void gen_lvalue(Node *node) {
 	char str[100];
 	switch (node->kind) {
 	case ND_LVAR:
-		//fprintf(stderr, "lvar\n");
 		if (node->var->scope == 0) {
 			printf("	lea rax, [rbp-%d]\n", node->var->offset);
 			printf("	push rax\n");
@@ -194,19 +193,16 @@ void gen_lvalue(Node *node) {
 		return;
 
 	case ND_ADDR:
-		//fprintf(stderr, "addr\n");
 		gen_lvalue(node->side[0]);
 		return;
 
 	case ND_DEREF:
-		//fprintf(stderr, "deref\n");
 		gen(node->side[0]);
 		return;
 
 	case ND_DOT:
 		gen_lvalue(node->side[0]);
 
-		//fprintf(stderr, "offset %d %d\n", node->side[0]->var->offset, node->side[1]->var->offset);
 		printf("	pop rax\n");
 		printf("	lea rax, [rax-%d]\n", node->side[1]->var->offset);
 		printf("	push rax\n");
@@ -278,12 +274,10 @@ void gen(Node *node) {
 	char *args_list[6] = {"di", "si", "dx", "cx", "8", "9"};
 	switch (node->kind) {
 	case ND_NUM:
-		//fprintf(stderr, "num\n");
 		printf("	push %d\n", node->val);
 		return;
 
 	case ND_STRING: {
-		//fprintf(stderr, "string\n");
 		int i = 0;
 		for (i = 0;strings->data[i];i++) {
 			Token *tok = (Token *)strings->data[i];
@@ -299,7 +293,8 @@ void gen(Node *node) {
 		return;
 
 	case ND_DOT:
-		gen_lvalue(node->side[0]);
+		fprintf(stderr, "ND_DOT\n");
+		gen_lvalue(node);
 		printf("	pop rax\n");
 		gen_mov(node->side[1]->var->type);
 		printf("	push rax\n");
@@ -507,7 +502,7 @@ void gen(Node *node) {
 		printf("_%s:\n", str_copy(node));
 		printf("	push rbp\n");
 		printf("	mov rbp, rsp\n");
-		printf("	sub rsp, %d\n", (node->func->locals->offset + 7) / 8 * 8);
+		printf("	sub rsp, %d\n", (node->func->locals->offset + node->func->locals->type->type_size + 7) / 8 * 8);
 
 		LVar *arg = node->func->args;
 		arg = arg->next;

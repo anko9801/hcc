@@ -7,14 +7,14 @@ _main:
 	push rbp
 	mov rbp, rsp
 	sub rsp, 8
-	lea rax, [rbp-8]
+	lea rax, [rbp-0]
 	push rax
 	lea rax, qword ptr [rip + .LC0]
 	push rax
 	pop rbx
 	pop rax
 	mov [rax], rbx
-	lea rax, [rbp-8]
+	lea rax, [rbp-0]
 	push rax
 	pop rax
 	mov rax, QWORD PTR [rax]
