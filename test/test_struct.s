@@ -117,6 +117,40 @@ call.else3:
 	call _print
 	pop rsi
 call.end3:
+	lea rax, [rbp-40]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	push 2
+	pop rbx
+	pop rax
+	mov [rax], rbx
+	lea rax, [rbp-40]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne call.else4
+	call _print
+	jmp call.end4
+call.else4:
+	push rsi
+	call _print
+	pop rsi
+call.end4:
 	push 0
 	pop rax
 	mov rsp, rbp

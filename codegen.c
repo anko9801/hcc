@@ -293,7 +293,6 @@ void gen(Node *node) {
 		return;
 
 	case ND_DOT:
-		fprintf(stderr, "ND_DOT\n");
 		gen_lvalue(node);
 		printf("	pop rax\n");
 		gen_mov(node->side[1]->var->type);

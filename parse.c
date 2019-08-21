@@ -445,6 +445,24 @@ Node *postfix() {
 		}
 	}
 
+	if (consume("->")) {
+		if (node->type->ty == PTR && node->type->ptr_to->ty == STRUCT) {
+			Token *rhs_name = consume_ident();
+
+			AGGREGATE *aggr = node->type->ptr_to->aggr;
+			for (int i = 0;i < aggr->elem->len;i++) {
+				Node *var = (Node *)aggr->elem->data[i];
+				if (strncmp(rhs_name->str, var->name, var->len) == 0 && rhs_name->len == var->len) {
+					node = new_nodev(ND_DEREF, 1, node);
+					node = new_node(ND_DOT, node, var);
+					return node;
+				}
+			}
+			error_at(token->str, "構造体のドット演算子のrhsが存在しません");
+			return NULL;
+		}
+	}
+
 	if (consume("++")) {
 		rhs = new_add(node, new_node_num(1));
 		return new_node(ND_ASSIGN, node, rhs);
@@ -616,14 +634,30 @@ Node *dot(Node *node) {
 			AGGREGATE *aggr = node->type->aggr;
 			for (int i = 0;i < aggr->elem->len;i++) {
 				Node *var = (Node *)aggr->elem->data[i];
-				fprintf(stderr, "%d\n", var->var->offset);
-
 				if (strncmp(rhs_name->str, var->name, var->len) == 0 && rhs_name->len == var->len) {
 					node = new_node(ND_DOT, node, var);
+					return node;
 				}
 			}
-			return node;
 			error_at(token->str, "構造体のドット演算子のrhsが存在しません");
+		}
+	}
+
+	if (consume("->")) {
+		if (node->type->ty == PTR && node->type->ptr_to->ty == STRUCT) {
+			Token *rhs_name = consume_ident();
+
+			AGGREGATE *aggr = node->type->ptr_to->aggr;
+			for (int i = 0;i < aggr->elem->len;i++) {
+				Node *var = (Node *)aggr->elem->data[i];
+				if (strncmp(rhs_name->str, var->name, var->len) == 0 && rhs_name->len == var->len) {
+					node = new_nodev(ND_DEREF, 1, node);
+					node = new_node(ND_DOT, node, var);
+					return node;
+				}
+			}
+			error_at(token->str, "構造体のドット演算子のrhsが存在しません");
+			return NULL;
 		}
 	}
 	return node;

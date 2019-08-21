@@ -20,5 +20,7 @@ int main() {
 	struct test *c;
 	print(a.a);
 	print(b.a);
+	c->a = 2;
+	print(c->a);
 	return 0;
 }
