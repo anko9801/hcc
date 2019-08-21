@@ -40,6 +40,9 @@ typedef enum {
 	ND_LE,
 	ND_EQ,
 	ND_NE,
+	ND_AND,
+	ND_OR,
+	ND_XOR,
 	ND_ASSIGN, // =
 	ND_LVAR,   // ローカル変数
 	ND_NUM,    // 整数

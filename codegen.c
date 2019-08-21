@@ -226,7 +226,14 @@ void gen_mov(Type *type) {
 }
 
 void gen_assign(Node *node) {
-	printf("	mov [rax], rbx\n");
+	if (node->type->ty == CHAR) {
+		printf("	mov %s [rax], ebx\n", gen_type(node->type));
+	}else if (node->type->ty == INT) {
+		printf("	mov %s [rax], ebx\n", gen_type(node->type));
+	}else{
+		printf("	mov %s [rax], rax\n", gen_type(node->type));
+	}
+	//printf("	mov [rax], rbx\n");
 }
 
 char *gen_cond(Node *node) {
@@ -543,6 +550,7 @@ void gen(Node *node) {
 		printf("	xor rdx, rdx\n");
 		printf("	div rbx\n");
 		break;
+
 	case ND_LT:
 		printf("	cmp rax, rbx\n");
 		printf("	setl al\n");
@@ -563,6 +571,17 @@ void gen(Node *node) {
 		printf("	setne al\n");
 		printf("	movzx rax, al\n");
 		break;
+
+	case ND_AND:
+		printf("	and eax, ebx\n");
+		break;
+	case ND_OR:
+		printf("	or eax, ebx\n");
+		break;
+	case ND_XOR:
+		printf("	xor eax, ebx\n");
+		break;
+
 	default:
 		error("I don't know this nodekind\n");
 	}

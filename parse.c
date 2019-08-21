@@ -622,8 +622,50 @@ Node *equality() {
 	}
 }
 
+Node *bit_or() {
+	Node *node = equality();
+
+	for (;;) {
+		if (consume("|"))
+			node = new_node(ND_OR, node, bit_or());
+		else
+			return node;
+	}
+}
+
+Node *bit_xor() {
+	Node *node = bit_or();
+
+	for (;;) {
+		if (consume("^"))
+			node = new_node(ND_XOR, node, bit_xor());
+		else
+			return node;
+	}
+}
+
+Node *bit_and() {
+	Node *node = bit_xor();
+
+	for (;;) {
+		if (consume("&"))
+			node = new_node(ND_AND, node, bit_and());
+		else
+			return node;
+	}
+}
+
 Node *rvalue() {
-	return equality();
+	Node *node = bit_and();
+
+	for (;;) {
+		if (consume("&&"))
+			node = new_node(ND_AND, node, rvalue());
+		else if (consume("||"))
+			node = new_node(ND_OR, node, rvalue());
+		else
+			return node;
+	}
 }
 
 Node *dot(Node *node) {

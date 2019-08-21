@@ -4,7 +4,7 @@
 _fibo:
 	push rbp
 	mov rbp, rsp
-	sub rsp, 8
+	sub rsp, 16
 	mov DWORD PTR [rbp-0], edi
 	mov DWORD PTR [rbp-4], esi
 	mov DWORD PTR [rbp-8], edx
