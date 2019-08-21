@@ -3,7 +3,7 @@
 _main:
 	push rbp
 	mov rbp, rsp
-	sub rsp, 16
+	sub rsp, 8
 	push 4
 	push 8
 	push 4

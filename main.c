@@ -43,9 +43,7 @@ int main(int argc, char **argv) {
 	fprintf(stderr, "トークナイズ完了！\n");
 	program();
 	fprintf(stderr, "パース完了！\n");
-	for (int i = 0;code[i];i++) {
-		analyse(code[i]);
-	}
+	analyse_pre(code);
 	fprintf(stderr, "AST出力完了！\n");
 	gen_pre(code, funcs, extern_funcs);
 	fprintf(stderr, "CodeGen完了！\n");

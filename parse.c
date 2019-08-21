@@ -174,7 +174,7 @@ LVar *new_lvar(LVar *pre, Token *tok, Type *type) {
 	lvar->name = tok->str;
 	lvar->len = tok->len;
 	lvar->scope = 0;
-	lvar->offset = pre->offset + type->type_size;
+	lvar->offset = pre->offset + pre->type->type_size;
 	lvar->type = type;
 	return lvar;
 }
@@ -183,7 +183,7 @@ LVar *new_arg(LVar *pre, Token *tok, Type *type) {
 	LVar *lvar = calloc(1, sizeof(LVar));
 	lvar->name = tok->str;
 	lvar->len = tok->len;
-	lvar->offset = pre->offset + type->type_size;
+	lvar->offset = pre->offset + pre->type->type_size;
 	lvar->type = type;
 	return lvar;
 }
@@ -277,7 +277,7 @@ Type *type_spec() {
 		type = int_type();
 	}else if (consume("unsigned")) {
 		type = int_type();
-	}else{
+	}else if (consume("struct")){
 		AGGREGATE *aggr = find_aggr(token);
 		if (aggr) {
 			type = struct_type(aggr, aggr->type_size);
@@ -285,6 +285,8 @@ Type *type_spec() {
 		}else{
 			return NULL;
 		}
+	}else{
+		return NULL;
 	}
 
 	while (consume("*")) {
@@ -311,16 +313,12 @@ Node *term() {
 		// 関数
 		if (consume("(")) {
 			Func *func = find_func(tok);
-			cu();
-			fprintf(stderr, "%d\n", func);
 			node = new_node_s(ND_CALL, tok, func->type);
-			cu();
 
 			// 引数
 			Node *arg;
 			Vec *args = new_vector();
 			while (!consume(")")) {
-				cu();
 				arg = expr();
 				if (!arg) {
 					error_at(token->str, "関数の引数が','で終わっています");
@@ -616,15 +614,15 @@ Node *dot(Node *node) {
 			Token *rhs_name = consume_ident();
 
 			AGGREGATE *aggr = node->type->aggr;
-			fprintf(stderr, "%d %d\n", aggr, aggr->elem->len);
 			for (int i = 0;i < aggr->elem->len;i++) {
 				Node *var = (Node *)aggr->elem->data[i];
+				fprintf(stderr, "%d\n", var->var->offset);
 
 				if (strncmp(rhs_name->str, var->name, var->len) == 0 && rhs_name->len == var->len) {
 					node = new_node(ND_DOT, node, var);
-					return node;
 				}
 			}
+			return node;
 			error_at(token->str, "構造体のドット演算子のrhsが存在しません");
 		}
 	}
@@ -883,7 +881,6 @@ Node *stmts() {
 	if (consume("{")) {
 		Vec *nodes = new_vector();
 		for(;;) {
-			cu();
 			push_back(nodes, stmt());
 			if (consume("}")) {
 				break;
@@ -952,18 +949,27 @@ Node *variable_decl(int glocal) {
 				}
 				if (glocal == 1) expect(";");
 				return node;
-			}else{
-				token = backup;
 			}
 		}
 	}
 
+	token = backup;
 	return node;
+}
+
+LVar *init_variable_list() {
+	LVar *pre = calloc(1, sizeof(LVar));
+	pre->type = calloc(1, sizeof(Type));
+	pre->type->type_size = 0;
+	pre->offset = 0;
+	return pre;
 }
 
 Node *func_decl_or_def() {
 	Node *node = NULL;
+	Token *backup = token;
 	Type *ident_type = type_spec();
+	locals = init_variable_list();
 
 	if (ident_type) {
 		Token *tok = consume_ident();
@@ -972,7 +978,7 @@ Node *func_decl_or_def() {
 			if (consume("(")) {
 				Func *func;
 				Token *arg;
-				LVar *args = calloc(1, sizeof(LVar));
+				LVar *args = init_variable_list();
 				LVar *arg_first = args;
 				Type *arg_type;
 				LVar *lvar;
@@ -1018,6 +1024,8 @@ Node *func_decl_or_def() {
 			}
 		}
 	}
+
+	token = backup;
 	return node;
 }
 
@@ -1030,7 +1038,7 @@ Node *struct_decl() {
 
 		AGGREGATE *aggr = calloc(1, sizeof(AGGREGATE));
 		aggr->elem = new_vector();
-		int size;
+		int size = 0;
 		Node *var = variable_decl(1);
 
 		while (var) {
@@ -1039,13 +1047,16 @@ Node *struct_decl() {
 			var = variable_decl(1);
 		}
 		expect("}");
+		expect(";");
+
+		size = (size + 7) / 8 * 8;
 
 		aggr->name = id->str;
 		aggr->len = id->len;
 		aggr->type_size = size;
+		push_back(aggr_list, aggr);
 
 		Type *type = struct_type(aggr, size);
-		push_back(aggr_list, aggr);
 		node = new_node_s(ND_STRUCT, id, type);
 		return node;
 	}
@@ -1056,10 +1067,13 @@ Node *struct_decl() {
 Node *global() {
 	Node *node;
 
+	cu();
 	node = variable_decl(1);
 	if (node) return node;
+	cu();
 	node = func_decl_or_def();
 	if (node) return node;
+	cu();
 	node = struct_decl();
 	if (node) return node;
 
@@ -1076,11 +1090,10 @@ Node *global() {
 // program    = stmt*
 void program() {
 	strings = new_vector();
-	globals = calloc(1, sizeof(LVar));
+	globals = init_variable_list();
 	aggr_list = new_vector();
 	int i = 0;
 	while (!at_eof()) {
-		locals = calloc(1, sizeof(LVar));
 		code[i++] = global();
 	}
 	code[i] = NULL;

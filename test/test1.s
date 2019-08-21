@@ -4,11 +4,11 @@
 _fibo:
 	push rbp
 	mov rbp, rsp
-	sub rsp, 16
-	mov DWORD PTR [rbp-4], edi
-	mov DWORD PTR [rbp-8], esi
-	mov DWORD PTR [rbp-12], edx
-	lea rax, [rbp-12]
+	sub rsp, 8
+	mov DWORD PTR [rbp-0], edi
+	mov DWORD PTR [rbp-4], esi
+	mov DWORD PTR [rbp-8], edx
+	lea rax, [rbp-8]
 	push rax
 	pop rax
 	mov eax, DWORD PTR [rax]
@@ -26,7 +26,7 @@ _fibo:
 	pop rbp
 	ret
 .Lif.end0:
-	lea rax, [rbp-4]
+	lea rax, [rbp-0]
 	push rax
 	pop rax
 	mov eax, DWORD PTR [rax]
@@ -42,12 +42,12 @@ call.else0:
 	call _print
 	pop rsi
 call.end0:
-	lea rax, [rbp-4]
+	lea rax, [rbp-0]
 	push rax
 	pop rax
 	mov eax, DWORD PTR [rax]
 	push rax
-	lea rax, [rbp-8]
+	lea rax, [rbp-4]
 	push rax
 	pop rax
 	mov eax, DWORD PTR [rax]
@@ -57,13 +57,13 @@ call.end0:
 	add rax, rbx
 	push rax
 	pop rdi
-	lea rax, [rbp-4]
+	lea rax, [rbp-0]
 	push rax
 	pop rax
 	mov eax, DWORD PTR [rax]
 	push rax
 	pop rsi
-	lea rax, [rbp-12]
+	lea rax, [rbp-8]
 	push rax
 	pop rax
 	mov eax, DWORD PTR [rax]

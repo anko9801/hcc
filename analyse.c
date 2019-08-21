@@ -43,6 +43,12 @@ char *print_type(Type *type) {
 	return type_char;
 }
 
+void analyse_pre(Node **code) {
+	for (int i = 0;code[i];i++) {
+		analyse(code[i]);
+	}
+}
+
 void analyse(Node *node) {
 	char str[100];
 	tab++;

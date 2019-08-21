@@ -30,7 +30,7 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int line) {
 bool is_reserved(char **p, Token **cur, char *str) {
 	if (strncmp(*p, str, strlen(str)) == 0 && !is_alnum((*p)[strlen(str)])) {
 		*cur = new_token(TK_RESERVED, *cur, *p, line);
-		fprintf(stderr, "(%s)", str);
+		//fprintf(stderr, "(%s)", str);
 		(*cur)->len = strlen(str);
 		*p += strlen(str);
 		return true;
@@ -41,7 +41,7 @@ bool is_reserved(char **p, Token **cur, char *str) {
 bool is_reserved_sign(char **p, Token **cur, char *str) {
 	if (strncmp(*p, str, strlen(str)) == 0) {
 		*cur = new_token(TK_RESERVED, *cur, *p, line);
-		fprintf(stderr, "(%s)", str);
+		//fprintf(stderr, "(%s)", str);
 		(*cur)->len = strlen(str);
 		*p += strlen(str);
 		return true;
@@ -86,13 +86,13 @@ Token *tokenize(char *p) {
 		if (string == 1) {
 			int len = 0;
 			while (*p != '\'') {
-				fprintf(stderr, "%c", *p);
+				//fprintf(stderr, "%c", *p);
 				p++;
 				len++;
 			}
 			cur = new_token(TK_STRING, cur, p-len, line);
 			cur->len = len;
-			fprintf(stderr, "%c", *p);
+			//fprintf(stderr, "%c", *p);
 			cur = new_token(TK_RESERVED, cur, p++, line);
 			cur->len = 1;
 			string = 0;
@@ -101,13 +101,13 @@ Token *tokenize(char *p) {
 		if (string == 2) {
 			int len = 0;
 			while (*p != '\"') {
-				fprintf(stderr, "%c", *p);
+				//fprintf(stderr, "%c", *p);
 				p++;
 				len++;
 			}
 			cur = new_token(TK_STRING, cur, p-len, line);
 			cur->len = len;
-			fprintf(stderr, "%c", *p);
+			//fprintf(stderr, "%c", *p);
 			cur = new_token(TK_RESERVED, cur, p++, line);
 			cur->len = 1;
 			string = 0;
@@ -127,14 +127,14 @@ Token *tokenize(char *p) {
 
 		if (*p == '\"') {
 			string = 2;
-			fprintf(stderr, "%c", *p);
+			//fprintf(stderr, "%c", *p);
 			cur = new_token(TK_RESERVED, cur, p++, line);
 			cur->len = 1;
 			continue;
 		}
 		if (*p == '\'') {
 			string = 1;
-			fprintf(stderr, "%c", *p);
+			//fprintf(stderr, "%c", *p);
 			cur = new_token(TK_RESERVED, cur, p++, line);
 			cur->len = 1;
 			continue;
@@ -173,7 +173,7 @@ Token *tokenize(char *p) {
 			*p == '[' || *p == ']' || *p == '.' || *p == '!' ||
 			*p == '<' || *p == '>' || *p == '&' || *p == '|' ||
 			*p == '{' || *p == '}') {
-			fprintf(stderr, "%c", *p);
+			//fprintf(stderr, "%c", *p);
 			cur = new_token(TK_RESERVED, cur, p++, line);
 			cur->len = 1;
 			continue;
@@ -184,18 +184,18 @@ Token *tokenize(char *p) {
 			char *q = p;
 			cur->val = strtol(p, &p, 10);
 			cur->len = p - q;
-			fprintf(stderr, "%d", cur->val);
+			//fprintf(stderr, "%d", cur->val);
 			continue;
 		}
 
 		if (is_alpha(*p)) {
 			int len = 0;
-			fprintf(stderr, "%c", *p);
+			//fprintf(stderr, "%c", *p);
 			p++;
 			len++;
 			for (;;) {
 				if (is_alnum(*p)) {
-					fprintf(stderr, "%c", *p);
+					//fprintf(stderr, "%c", *p);
 					p++;
 					len++;
 				}else{
@@ -211,7 +211,7 @@ Token *tokenize(char *p) {
 	}
 
 	new_token(TK_EOF, cur, p, line);
-	fprintf(stderr, "\n");
+	//fprintf(stderr, "\n");
 	return head.next;
 }
 

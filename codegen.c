@@ -143,7 +143,6 @@ void gen_global(Node *code) {
 }
 
 void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
-	fprintf(stderr, "gen_pre\n");
 	printf(".intel_syntax noprefix\n");
 
 	gen_extern(extern_funcs);
@@ -205,7 +204,11 @@ void gen_lvalue(Node *node) {
 		return;
 
 	case ND_DOT:
-		printf("	lea rax, [rbp-%d]\n", node->side[1]->var->offset);
+		gen_lvalue(node->side[0]);
+
+		//fprintf(stderr, "offset %d %d\n", node->side[0]->var->offset, node->side[1]->var->offset);
+		printf("	pop rax\n");
+		printf("	lea rax, [rax-%d]\n", node->side[1]->var->offset);
 		printf("	push rax\n");
 		return;
 
@@ -271,7 +274,6 @@ char *gen_cond(Node *node) {
 }
 
 void gen(Node *node) {
-	fprintf(stderr, "test\n");
 	char str[100];
 	char *args_list[6] = {"di", "si", "dx", "cx", "8", "9"};
 	switch (node->kind) {
@@ -297,8 +299,8 @@ void gen(Node *node) {
 		return;
 
 	case ND_DOT:
-		fprintf(stderr, "DOT\n");
-		printf("	lea rax, [rbp-%d]\n", node->side[1]->var->offset);
+		gen_lvalue(node->side[0]);
+		printf("	pop rax\n");
 		gen_mov(node->side[1]->var->type);
 		printf("	push rax\n");
 		return;
@@ -331,7 +333,7 @@ void gen(Node *node) {
 		return;
 
 	case ND_ASSIGN: {
-		fprintf(stderr, "assign\n");
+		//fprintf(stderr, "assign\n");
 		Node *lhs = node->side[0];
 		Node *rhs = node->side[1];
 

@@ -4,8 +4,8 @@
 _main:
 	push rbp
 	mov rbp, rsp
-	sub rsp, 16
-	lea rax, [rbp-8]
+	sub rsp, 8
+	lea rax, [rbp-0]
 	push rax
 	push 0
 	pop rbx
@@ -16,7 +16,7 @@ _main:
 	pop rbx
 	pop rax
 	mov [rax], rbx
-	lea rax, [rbp-8]
+	lea rax, [rbp-0]
 	push rax
 	push 4
 	pop rbx
@@ -27,14 +27,14 @@ _main:
 	pop rbx
 	pop rax
 	mov [rax], rbx
-	lea rax, [rbp-16]
-	push rax
 	lea rax, [rbp-8]
+	push rax
+	lea rax, [rbp-0]
 	push rax
 	pop rbx
 	pop rax
 	mov [rax], rbx
-	lea rax, [rbp-16]
+	lea rax, [rbp-8]
 	push rax
 	pop rax
 	mov rax, QWORD PTR [rax]
@@ -58,7 +58,7 @@ call.else0:
 	call _print
 	pop rsi
 call.end0:
-	lea rax, [rbp-16]
+	lea rax, [rbp-8]
 	push rax
 	pop rax
 	mov rax, QWORD PTR [rax]
@@ -82,7 +82,7 @@ call.else1:
 	call _print
 	pop rsi
 call.end1:
-	lea rax, [rbp-16]
+	lea rax, [rbp-8]
 	push rax
 	pop rax
 	mov rax, QWORD PTR [rax]
@@ -95,7 +95,7 @@ call.end1:
 	pop rax
 	mov eax, DWORD PTR [rax]
 	push rax
-	lea rax, [rbp-16]
+	lea rax, [rbp-8]
 	push rax
 	pop rax
 	mov rax, QWORD PTR [rax]

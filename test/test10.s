@@ -4,8 +4,8 @@
 _main:
 	push rbp
 	mov rbp, rsp
-	sub rsp, 24
-	lea rax, [rbp-20]
+	sub rsp, 0
+	lea rax, [rbp-0]
 	push rax
 	push 4
 	pop rbx
@@ -16,7 +16,7 @@ _main:
 	pop rbx
 	pop rax
 	mov [rax], rbx
-	lea rax, [rbp-20]
+	lea rax, [rbp-0]
 	push rax
 	push 4
 	pop rbx

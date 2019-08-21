@@ -3,15 +3,15 @@
 _main:
 	push rbp
 	mov rbp, rsp
-	sub rsp, 16
-	lea rax, [rbp-12]
-	push rax
+	sub rsp, 8
 	lea rax, [rbp-4]
+	push rax
+	lea rax, [rbp-0]
 	push rax
 	pop rbx
 	pop rax
 	mov [rax], rbx
-	lea rax, [rbp-12]
+	lea rax, [rbp-4]
 	push rax
 	pop rax
 	mov rax, QWORD PTR [rax]
@@ -20,7 +20,7 @@ _main:
 	pop rbx
 	pop rax
 	mov [rax], rbx
-	lea rax, [rbp-4]
+	lea rax, [rbp-0]
 	push rax
 	pop rax
 	mov eax, DWORD PTR [rax]

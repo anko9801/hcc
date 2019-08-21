@@ -17,10 +17,10 @@ $(OBJS): hcc.h
 	gcc -o ./test/$* ./test/lib.o ./test/$*.o
 
 test%: hcc ./test/lib.o
-	gcc -c -o ./test/lib.o ./test/lib.c
+	@gcc -c -o ./test/lib.o ./test/lib.c
 	./hcc ./test/test$*.c > ./test/test$*.s
-	gcc -c -o ./test/test$*.o ./test/test$*.s
-	gcc -o ./test/test$* ./test/lib.o ./test/test$*.o
+	@gcc -c -o ./test/test$*.o ./test/test$*.s
+	@gcc -o ./test/test$* ./test/lib.o ./test/test$*.o
 	./test/test$*
 
 clean:
