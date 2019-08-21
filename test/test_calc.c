@@ -15,7 +15,26 @@ int main() {
 	print(a | b && c);
 	print((a & b) | c);
 
-	a = a << 2;
-	print(a);
+	int d = a;
+	d += b;
+	print(d);
+	d -= b;
+	print(d);
+	d *= b;
+	print(d);
+	d /= b;
+	print(d);
+	d %= b;
+	print(d);
+	d <<= b;
+	print(d);
+	d >>= b;
+	print(d);
+	d &= b;
+	print(d);
+	d ^= b;
+	print(d);
+	d |= b;
+	print(d);
 	return 0;
 }

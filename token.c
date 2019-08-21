@@ -41,7 +41,7 @@ bool is_reserved(char **p, Token **cur, char *str) {
 bool is_reserved_sign(char **p, Token **cur, char *str) {
 	if (strncmp(*p, str, strlen(str)) == 0) {
 		*cur = new_token(TK_RESERVED, *cur, *p, line);
-		//fprintf(stderr, "(%s)", str);
+		fprintf(stderr, "(%s)", str);
 		(*cur)->len = strlen(str);
 		*p += strlen(str);
 		return true;
@@ -157,13 +157,19 @@ Token *tokenize(char *p) {
 			is_reserved(&p, &cur, "extern") ||
 			is_reserved(&p, &cur, "__LINE__") ||
 			is_reserved_sign(&p, &cur, "->") ||
-			is_reserved_sign(&p, &cur, ">>") ||
-			is_reserved_sign(&p, &cur, "<<") ||
 			is_reserved_sign(&p, &cur, "==") ||
 			is_reserved_sign(&p, &cur, "+=") ||
 			is_reserved_sign(&p, &cur, "-=") ||
 			is_reserved_sign(&p, &cur, "*=") ||
 			is_reserved_sign(&p, &cur, "/=") ||
+			is_reserved_sign(&p, &cur, "%=") ||
+			is_reserved_sign(&p, &cur, "<<=") ||
+			is_reserved_sign(&p, &cur, ">>=") ||
+			is_reserved_sign(&p, &cur, "&=") ||
+			is_reserved_sign(&p, &cur, "^=") ||
+			is_reserved_sign(&p, &cur, "|=") ||
+			is_reserved_sign(&p, &cur, ">>") ||
+			is_reserved_sign(&p, &cur, "<<") ||
 			is_reserved_sign(&p, &cur, "++") ||
 			is_reserved_sign(&p, &cur, "--")
 			) {
