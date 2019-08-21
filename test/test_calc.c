@@ -12,5 +12,10 @@ int main() {
 	print(a & b);
 	print(a ^ b);
 	print(a | b);
+	print(a | b && c);
+	print((a & b) | c);
+
+	a = a << 2;
+	print(a);
 	return 0;
 }

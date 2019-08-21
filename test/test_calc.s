@@ -226,6 +226,103 @@ call.else7:
 	call _print
 	pop rsi
 call.end7:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	or eax, ebx
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rbx
+	pop rax
+	and eax, ebx
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne call.else8
+	call _print
+	jmp call.end8
+call.else8:
+	push rsi
+	call _print
+	pop rsi
+call.end8:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	and eax, ebx
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	or eax, ebx
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne call.else9
+	call _print
+	jmp call.end9
+call.else9:
+	push rsi
+	call _print
+	pop rsi
+call.end9:
+	lea rax, [rbp-0]
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 2
+	pop rbx
+	pop rax
+	mov rcx, rbx
+	sal eax, cl
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne call.else10
+	call _print
+	jmp call.end10
+call.else10:
+	push rsi
+	call _print
+	pop rsi
+call.end10:
 	push 0
 	pop rax
 	mov rsp, rbp

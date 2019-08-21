@@ -556,6 +556,15 @@ void gen(Node *node) {
 		printf("	mov rax, rdx\n");
 		break;
 
+	case ND_SAL:
+		printf("	mov rcx, rbx\n");
+		printf("	sal eax, cl\n");
+		break;
+	case ND_SAR:
+		printf("	mov rcx, rbx\n");
+		printf("	sar eax, cl\n");
+		break;
+
 	case ND_LT:
 		printf("	cmp rax, rbx\n");
 		printf("	setl al\n");

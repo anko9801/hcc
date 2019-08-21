@@ -590,9 +590,23 @@ Node *add_expr() {
 	}
 }
 
+Node *sht_expr() {
+	Node *node = add_expr();
+
+	for (;;) {
+		if (consume("<<"))
+			node = new_node(ND_SAL, node, sht_expr());
+		else if (consume(">>"))
+			node = new_node(ND_SAR, node, sht_expr());
+		else
+			return node;
+	}
+}
+
 // add ("<" add | "<=" add | ">" add | ">=" add)*
 Node *relational() {
-	Node *node = add_expr();
+	Node *node = sht_expr();
+
 
 	for (;;) {
 		if (consume("<"))

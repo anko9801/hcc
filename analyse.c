@@ -260,7 +260,7 @@ void analyse(Node *node) {
 			break;
 
 		default:
-			fprintf(stderr, "I don't know this nodekind");
+			fprintf(stderr, "I don't know this nodekind\n");
 		}
 		tab--;
 	}
