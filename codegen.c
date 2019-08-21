@@ -550,6 +550,11 @@ void gen(Node *node) {
 		printf("	xor rdx, rdx\n");
 		printf("	div rbx\n");
 		break;
+	case ND_MOD:
+		printf("	xor rdx, rdx\n");
+		printf("	div rbx\n");
+		printf("	mov rax, rdx\n");
+		break;
 
 	case ND_LT:
 		printf("	cmp rax, rbx\n");

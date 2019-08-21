@@ -36,6 +36,7 @@ typedef enum {
 	ND_SUB,    // -
 	ND_MUL,    // *
 	ND_DIV,    // /
+	ND_MOD,
 	ND_LT,
 	ND_LE,
 	ND_EQ,

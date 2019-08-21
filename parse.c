@@ -542,6 +542,8 @@ Node *mul_expr() {
 				node = new_node(ND_MUL, node, unary());
 			else if (consume("/"))
 				node = new_node(ND_DIV, node, unary());
+			else if (consume("%"))
+				node = new_node(ND_MOD, node, unary());
 			else
 				return node;
 		}
