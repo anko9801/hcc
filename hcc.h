@@ -43,6 +43,7 @@ typedef enum {
 	ND_LE,
 	ND_EQ,
 	ND_NE,
+	ND_NOT,
 	ND_AND,
 	ND_OR,
 	ND_XOR,

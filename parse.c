@@ -504,6 +504,12 @@ Node *unary() {
 	if (consume("--"))
 		return new_node(ND_SUB, unary(), new_node_num(1));
 
+	if (consume("!"))
+		return new_nodev(ND_NOT, 1, unary());
+
+	if (consume("~"))
+		return new_nodev(ND_NOT, 1, unary());
+
 	if (consume("*")) {
 		node = unary();
 
@@ -1183,13 +1189,10 @@ Node *struct_decl() {
 Node *global() {
 	Node *node;
 
-	cu();
 	node = variable_decl(1);
 	if (node) return node;
-	cu();
 	node = func_decl_or_def();
 	if (node) return node;
-	cu();
 	node = struct_decl();
 	if (node) return node;
 

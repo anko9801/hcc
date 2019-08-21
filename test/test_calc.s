@@ -291,6 +291,41 @@ call.else9:
 	call _print
 	pop rsi
 call.end9:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rax
+	not eax
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne call.else10
+	call _print
+	jmp call.end10
+call.else10:
+	push rsi
+	call _print
+	pop rsi
+call.end10:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne call.else11
+	call _print
+	jmp call.end11
+call.else11:
+	push rsi
+	call _print
+	pop rsi
+call.end11:
 	lea rax, [rbp-12]
 	push rax
 	lea rax, [rbp-0]
@@ -328,76 +363,6 @@ call.end9:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else10
-	call _print
-	jmp call.end10
-call.else10:
-	push rsi
-	call _print
-	pop rsi
-call.end10:
-	lea rax, [rbp-12]
-	push rax
-	lea rax, [rbp-12]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	lea rax, [rbp-4]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rbx
-	pop rax
-	sub rax, rbx
-	push rax
-	pop rbx
-	pop rax
-	mov DWORD PTR [rax], ebx
-	lea rax, [rbp-12]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else11
-	call _print
-	jmp call.end11
-call.else11:
-	push rsi
-	call _print
-	pop rsi
-call.end11:
-	lea rax, [rbp-12]
-	push rax
-	lea rax, [rbp-12]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	lea rax, [rbp-4]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rbx
-	pop rax
-	mul rbx
-	push rax
-	pop rbx
-	pop rax
-	mov DWORD PTR [rax], ebx
-	lea rax, [rbp-12]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
 	jne call.else12
 	call _print
 	jmp call.end12
@@ -420,8 +385,7 @@ call.end12:
 	push rax
 	pop rbx
 	pop rax
-	xor rdx, rdx
-	div rbx
+	sub rax, rbx
 	push rax
 	pop rbx
 	pop rax
@@ -456,9 +420,7 @@ call.end13:
 	push rax
 	pop rbx
 	pop rax
-	xor rdx, rdx
-	div rbx
-	mov rax, rdx
+	mul rbx
 	push rax
 	pop rbx
 	pop rax
@@ -493,8 +455,8 @@ call.end14:
 	push rax
 	pop rbx
 	pop rax
-	mov rcx, rbx
-	sal eax, cl
+	xor rdx, rdx
+	div rbx
 	push rax
 	pop rbx
 	pop rax
@@ -529,8 +491,9 @@ call.end15:
 	push rax
 	pop rbx
 	pop rax
-	mov rcx, rbx
-	sar eax, cl
+	xor rdx, rdx
+	div rbx
+	mov rax, rdx
 	push rax
 	pop rbx
 	pop rax
@@ -565,7 +528,8 @@ call.end16:
 	push rax
 	pop rbx
 	pop rax
-	and eax, ebx
+	mov rcx, rbx
+	sal eax, cl
 	push rax
 	pop rbx
 	pop rax
@@ -600,7 +564,8 @@ call.end17:
 	push rax
 	pop rbx
 	pop rax
-	xor eax, ebx
+	mov rcx, rbx
+	sar eax, cl
 	push rax
 	pop rbx
 	pop rax
@@ -635,7 +600,7 @@ call.end18:
 	push rax
 	pop rbx
 	pop rax
-	or eax, ebx
+	and eax, ebx
 	push rax
 	pop rbx
 	pop rax
@@ -656,6 +621,76 @@ call.else19:
 	call _print
 	pop rsi
 call.end19:
+	lea rax, [rbp-12]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	xor eax, ebx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne call.else20
+	call _print
+	jmp call.end20
+call.else20:
+	push rsi
+	call _print
+	pop rsi
+call.end20:
+	lea rax, [rbp-12]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	or eax, ebx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne call.else21
+	call _print
+	jmp call.end21
+call.else21:
+	push rsi
+	call _print
+	pop rsi
+call.end21:
 	push 0
 	pop rax
 	mov rsp, rbp

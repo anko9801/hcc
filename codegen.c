@@ -165,6 +165,8 @@ char *gen_type(Type *type) {
 		return "QWORD PTR";
 	case ARRAY:
 		return "QWORD PTR";
+	default:
+		error("知らない型です");
 	}
 }
 
@@ -272,6 +274,7 @@ char *gen_cond(Node *node) {
 		printf("	cmp rax, rbx\n");
 		return "jne";
 	default:
+		error("条件式の中に知らないものが入ってます\n");
 		return NULL;
 	}
 }
@@ -307,12 +310,11 @@ void gen(Node *node) {
 		return;
 
 	case ND_LVAR:
-		fprintf(stderr, "lvar\n");
+		//fprintf(stderr, "lvar\n");
 		gen_lvalue(node);
 
 		printf("	pop rax\n");
 		gen_mov(node->type);
-		//printf("	mov rax, [rax]\n");
 		printf("	push rax\n");
 		return;
 
@@ -330,6 +332,13 @@ void gen(Node *node) {
 
 		printf("	pop rax\n");
 		gen_mov(node->type);
+		printf("	push rax\n");
+		return;
+
+	case ND_NOT:
+		gen(node->side[0]);
+		printf("	pop rax\n");
+		printf("	not eax\n");
 		printf("	push rax\n");
 		return;
 

@@ -14,6 +14,8 @@ int main() {
 	print(a | b);
 	print(a | b && c);
 	print((a & b) | c);
+	print(~a);
+	print(a);
 
 	int d = a;
 	d += b;

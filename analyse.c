@@ -234,6 +234,32 @@ void analyse(Node *node) {
 			analyse(node->side[1]);
 			break;
 		}
+		case ND_MOD: {
+			Node *lhs = node->side[0];
+			Node *rhs = node->side[1];
+			if (lhs->kind == ND_NUM && rhs->kind == ND_NUM) {
+				node->kind = ND_NUM;
+				node->type = lhs->type;
+				node->val = lhs->val % rhs->val;
+				print_node("NUM %d", node->val);
+				break;
+			}
+			print_node("MOD");
+			analyse(node->side[0]);
+			analyse(node->side[1]);
+			break;
+		}
+
+		case ND_SAL:
+			print_node("SAL");
+			analyse(node->side[0]);
+			analyse(node->side[1]);
+			break;
+		case ND_SAR:
+			print_node("SAR");
+			analyse(node->side[0]);
+			analyse(node->side[1]);
+			break;
 
 		case ND_LT:
 			print_node("LT");
@@ -257,6 +283,27 @@ void analyse(Node *node) {
 			print_node("NE");
 			analyse(node->side[0]);
 			analyse(node->side[1]);
+			break;
+
+		case ND_AND:
+			print_node("AND");
+			analyse(node->side[0]);
+			analyse(node->side[1]);
+			break;
+		case ND_XOR:
+			print_node("XOR");
+			analyse(node->side[0]);
+			analyse(node->side[1]);
+			break;
+		case ND_OR:
+			print_node("OR");
+			analyse(node->side[0]);
+			analyse(node->side[1]);
+			break;
+
+		case ND_NOT:
+			print_node("NOT");
+			analyse(node->side[0]);
 			break;
 
 		default:
