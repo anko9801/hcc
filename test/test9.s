@@ -27,7 +27,7 @@ _main:
 	push rax
 	pop rbx
 	pop rax
-	mov [rax], rbx
+	mov BYTE PTR [rax], ebx
 	lea rax, QWORD PTR [rip + x@GOTPCREL]
 	push rax
 	push 0

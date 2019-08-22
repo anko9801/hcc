@@ -16,9 +16,9 @@ Vec *strings;
 
 Type *void_type() {
 	Type *type = calloc(1, sizeof(Type));
-	type->ty = INT;
+	type->ty = VOID;
 	type->ptr_to = NULL;
-	type->type_size = 4;
+	type->type_size = 0;
 	type->array_size = 1;
 	return type;
 }
@@ -62,6 +62,14 @@ Type *array_type(Type *element_type, int size) {
 Type *struct_type(AGGREGATE *aggr, int size) {
 	Type *type = calloc(1, sizeof(Type));
 	type->ty = STRUCT;
+	type->aggr = aggr;
+	type->type_size = size;
+	return type;
+}
+
+Type *enum_type(AGGREGATE *aggr, int size) {
+	Type *type = calloc(1, sizeof(Type));
+	type->ty = ENUM;
 	type->aggr = aggr;
 	type->type_size = size;
 	return type;
@@ -230,7 +238,13 @@ term       = num | ident | "(" expr ")"
 */
 
 void cu() {
-	fprintf(stderr, "%s\n", token->str);
+	int line = 0;
+	fprintf(stderr, "----start-----\n");
+	for (int i = 0;line < 5;i++) {
+		fprintf(stderr, "%c", token->str[i]);
+		if (token->str[i] == '\n') line++;
+	}
+	fprintf(stderr, "\n");
 }
 Node *expr();
 Node *stmt();
@@ -243,12 +257,16 @@ Node *variable_decl(int glocal);
 
 Vec *aggr_list; // AGGREGATE
 AGGREGATE *find_aggr(Token *tok) {
+	fprintf(stderr, "find_aggr");
 	for (int i = 0;i < aggr_list->len;i++) {
 		AGGREGATE *aggr = (AGGREGATE *)aggr_list->data[i];
+		fprintf(stderr, " %d", aggr);
 		if (strncmp(token->str, aggr->name, aggr->len) == 0 && token->len == aggr->len) {
+			fprintf(stderr, "\n");
 			return aggr;
 		}
 	}
+	fprintf(stderr, "\n");
 	return NULL;
 }
 
@@ -280,10 +298,34 @@ Type *type_spec() {
 	}else if (consume("struct")){
 		AGGREGATE *aggr = find_aggr(token);
 		if (aggr) {
+			fprintf(stderr, "struct type\n");
 			type = struct_type(aggr, aggr->type_size);
 			token = token->next;
 		}else{
-			return NULL;
+			fprintf(stderr, "struct type hatu\n");
+			aggr = calloc(1, sizeof(AGGREGATE));
+			aggr->elem = new_vector();
+			aggr->name = token->str;
+			aggr->len = token->len;
+			aggr->incomplete = true;
+			push_back(aggr_list, aggr);
+			type = struct_type(aggr, 0);
+			token = token->next;
+		}
+	}else if (consume("enum")){
+		AGGREGATE *aggr = find_aggr(token);
+		if (aggr) {
+			type = struct_type(aggr, aggr->type_size);
+			token = token->next;
+		}else{
+			aggr = calloc(1, sizeof(AGGREGATE));
+			aggr->elem = new_vector();
+			aggr->name = token->str;
+			aggr->len = token->len;
+			aggr->incomplete = false;
+			push_back(aggr_list, aggr);
+			type = struct_type(aggr, 0);
+			token = token->next;
 		}
 	}else{
 		return NULL;
@@ -394,6 +436,7 @@ Node *term() {
 	return NULL;
 }
 
+Node *dot(Node *node);
 
 //postfix_exp	::= <primary_exp>
 //				| <postfix_exp> “[“ <exp> “]”
@@ -428,40 +471,8 @@ Node *postfix() {
 		return node;
 	}
 
-	if (consume(".")) {
-		if (node->type->ty == STRUCT) {
-			Token *rhs_name = consume_ident();
-
-			AGGREGATE *aggr = node->type->aggr;
-			for (int i = 0;i < aggr->elem->len;i++) {
-				Node *var = (Node *)aggr->elem->data[i];
-				if (strncmp(rhs_name->str, var->name, var->len) == 0 && rhs_name->len == var->len) {
-					node = new_node(ND_DOT, node, var);
-					return node;
-				}
-			}
-			error_at(token->str, "構造体のドット演算子のrhsが存在しません");
-			return NULL;
-		}
-	}
-
-	if (consume("->")) {
-		if (node->type->ty == PTR && node->type->ptr_to->ty == STRUCT) {
-			Token *rhs_name = consume_ident();
-
-			AGGREGATE *aggr = node->type->ptr_to->aggr;
-			for (int i = 0;i < aggr->elem->len;i++) {
-				Node *var = (Node *)aggr->elem->data[i];
-				if (strncmp(rhs_name->str, var->name, var->len) == 0 && rhs_name->len == var->len) {
-					node = new_nodev(ND_DEREF, 1, node);
-					node = new_node(ND_DOT, node, var);
-					return node;
-				}
-			}
-			error_at(token->str, "構造体のドット演算子のrhsが存在しません");
-			return NULL;
-		}
-	}
+	node = dot(node);
+	if (node) return node;
 
 	if (consume("++")) {
 		rhs = new_add(node, new_node_num(1));
@@ -613,7 +624,6 @@ Node *sht_expr() {
 Node *relational() {
 	Node *node = sht_expr();
 
-
 	for (;;) {
 		if (consume("<"))
 			if (consume("="))
@@ -694,8 +704,8 @@ Node *dot(Node *node) {
 	if (consume(".")) {
 		if (node->type->ty == STRUCT) {
 			Token *rhs_name = consume_ident();
-
 			AGGREGATE *aggr = node->type->aggr;
+
 			for (int i = 0;i < aggr->elem->len;i++) {
 				Node *var = (Node *)aggr->elem->data[i];
 				if (strncmp(rhs_name->str, var->name, var->len) == 0 && rhs_name->len == var->len) {
@@ -710,8 +720,8 @@ Node *dot(Node *node) {
 	if (consume("->")) {
 		if (node->type->ty == PTR && node->type->ptr_to->ty == STRUCT) {
 			Token *rhs_name = consume_ident();
-
 			AGGREGATE *aggr = node->type->ptr_to->aggr;
+
 			for (int i = 0;i < aggr->elem->len;i++) {
 				Node *var = (Node *)aggr->elem->data[i];
 				if (strncmp(rhs_name->str, var->name, var->len) == 0 && rhs_name->len == var->len) {
@@ -720,8 +730,7 @@ Node *dot(Node *node) {
 					return node;
 				}
 			}
-			error_at(token->str, "構造体のドット演算子のrhsが存在しません");
-			return NULL;
+			error_at(token->str, "構造体のアロー演算子のrhsが存在しません");
 		}
 	}
 	return node;
@@ -749,9 +758,10 @@ Node *lvalue() {
 		if (lvar) {
 			node = new_node_s(ND_LVAR, tok, lvar->type);
 			node->var = lvar;
-			//AGGREGATE *aggr = find_aggr(lvar->type->);
-			node->type->aggr = lvar->type->aggr;
 
+
+			node->type = lvar->type;
+			fprintf(stderr, "lvalue aggr %d\n", lvar->type->aggr);
 			node = dot(node);
 
 			if (node->type && node->type->ty == ARRAY) {
@@ -990,6 +1000,7 @@ Node *stmt() {
 		Loop = stmts();
 
 		node = new_nodev(ND_FOR, 4, Cond1, Cond2, Cond3, Loop);
+
 	}else{
 		node = expr();
 		expect(";");
@@ -1004,9 +1015,8 @@ Node *stmts() {
 		Vec *nodes = new_vector();
 		for(;;) {
 			push_back(nodes, stmt());
-			if (consume("}")) {
+			if (consume("}"))
 				break;
-			}
 		}
 
 		node = calloc(1, sizeof(Node));
@@ -1027,6 +1037,7 @@ Node *variable_decl(int glocal) {
 	if (ident_type) {
 		Token *tok = consume_ident();
 		Node *rhs = NULL;
+
 		if (tok) {
 			// 関数チェッカー
 			if (!check("(")) {
@@ -1048,6 +1059,7 @@ Node *variable_decl(int glocal) {
 				}
 
 				LVar *lvar;
+
 				if (glocal == 0) {
 					lvar = new_lvar(locals, tok, ident_type);
 					locals = lvar;
@@ -1157,6 +1169,7 @@ Node *struct_decl() {
 	if (consume("struct")) {
 		Token *id = consume_ident();
 		expect("{");
+		cu();
 
 		AGGREGATE *aggr = calloc(1, sizeof(AGGREGATE));
 		aggr->elem = new_vector();
@@ -1169,7 +1182,51 @@ Node *struct_decl() {
 			var = variable_decl(1);
 		}
 		expect("}");
-		expect(";");
+
+		size = (size + 7) / 8 * 8;
+
+		if (id) {
+			aggr->name = id->str;
+			aggr->len = id->len;
+		}
+		aggr->type_size = size;
+		push_back(aggr_list, aggr);
+		cu();
+
+		fprintf(stderr, "struct decl %s %d %d\n", aggr->name, aggr->elem, aggr->elem->len);
+		Type *type = struct_type(aggr, size);
+		node = new_node_s(ND_STRUCT, id, type);
+		return node;
+	}
+	return node;
+}
+
+Node *enum_decl() {
+	Node *node = NULL;
+	Token *backup;
+
+	if (consume("enum")) {
+		Token *id = consume_ident();
+		expect("{");
+
+		AGGREGATE *aggr = calloc(1, sizeof(AGGREGATE));
+		aggr->elem = new_vector();
+		int size = 0;
+		Token *var = consume_ident();
+
+		while (var && consume(",")) {
+			push_back(aggr->elem, var);
+			size++;
+			var = consume_ident();
+		}
+		expect("}");
+		if (!id) {
+			backup = token;
+			id = consume_ident();
+			if (!id)
+				error("enumの名前がありません");
+			token = backup;
+		}
 
 		size = (size + 7) / 8 * 8;
 
@@ -1178,22 +1235,106 @@ Node *struct_decl() {
 		aggr->type_size = size;
 		push_back(aggr_list, aggr);
 
-		Type *type = struct_type(aggr, size);
-		node = new_node_s(ND_STRUCT, id, type);
+		Type *type = enum_type(aggr, size);
+		node = new_node_s(ND_ENUM, id, type);
 		return node;
 	}
 	return node;
+}
+
+// struct {};
+// typedef struct A {}B;
+// typedef struct {} B;
+Node *aggregate_decl() {
+	Node *node = NULL;
+
+	node = struct_decl();
+	if (node) {
+		expect(";");
+		return node;
+	}
+	node = enum_decl();
+	if (node) {
+		expect(";");
+		return node;
+	}
+
+	return node;
+}
+
+Vec *typedef_list;
+
+Typedef *typedef_decl() {
+	Node *node;
+	Type *type;
+
+	if (consume("typedef")) {
+		Token *backup = token;
+		type = type_spec();
+		if (type) {
+			Token *tok = consume_ident();
+			expect(";");
+			Typedef *tydef = calloc(1, sizeof(Typedef));
+			tydef->pre = node->type;
+			tydef->post = tok->str;
+			tydef->len = tok->len;
+			push_back(typedef_list, tydef);
+			return tydef;
+		}else token = backup;
+
+		node = aggregate_decl();
+		if (node) {
+			Token *tok = consume_ident();
+			expect(";");
+			if (tok) {
+				node->type->aggr->name = tok->str;
+				node->type->aggr->len = tok->len;
+			}
+			Typedef *tydef = calloc(1, sizeof(Typedef));
+			tydef->pre = node->type;
+			tydef->post = tok->str;
+			tydef->len = tok->len;
+			push_back(typedef_list, tydef);
+			return tydef;
+		}else token = backup;
+	}
+
+	return NULL;
+}
+
+bool include() {
+	if (consume("#")) {
+		if (consume("include")) {
+			if (consume("\"")) {
+				Token *tok = consume_ident();
+				char str[100];
+				strncpy(str, tok->str, tok->len);
+				str[tok->len] = '\0';
+				compile_at(str);
+				expect("\"");
+			}else if (consume("<")) {
+				consume_ident();
+				if (consume("."))
+					consume_ident();
+				expect(">");
+			}
+			return true;
+		}
+	}
+	return false;
 }
 
 // int foo(int x, int y) { ... }
 Node *global() {
 	Node *node;
 
+	if (include()) return NULL;
+	if (typedef_decl()) return NULL;
+	node = aggregate_decl();
+	if (node) return node;
 	node = variable_decl(1);
 	if (node) return node;
 	node = func_decl_or_def();
-	if (node) return node;
-	node = struct_decl();
 	if (node) return node;
 
 	if (consume("extern")) {
@@ -1211,6 +1352,7 @@ void program() {
 	strings = new_vector();
 	globals = init_variable_list();
 	aggr_list = new_vector();
+	typedef_list = new_vector();
 	int i = 0;
 	while (!at_eof()) {
 		code[i++] = global();

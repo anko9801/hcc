@@ -8,13 +8,13 @@ struct test {
 };
 
 int main() {
-	char *sd = "aaaaaaass";
-	print_s(sd);
 	struct test a;
 	struct test b;
 	a.a = 2;
+	print(a.a);
 	b.a = 3;
 	a.c = "aaaaaa";
+	print(b.a);
 	print_s(a.c);
 
 	struct test *c;

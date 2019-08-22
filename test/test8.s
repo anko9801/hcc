@@ -14,15 +14,9 @@ _main:
 	push rax
 	pop rdi
 	mov rax, 1
-	test rsp, 15
-	jne call.else0
-	call _print
-	jmp call.end0
-call.else0:
 	push rsi
 	call _print
 	pop rsi
-call.end0:
 	push 0
 	pop rax
 	mov rsp, rbp

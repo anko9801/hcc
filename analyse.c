@@ -37,6 +37,9 @@ char *print_type(Type *type) {
 	case PTR:
 		sprintf(kari_char, "(*)%s", type_char);
 		break;
+	case STRUCT:
+		sprintf(kari_char, "struct%s", type_char);
+		break;
 	}
 	strncpy(type_char, kari_char, 20);
 
@@ -68,6 +71,8 @@ void analyse(Node *node) {
 
 		case ND_DOT:
 			print_node("DOT");
+			analyse(node->side[0]);
+			analyse(node->side[1]);
 			break;
 
 		case ND_LVAR:

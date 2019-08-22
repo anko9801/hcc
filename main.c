@@ -26,19 +26,9 @@ char *read_file(char *path) {
 	return buf;
 }
 
-int main(int argc, char **argv) {
-	if (argc != 2) {
-		fprintf(stderr, "Usage: ucc <code>\n");
-		return 0;
-	}
-
-	char *src;
-
-	src = read_file(argv[1]);
+void compile(char *src, char *file) {
 	user_input = src;
-	filename = argv[1];
-
-	//fprintf(stderr, "%s\n", src);
+	filename = file;
 	token = tokenize(src);
 	fprintf(stderr, "トークナイズ完了！\n");
 	program();
@@ -47,5 +37,18 @@ int main(int argc, char **argv) {
 	fprintf(stderr, "AST出力完了！\n");
 	gen_pre(code, funcs, extern_funcs);
 	fprintf(stderr, "CodeGen完了！\n");
+}
+
+void compile_at(char *file) {
+	compile(read_file(file), file);
+}
+
+int main(int argc, char **argv) {
+	if (argc != 2) {
+		fprintf(stderr, "Usage: ucc <code>\n");
+		return 0;
+	}
+
+	compile_at(argv[1]);
 	return 0;
 }

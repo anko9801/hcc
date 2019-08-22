@@ -77,6 +77,7 @@ typedef struct Func Func;
 typedef struct LVar LVar;
 typedef struct Type Type;
 typedef struct AGGREGATE AGGREGATE;
+typedef struct Typedef Typedef;
 struct Node {
 	NodeKind kind; // ノードの型
 	Node *side[10]; // 左辺・右辺/stmt/cond,then,else
@@ -110,7 +111,7 @@ struct Func {
 };
 
 struct Type {
-	enum { INT, CHAR, PTR, ARRAY, STRUCT } ty;
+	enum { VOID, INT, CHAR, PTR, ARRAY, STRUCT, ENUM } ty;
 	Type *ptr_to;
 	AGGREGATE *aggr;
 	int type_size;
@@ -122,6 +123,13 @@ struct AGGREGATE {
 	int len;
 	Vec *elem; // 変数のNode
 	int type_size;
+	bool incomplete;
+};
+
+struct Typedef {
+	Type *pre;
+	char *post;
+	int len;
 };
 
 
@@ -139,6 +147,8 @@ void analyse_pre(Node **node);
 void analyse(Node *node);
 char *str_copy(Node *node);
 char *print_type(Type *type);
+char *read_file(char *path);
+void compile_at(char *file);
 
 extern char *user_input;
 extern Token *token;

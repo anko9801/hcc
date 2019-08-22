@@ -14,8 +14,8 @@ _fibo:
 	mov eax, DWORD PTR [rax]
 	push rax
 	push 20
-	pop rbx
 	pop rax
+	pop rbx
 	cmp rax, rbx
 	je .Lif.then0
 	jmp .Lif.end0

@@ -4,12 +4,14 @@ int if_cnt = 0;
 int while_cnt = 0;
 int for_cnt = 0;
 int call_cnt = 0;
+int rsp = 0;
 extern Node *new_node(int type, Node *lhs, Node *rhs);
 extern Node *new_node_num(int val);
 extern LVar *globals;
 extern Vec *strings;
 
 char str[100];
+char kari[100];
 
 typedef struct {
 	int which; // while: 1, for: 2
@@ -66,6 +68,16 @@ char *str_copy(Node *node) {
 	strncpy(str, node->name, node->len);
 	str[node->len] = '\0';
 	return str;
+}
+
+void gen_push(char *reg) {
+	printf("	push %s\n", reg);
+	rsp += 8;
+}
+
+void gen_pop(char *reg) {
+	printf("	pop %s\n", reg);
+	rsp -= 8;
 }
 
 void gen_global(Node *code) {
@@ -171,26 +183,27 @@ char *gen_type(Type *type) {
 }
 
 void gen_lvalue(Node *node) {
-	//fprintf(stderr, "lvalue kind:%d\n", node->kind);
+	fprintf(stderr, "lvalue kind:%d\n", node->kind);
 	char str[100];
 	switch (node->kind) {
 	case ND_LVAR:
 		if (node->var->scope == 0) {
 			printf("	lea rax, [rbp-%d]\n", node->var->offset);
-			printf("	push rax\n");
+			gen_push("rax");
 		}else{
 			strncpy(str, node->var->name, node->var->len);
 			str[node->len] = '\0';
 
 			printf("	lea rax, %s [rip + %s@GOTPCREL]\n", gen_type(node->var->type), str);
-			printf("	push rax\n");
+			gen_push("rax");
 		}
+		fprintf(stderr, "var\n");
 		return;
 
 	case ND_VARDECL:
 		if (node->var->scope == 0) {
 			printf("	lea rax, [rbp-%d]\n", node->var->offset);
-			printf("	push rax\n");
+			gen_push("rax");
 		}
 		return;
 
@@ -203,21 +216,21 @@ void gen_lvalue(Node *node) {
 		return;
 
 	case ND_DOT:
+		fprintf(stderr, "dot\n");
 		gen_lvalue(node->side[0]);
-
-		printf("	pop rax\n");
+		gen_pop("rax");
 		printf("	lea rax, [rax-%d]\n", node->side[1]->var->offset);
-		printf("	push rax\n");
+		gen_push("rax");
 		return;
 
 	default:
 		fprintf(stderr, "It is not lvalue! %s %d\n", node->name, node->type->ty);
 		break;
-		error("It is not lvalue! %s %d\n", node->name, node->type->ty);
 	}
 }
 
 void gen_mov(Type *type) {
+	fprintf(stderr, "mov\n");
 	if (type->ty == CHAR) {
 		printf("	movsx eax, %s [rax]\n", gen_type(type));
 	}else if (type->ty == INT) {
@@ -227,51 +240,35 @@ void gen_mov(Type *type) {
 	}
 }
 
-void gen_assign(Node *node) {
-	if (node->type->ty == CHAR) {
-		printf("	mov %s [rax], ebx\n", gen_type(node->type));
-	}else if (node->type->ty == INT) {
-		printf("	mov %s [rax], ebx\n", gen_type(node->type));
+void gen_assign(Type *type) {
+	if (type->ty == CHAR) {
+		printf("	mov %s [rax], ebx\n", gen_type(type));
+	}else if (type->ty == INT) {
+		printf("	mov %s [rax], ebx\n", gen_type(type));
 	}else{
-		printf("	mov %s [rax], rax\n", gen_type(node->type));
+		printf("	mov %s [rax], rax\n", gen_type(type));
 	}
 	//printf("	mov [rax], rbx\n");
 }
 
 char *gen_cond(Node *node) {
 	fprintf(stderr, "cond\n");
+	gen(node->side[0]);
+	gen(node->side[1]);
+
+	gen_pop("rax");
+	gen_pop("rbx");
+
+	printf("	cmp rax, rbx\n");
+
 	switch(node->kind) {
 	case ND_LT:
-		gen(node->side[0]);
-		gen(node->side[1]);
-
-		printf("	pop rbx\n");
-		printf("	pop rax\n");
-		printf("	cmp rax, rbx\n");
 		return "jl";
 	case ND_LE:
-		gen(node->side[0]);
-		gen(node->side[1]);
-
-		printf("	pop rbx\n");
-		printf("	pop rax\n");
-		printf("	cmp rax, rbx\n");
 		return "jle";
 	case ND_EQ:
-		gen(node->side[0]);
-		gen(node->side[1]);
-
-		printf("	pop rbx\n");
-		printf("	pop rax\n");
-		printf("	cmp rax, rbx\n");
 		return "je";
 	case ND_NE:
-		gen(node->side[0]);
-		gen(node->side[1]);
-
-		printf("	pop rbx\n");
-		printf("	pop rax\n");
-		printf("	cmp rax, rbx\n");
 		return "jne";
 	default:
 		error("条件式の中に知らないものが入ってます\n");
@@ -284,7 +281,8 @@ void gen(Node *node) {
 	char *args_list[6] = {"di", "si", "dx", "cx", "8", "9"};
 	switch (node->kind) {
 	case ND_NUM:
-		printf("	push %d\n", node->val);
+		snprintf(kari, 100, "%d", node->val);
+		gen_push(kari);
 		return;
 
 	case ND_STRING: {
@@ -295,7 +293,7 @@ void gen(Node *node) {
 				break;
 		}
 		printf("	lea rax, qword ptr [rip + .LC%d]\n", i);
-		printf("	push rax\n");
+		gen_push("rax");
 		return;
 	}
 
@@ -303,22 +301,26 @@ void gen(Node *node) {
 		return;
 
 	case ND_DOT:
+		fprintf(stderr, "dot\n"); 
 		gen_lvalue(node);
-		printf("	pop rax\n");
+		gen_pop("rax");
+		printf("	lea rax, [rax-%d]\n", node->side[1]->var->offset);
+		fprintf(stderr, "dot 2\n");
 		gen_mov(node->side[1]->var->type);
-		printf("	push rax\n");
+		gen_push("rax");
 		return;
 
 	case ND_LVAR:
-		//fprintf(stderr, "lvar\n");
+		fprintf(stderr, "lvar\n");
 		gen_lvalue(node);
 
-		printf("	pop rax\n");
+		gen_pop("rax");
 		gen_mov(node->type);
-		printf("	push rax\n");
+		gen_push("rax");
 		return;
 
 	case ND_VARDECL:
+		fprintf(stderr, "vardecl\n");
 		return;
 
 	case ND_ADDR:
@@ -330,20 +332,20 @@ void gen(Node *node) {
 		//fprintf(stderr, "deref\n");
 		gen(node->side[0]);
 
-		printf("	pop rax\n");
+		gen_pop("rax");
 		gen_mov(node->type);
-		printf("	push rax\n");
+		gen_push("rax");
 		return;
 
 	case ND_NOT:
 		gen(node->side[0]);
-		printf("	pop rax\n");
+		gen_pop("rax");
 		printf("	not eax\n");
-		printf("	push rax\n");
+		gen_push("rax");
 		return;
 
 	case ND_ASSIGN: {
-		//fprintf(stderr, "assign\n");
+		fprintf(stderr, "assign\n");
 		Node *lhs = node->side[0];
 		Node *rhs = node->side[1];
 
@@ -351,7 +353,7 @@ void gen(Node *node) {
 			for (int i = 0; i < rhs->nodes->len;i++) {
 				Node *node = (Node*)rhs->nodes->data[i];
 				gen(node);
-				printf("	pop rax\n");
+				gen_pop("rax");
 				if (node->type->ty == INT && lhs->type->ty == INT)
 					printf("	mov %s [rbp-%d], eax\n", gen_type(lhs->type), lhs->var->offset + i * lhs->type->type_size / lhs->type->array_size);
 				else
@@ -367,9 +369,9 @@ void gen(Node *node) {
 			gen_lvalue(node->side[0]);
 			gen(node->side[1]);
 
-			printf("	pop rbx\n");
-			printf("	pop rax\n");
-			gen_assign(node->side[0]);
+			gen_pop("rbx");
+			gen_pop("rax");
+			gen_assign(node->side[1]->type);
 			//printf("	push rbx\n");
 		}
 		return;
@@ -378,10 +380,10 @@ void gen(Node *node) {
 	case ND_RETURN:
 		gen(node->side[0]);
 
-		printf("	pop rax\n");
+		gen_pop("rax");
 
 		printf("	mov rsp, rbp\n");
-		printf("	pop rbp\n");
+		gen_pop("rbp");
 		printf("	ret\n");
 		return;
 
@@ -496,9 +498,20 @@ void gen(Node *node) {
 		str[node->len] = '\0';
 		for (int i = 0;i < node->nodes->len && i < 6;i++) {
 			gen((Node*)node->nodes->data[i]);
-			printf("	pop r%s\n", args_list[i]);
+			snprintf(kari, 100, "r%s", args_list[i]);
+			gen_pop(kari);
+			//printf("	pop r%s\n", args_list[i]);
 		}
+
 		printf("	mov rax, %d\n", node->nodes->len);
+
+		/*if (rsp % 16 == 0) {
+			printf("	call _%s\n", str);
+		}else{
+			printf("	push rsi\n");
+			printf("	call _%s\n", str);
+			printf("	pop rsi\n");
+		}*/
 
 		printf("	test rsp, 15\n");
 		printf("	jne call.else%d\n", call_cnt);
@@ -515,7 +528,7 @@ void gen(Node *node) {
 
 	case ND_DEF:
 		printf("_%s:\n", str_copy(node));
-		printf("	push rbp\n");
+		gen_push("rbp");
 		printf("	mov rbp, rsp\n");
 		printf("	sub rsp, %d\n", (node->func->locals->offset + node->func->locals->type->type_size + 7) / 8 * 8);
 
@@ -542,8 +555,8 @@ void gen(Node *node) {
 	gen(node->side[0]);
 	gen(node->side[1]);
 
-	printf("	pop rbx\n");
-	printf("	pop rax\n");
+	gen_pop("rbx");
+	gen_pop("rax");
 
 	switch (node->kind) {
 	case ND_ADD:
@@ -609,5 +622,5 @@ void gen(Node *node) {
 		error("I don't know this nodekind\n");
 	}
 
-	printf("	push rax\n");
+	gen_push("rax");
 }
