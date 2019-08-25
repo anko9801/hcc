@@ -13,6 +13,7 @@ Func *funcs;
 Func *extern_funcs;
 
 Vec *strings;
+Vec *typedef_list;
 
 Type *void_type() {
 	Type *type = calloc(1, sizeof(Type));
@@ -64,6 +65,7 @@ Type *struct_type(AGGREGATE *aggr, int size) {
 	type->ty = STRUCT;
 	type->aggr = aggr;
 	type->type_size = size;
+	type->array_size = 1;
 	return type;
 }
 
@@ -257,16 +259,24 @@ Node *variable_decl(int glocal);
 
 Vec *aggr_list; // AGGREGATE
 AGGREGATE *find_aggr(Token *tok) {
-	fprintf(stderr, "find_aggr");
+	AGGREGATE *aggr;
 	for (int i = 0;i < aggr_list->len;i++) {
-		AGGREGATE *aggr = (AGGREGATE *)aggr_list->data[i];
-		fprintf(stderr, " %d", aggr);
-		if (strncmp(token->str, aggr->name, aggr->len) == 0 && token->len == aggr->len) {
-			fprintf(stderr, "\n");
+		aggr = (AGGREGATE *)aggr_list->data[i];
+		if (strncmp(tok->str, aggr->name, aggr->len) == 0 && tok->len == aggr->len) {
 			return aggr;
 		}
 	}
-	fprintf(stderr, "\n");
+	return NULL;
+}
+
+Typedef *find_typedef(Token *tok) {
+	Typedef *tydef;
+	for (int i = 0;i < typedef_list->len;i++) {
+		tydef = (Typedef *)typedef_list->data[i];
+		if (strncmp(tok->str, tydef->name, tydef->len) == 0 && tok->len == tydef->len) {
+			return tydef;
+		}
+	}
 	return NULL;
 }
 
@@ -279,7 +289,13 @@ AGGREGATE *find_aggr(Token *tok) {
 Type *type_spec() {
 	Type *type = NULL;
 
-	if (consume("void")) {
+	Typedef *tydef = find_typedef(token);
+	if (tydef) {
+		fprintf(stderr, "%s %s\n", get_name(tydef->name, tydef->len), print_type(tydef->type));
+		token = token->next;
+		type = tydef->type;
+	}
+	else if (consume("void")) {
 		type = void_type();
 	}else if (consume("char")) {
 		type = char_type();
@@ -298,22 +314,23 @@ Type *type_spec() {
 	}else if (consume("struct")){
 		AGGREGATE *aggr = find_aggr(token);
 		if (aggr) {
-			fprintf(stderr, "struct type\n");
 			type = struct_type(aggr, aggr->type_size);
 			token = token->next;
 		}else{
-			fprintf(stderr, "struct type hatu\n");
 			aggr = calloc(1, sizeof(AGGREGATE));
 			aggr->elem = new_vector();
 			aggr->name = token->str;
 			aggr->len = token->len;
 			aggr->incomplete = true;
+			aggr->type_size = 0;
 			push_back(aggr_list, aggr);
-			type = struct_type(aggr, 0);
+
+			type = struct_type(aggr, aggr->type_size);
 			token = token->next;
 		}
-	}else if (consume("enum")){
+	}else if (consume("enum")) {
 		AGGREGATE *aggr = find_aggr(token);
+		fprintf(stderr, "%s %d\n", get_name(aggr->name, aggr->len), aggr->type_size);
 		if (aggr) {
 			type = struct_type(aggr, aggr->type_size);
 			token = token->next;
@@ -322,7 +339,7 @@ Type *type_spec() {
 			aggr->elem = new_vector();
 			aggr->name = token->str;
 			aggr->len = token->len;
-			aggr->incomplete = false;
+			aggr->incomplete = true;
 			push_back(aggr_list, aggr);
 			type = struct_type(aggr, 0);
 			token = token->next;
@@ -725,7 +742,9 @@ Node *dot(Node *node) {
 			for (int i = 0;i < aggr->elem->len;i++) {
 				Node *var = (Node *)aggr->elem->data[i];
 				if (strncmp(rhs_name->str, var->name, var->len) == 0 && rhs_name->len == var->len) {
+					Type *type = node->type->ptr_to;
 					node = new_nodev(ND_DEREF, 1, node);
+					node->type = type;
 					node = new_node(ND_DOT, node, var);
 					return node;
 				}
@@ -758,11 +777,9 @@ Node *lvalue() {
 		if (lvar) {
 			node = new_node_s(ND_LVAR, tok, lvar->type);
 			node->var = lvar;
-
-
 			node->type = lvar->type;
-			fprintf(stderr, "lvalue aggr %d\n", lvar->type->aggr);
 			node = dot(node);
+			print_all(node);
 
 			if (node->type && node->type->ty == ARRAY) {
 				fprintf(stderr, "%s -> ", print_type(node->type));
@@ -1037,6 +1054,7 @@ Node *variable_decl(int glocal) {
 	if (ident_type) {
 		Token *tok = consume_ident();
 		Node *rhs = NULL;
+		cu();
 
 		if (tok) {
 			// 関数チェッカー
@@ -1059,6 +1077,7 @@ Node *variable_decl(int glocal) {
 				}
 
 				LVar *lvar;
+				fprintf(stderr, "type: %s\n", print_type(ident_type));
 
 				if (glocal == 0) {
 					lvar = new_lvar(locals, tok, ident_type);
@@ -1082,6 +1101,7 @@ Node *variable_decl(int glocal) {
 					node = new_node(ND_ASSIGN, node, rhs);
 				}
 				if (glocal == 1) expect(";");
+				print_all(node);
 				return node;
 			}
 		}
@@ -1102,6 +1122,8 @@ LVar *init_variable_list() {
 Node *func_decl_or_def() {
 	Node *node = NULL;
 	Token *backup = token;
+	if (consume("extern")) {
+	}
 	Type *ident_type = type_spec();
 	locals = init_variable_list();
 
@@ -1169,9 +1191,12 @@ Node *struct_decl() {
 	if (consume("struct")) {
 		Token *id = consume_ident();
 		expect("{");
-		cu();
 
-		AGGREGATE *aggr = calloc(1, sizeof(AGGREGATE));
+		AGGREGATE *aggr = find_aggr(id);
+
+		if (!aggr) {
+			aggr = calloc(1, sizeof(AGGREGATE));
+		}
 		aggr->elem = new_vector();
 		int size = 0;
 		Node *var = variable_decl(1);
@@ -1191,11 +1216,25 @@ Node *struct_decl() {
 		}
 		aggr->type_size = size;
 		push_back(aggr_list, aggr);
-		cu();
 
-		fprintf(stderr, "struct decl %s %d %d\n", aggr->name, aggr->elem, aggr->elem->len);
-		Type *type = struct_type(aggr, size);
+		Type *type;
+		type = struct_type(aggr, size);
+
+		for (int i = 0;i < typedef_list->len;i++) {
+			Typedef *tydef = (Typedef *)typedef_list->data[i];
+
+			if (tydef->type && tydef->type->aggr) {
+				aggr = tydef->type->aggr;
+				fprintf(stderr, "%s %d %d\n", get_name(aggr->name, aggr->len), aggr->len, id->len);
+				if (strncmp(aggr->name, id->str, aggr->len) == 0 && aggr->len == id->len) {
+					tydef->type = type;
+				}
+			}
+		}
+
 		node = new_node_s(ND_STRUCT, id, type);
+		fprintf(stderr, "!!!!!!!!\n%d\n", node->type->type_size);
+		print_all(node);
 		return node;
 	}
 	return node;
@@ -1262,41 +1301,40 @@ Node *aggregate_decl() {
 	return node;
 }
 
-Vec *typedef_list;
-
 Typedef *typedef_decl() {
 	Node *node;
 	Type *type;
+	Token *tok, *backup;
 
 	if (consume("typedef")) {
-		Token *backup = token;
+		backup = token;
 		type = type_spec();
 		if (type) {
-			Token *tok = consume_ident();
+			tok = consume_ident();
 			expect(";");
+
 			Typedef *tydef = calloc(1, sizeof(Typedef));
-			tydef->pre = node->type;
-			tydef->post = tok->str;
+			tydef->type = type;
+			tydef->name = tok->str;
 			tydef->len = tok->len;
 			push_back(typedef_list, tydef);
 			return tydef;
-		}else token = backup;
+		}else
+			token = backup;
 
 		node = aggregate_decl();
 		if (node) {
-			Token *tok = consume_ident();
+			tok = consume_ident();
 			expect(";");
-			if (tok) {
-				node->type->aggr->name = tok->str;
-				node->type->aggr->len = tok->len;
-			}
+
 			Typedef *tydef = calloc(1, sizeof(Typedef));
-			tydef->pre = node->type;
-			tydef->post = tok->str;
+			tydef->type = node->type;
+			tydef->name = tok->str;
 			tydef->len = tok->len;
 			push_back(typedef_list, tydef);
 			return tydef;
-		}else token = backup;
+		}else
+			token = backup;
 	}
 
 	return NULL;
@@ -1337,13 +1375,6 @@ Node *global() {
 	node = func_decl_or_def();
 	if (node) return node;
 
-	if (consume("extern")) {
-		node = func_decl_or_def();
-		if (node)
-			return node;
-		error_at(token->str, "It is not valid token after extern");
-	}
-
 	return stmt();
 }
 
@@ -1354,8 +1385,11 @@ void program() {
 	aggr_list = new_vector();
 	typedef_list = new_vector();
 	int i = 0;
+	Node *node;
 	while (!at_eof()) {
-		code[i++] = global();
+		node = global();
+		if (node)
+			code[i++] = node;
 	}
 	code[i] = NULL;
 }

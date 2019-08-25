@@ -217,6 +217,7 @@ Token *tokenize(char *p) {
 			}
 			cur = new_token(TK_IDENT, cur, p-len, line);
 			cur->len = len;
+			//fprintf(stderr, "%d\n", len);
 			continue;
 		}
 

@@ -127,8 +127,8 @@ struct AGGREGATE {
 };
 
 struct Typedef {
-	Type *pre;
-	char *post;
+	Type *type;
+	char *name;
 	int len;
 };
 
@@ -145,10 +145,11 @@ void runtest();
 void gen_pre(Node **code, Func *funcs, Func *extern_funcs);
 void analyse_pre(Node **node);
 void analyse(Node *node);
-char *str_copy(Node *node);
+char *get_name(char *name, int len);
 char *print_type(Type *type);
 char *read_file(char *path);
 void compile_at(char *file);
+void print_all(Node *node);
 
 extern char *user_input;
 extern Token *token;

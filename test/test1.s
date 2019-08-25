@@ -21,8 +21,6 @@ _fibo:
 	jmp .Lif.end0
 .Lif.then0:
 	push 0
-	pop rax
-	mov rsp, rbp
 	pop rbp
 	ret
 .Lif.end0:
@@ -42,6 +40,7 @@ call.else0:
 	call _print
 	pop rsi
 call.end0:
+	push rax
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -84,8 +83,7 @@ call.else1:
 	call _fibo
 	pop rsi
 call.end1:
-	pop rax
-	mov rsp, rbp
+	push rax
 	pop rbp
 	ret
 _main:
@@ -108,8 +106,21 @@ call.else2:
 	call _fibo
 	pop rsi
 call.end2:
+	push rax
+	push 1
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne call.else3
+	call _print
+	jmp call.end3
+call.else3:
+	push rsi
+	call _print
+	pop rsi
+call.end3:
+	push rax
 	push 0
-	pop rax
-	mov rsp, rbp
 	pop rbp
 	ret
+	pop rsi

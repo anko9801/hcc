@@ -8,5 +8,6 @@ int fibo(int a, int b, int i) {
 
 int main() {
 	fibo(1, 1, 1);
+	print(1);
 	return 0;
 }

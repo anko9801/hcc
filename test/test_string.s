@@ -13,7 +13,7 @@ _main:
 	push rax
 	pop rbx
 	pop rax
-	mov [rax], rbx
+	mov QWORD PTR [rax], rax
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -30,8 +30,7 @@ call.else0:
 	call _print_s
 	pop rsi
 call.end0:
+	push rax
 	push 0
-	pop rax
-	mov rsp, rbp
 	pop rbp
 	ret

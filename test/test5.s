@@ -13,6 +13,13 @@ _main:
 	push 4
 	push 0
 	pop rax
+	pop rax
+	pop rax
+	pop rax
+	pop rax
+	pop rax
+	pop rax
+	pop rax
 	mov rsp, rbp
 	pop rbp
 	ret

@@ -10,7 +10,6 @@ extern Node *new_node_num(int val);
 extern LVar *globals;
 extern Vec *strings;
 
-char str[100];
 char kari[100];
 
 typedef struct {
@@ -20,20 +19,21 @@ typedef struct {
 
 loop_info cur_loop = {0, 0};
 
+char *get_name(char *name, int len) {
+	strncpy(kari, name, len);
+	kari[len] = '\0';
+	return kari;
+}
+
 void gen_extern(Func *extern_funcs) {
 	if (extern_funcs) {
 		printf(".extern ");
 
 		while (extern_funcs->next) {
-			strncpy(str, extern_funcs->name, extern_funcs->len);
-			str[extern_funcs->len] = '\0';
-
-			printf("_%s, ", str);
+			printf("_%s, ", get_name(extern_funcs->name, extern_funcs->len));
 			extern_funcs = extern_funcs->next;
 		}
-		strncpy(str, extern_funcs->name, extern_funcs->len);
-		str[extern_funcs->len] = '\0';
-		printf("_%s\n", str);
+		printf("_%s\n", get_name(extern_funcs->name, extern_funcs->len));
 	}
 }
 
@@ -42,32 +42,19 @@ void gen_funcs(Func *funcs) {
 		printf(".global ");
 
 		while (funcs->next) {
-			strncpy(str, funcs->name, funcs->len);
-			str[funcs->len] = '\0';
-
-			printf("_%s, ", str);
+			printf("_%s, ", get_name(funcs->name, funcs->len));
 			funcs = funcs->next;
 		}
-		strncpy(str, funcs->name, funcs->len);
-		str[funcs->len] = '\0';
-		printf("_%s\n", str);
+		printf("_%s\n", get_name(funcs->name, funcs->len));
 	}
 }
 
 void gen_strings() {
 	for (int i = 0;strings->data[i];i++) {
 		Token *tok = (Token *)strings->data[i];
-		strncpy(str, tok->str, tok->len);
-		str[tok->len] = '\0';
 		printf(".LC%d:\n", i);
-		printf("	.string \"%s\"\n", str);
+		printf("	.string \"%s\"\n", get_name(tok->str, tok->len));
 	}
-}
-
-char *str_copy(Node *node) {
-	strncpy(str, node->name, node->len);
-	str[node->len] = '\0';
-	return str;
 }
 
 void gen_push(char *reg) {
@@ -84,7 +71,7 @@ void gen_global(Node *code) {
 	Node *node, *lhs, *rhs;
 	switch (code->kind) {
 	case ND_VARDECL:
-		printf("%s:\n", str_copy(code));
+		printf("%s:\n", get_name(code->name, code->len));
 		printf("	.zero %d\n", code->type->type_size);
 		break;
 
@@ -92,14 +79,14 @@ void gen_global(Node *code) {
 		lhs = code->side[0];
 		rhs = code->side[1];
 
-		printf("%s:\n", str_copy(lhs));
+		print_all(lhs);
 		switch (lhs->type->ty) {
 		case INT:
 			printf("	.long %d\n", rhs->val);
 			break;
 
 		case CHAR:
-			printf("	.byte %s\n", str_copy(rhs));
+			printf("	.byte '%s'\n", get_name(rhs->name, rhs->len));
 			break;
 
 		case ARRAY: {
@@ -111,7 +98,7 @@ void gen_global(Node *code) {
 					if (node->type->ty == INT)
 						printf("	.long %d\n", node->val);
 					if (node->type->ty == CHAR)
-						printf("	.byte '%s'\n", str_copy(node));
+						printf("	.byte '%s'\n", get_name(node->name, node->len));
 				}
 				for (int i = rhs->nodes->len; i < lhs->type->array_size;i++) {
 					if (node->type->ty == INT)
@@ -121,7 +108,7 @@ void gen_global(Node *code) {
 				}
 				break;
 			case ND_STRING:
-				printf("	.ascii \"%s\\0\"\n", str_copy(rhs));
+				printf("	.ascii \"%s\\0\"\n", get_name(rhs->name, rhs->len));
 				break;
 			}
 			break;
@@ -130,16 +117,16 @@ void gen_global(Node *code) {
 		case PTR:
 			switch (rhs->kind) {
 			case ND_ADDR:
-				printf("	.quad %s\n", str_copy(rhs->side[0]));
+				printf("	.quad %s\n", get_name(rhs->side[0]->name, rhs->side[0]->len));
 				break;
 			case ND_ADD:
-				printf("	.quad %s + %d\n", str_copy(rhs->side[0]), rhs->side[1]->val);
+				printf("	.quad %s + %d\n", get_name(rhs->side[0]->name, rhs->side[0]->len), rhs->side[1]->val);
 				break;
 			case ND_SUB:
-				printf("	.quad %s - %d\n", str_copy(rhs->side[0]), rhs->side[1]->val);
+				printf("	.quad %s - %d\n", get_name(rhs->side[0]->name, rhs->side[0]->len), rhs->side[1]->val);
 				break;
 			case ND_STRING:
-				printf("	.ascii \"%s\\0\"\n", str_copy(rhs));
+				printf("	.ascii \"%s\\0\"\n", get_name(rhs->name, rhs->len));
 				break;
 			}
 			break;
@@ -183,7 +170,6 @@ char *gen_type(Type *type) {
 }
 
 void gen_lvalue(Node *node) {
-	fprintf(stderr, "lvalue kind:%d\n", node->kind);
 	char str[100];
 	switch (node->kind) {
 	case ND_LVAR:
@@ -191,13 +177,9 @@ void gen_lvalue(Node *node) {
 			printf("	lea rax, [rbp-%d]\n", node->var->offset);
 			gen_push("rax");
 		}else{
-			strncpy(str, node->var->name, node->var->len);
-			str[node->len] = '\0';
-
-			printf("	lea rax, %s [rip + %s@GOTPCREL]\n", gen_type(node->var->type), str);
+			printf("	lea rax, %s [rip + %s@GOTPCREL]\n", gen_type(node->var->type), get_name(node->var->name, node->var->len));
 			gen_push("rax");
 		}
-		fprintf(stderr, "var\n");
 		return;
 
 	case ND_VARDECL:
@@ -216,7 +198,6 @@ void gen_lvalue(Node *node) {
 		return;
 
 	case ND_DOT:
-		fprintf(stderr, "dot\n");
 		gen_lvalue(node->side[0]);
 		gen_pop("rax");
 		printf("	lea rax, [rax-%d]\n", node->side[1]->var->offset);
@@ -230,7 +211,6 @@ void gen_lvalue(Node *node) {
 }
 
 void gen_mov(Type *type) {
-	fprintf(stderr, "mov\n");
 	if (type->ty == CHAR) {
 		printf("	movsx eax, %s [rax]\n", gen_type(type));
 	}else if (type->ty == INT) {
@@ -246,16 +226,14 @@ void gen_assign(Type *type) {
 	}else if (type->ty == INT) {
 		printf("	mov %s [rax], ebx\n", gen_type(type));
 	}else{
-		printf("	mov %s [rax], rax\n", gen_type(type));
+		printf("	mov %s [rax], rbx\n", gen_type(type));
 	}
-	//printf("	mov [rax], rbx\n");
 }
 
 char *gen_cond(Node *node) {
-	fprintf(stderr, "cond\n");
+	//fprintf(stderr, "cond\n");
 	gen(node->side[0]);
 	gen(node->side[1]);
-
 	gen_pop("rax");
 	gen_pop("rbx");
 
@@ -301,17 +279,14 @@ void gen(Node *node) {
 		return;
 
 	case ND_DOT:
-		fprintf(stderr, "dot\n"); 
 		gen_lvalue(node);
 		gen_pop("rax");
-		printf("	lea rax, [rax-%d]\n", node->side[1]->var->offset);
-		fprintf(stderr, "dot 2\n");
 		gen_mov(node->side[1]->var->type);
 		gen_push("rax");
 		return;
 
 	case ND_LVAR:
-		fprintf(stderr, "lvar\n");
+		//fprintf(stderr, "lvar\n");
 		gen_lvalue(node);
 
 		gen_pop("rax");
@@ -320,7 +295,8 @@ void gen(Node *node) {
 		return;
 
 	case ND_VARDECL:
-		fprintf(stderr, "vardecl\n");
+		//fprintf(stderr, "vardecl\n");
+		print_all(node);
 		return;
 
 	case ND_ADDR:
@@ -345,9 +321,10 @@ void gen(Node *node) {
 		return;
 
 	case ND_ASSIGN: {
-		fprintf(stderr, "assign\n");
+		//fprintf(stderr, "assign\n");
 		Node *lhs = node->side[0];
 		Node *rhs = node->side[1];
+		print_all(lhs);
 
 		if (rhs->kind == ND_INITIALIZER) {
 			for (int i = 0; i < rhs->nodes->len;i++) {
@@ -379,10 +356,7 @@ void gen(Node *node) {
 
 	case ND_RETURN:
 		gen(node->side[0]);
-
-		gen_pop("rax");
-
-		printf("	mov rsp, rbp\n");
+		//for (int i = 0;rsp != 8;i++)
 		gen_pop("rbp");
 		printf("	ret\n");
 		return;
@@ -470,10 +444,7 @@ void gen(Node *node) {
 			printf("	jmp .Lwhile.end%d\n", cur_loop.nth);
 		}else if (cur_loop.which == 2) {
 			printf("	jmp .Lfor.end%d\n", cur_loop.nth);
-		}else{
-
 		}
-		
 		return;
 
 	case ND_CONTINUE:
@@ -481,53 +452,50 @@ void gen(Node *node) {
 			printf("	jmp .Lwhile.loop%d\n", cur_loop.nth);
 		}else if (cur_loop.which == 2) {
 			printf("	jmp .Lfor.inc%d\n", cur_loop.nth);
-		}else{
-			
 		}
 		return;
 
 	case ND_BLOCK:
 		for (int i = 0;i < node->nodes->len;i++) {
 			gen((Node*)node->nodes->data[i]);
-			//printf("	pop rax\n");
 		}
+		if (rsp % 16 != 0)
+			gen_pop("rsi");
 		return;
 
 	case ND_CALL:
-		strncpy(str, node->name, node->len);
-		str[node->len] = '\0';
 		for (int i = 0;i < node->nodes->len && i < 6;i++) {
 			gen((Node*)node->nodes->data[i]);
 			snprintf(kari, 100, "r%s", args_list[i]);
 			gen_pop(kari);
-			//printf("	pop r%s\n", args_list[i]);
 		}
 
 		printf("	mov rax, %d\n", node->nodes->len);
 
 		/*if (rsp % 16 == 0) {
-			printf("	call _%s\n", str);
+			printf("	call _%s\n", get_name(node->name, node->len));
 		}else{
-			printf("	push rsi\n");
-			printf("	call _%s\n", str);
-			printf("	pop rsi\n");
+			gen_push("rsi");
+			printf("	call _%s\n", get_name(node->name, node->len));
+			gen_pop("rsi");
 		}*/
 
 		printf("	test rsp, 15\n");
 		printf("	jne call.else%d\n", call_cnt);
-		printf("	call _%s\n", str);
+		printf("	call _%s\n", get_name(node->name, node->len));
 		printf("	jmp call.end%d\n", call_cnt);
 		printf("call.else%d:\n", call_cnt);
 		printf("	push rsi\n");
-		printf("	call _%s\n", str);
+		printf("	call _%s\n", get_name(node->name, node->len));
 		printf("	pop rsi\n");
 		printf("call.end%d:\n", call_cnt);
-		//printf("	push rax\n");
+
+		gen_push("rax");
 		call_cnt++;
 		return;
 
 	case ND_DEF:
-		printf("_%s:\n", str_copy(node));
+		printf("_%s:\n", get_name(node->name, node->len));
 		gen_push("rbp");
 		printf("	mov rbp, rsp\n");
 		printf("	sub rsp, %d\n", (node->func->locals->offset + node->func->locals->type->type_size + 7) / 8 * 8);
@@ -542,7 +510,6 @@ void gen(Node *node) {
 			}else{
 				printf("	mov %s [rbp-%d], r%s\n", gen_type(node->type), arg->offset, args_list[i]);
 			}
-			//printf("	mov [rbp-%d], %s\n", arg->offset, args_list[i]);
 			arg = arg->next;
 		}
 
@@ -554,7 +521,6 @@ void gen(Node *node) {
 
 	gen(node->side[0]);
 	gen(node->side[1]);
-
 	gen_pop("rbx");
 	gen_pop("rax");
 

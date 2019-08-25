@@ -13,9 +13,22 @@ void print_node(char *fmt, ...) {
 
 char type_char[20] = "";
 char kari_char[20] = "";
+void print_content(Node *node);
+
+void print_aggr(AGGREGATE *aggr) {
+	fprintf(stderr, "	name:	%s\n", get_name(aggr->name, aggr->len));
+	fprintf(stderr, "	size:	%d\n", aggr->type_size);
+	for (int i = 0;i < aggr->elem->len;i++)
+		print_content((Node *)aggr->elem->data[i]);
+}
+
 char *print_type(Type *type) {
 	strncpy(type_char, "", 20);
 	strncpy(kari_char, "", 20);
+
+	if (!type)
+		return "";
+
 	while (type->ptr_to) {
 		if (type->ty == PTR)
 			sprintf(kari_char, "*%s", type_char);
@@ -24,6 +37,7 @@ char *print_type(Type *type) {
 		strncpy(type_char, kari_char, 20);
 		type = type->ptr_to;
 	}
+
 	switch (type->ty) {
 	case INT:
 		sprintf(kari_char, "int%s", type_char);
@@ -38,12 +52,55 @@ char *print_type(Type *type) {
 		sprintf(kari_char, "(*)%s", type_char);
 		break;
 	case STRUCT:
-		sprintf(kari_char, "struct%s", type_char);
+		if (type->aggr) {
+			sprintf(kari_char, "struct %s%s", type_char, get_name(type->aggr->name, type->aggr->len));
+		}
 		break;
 	}
-	strncpy(type_char, kari_char, 20);
+	snprintf(type_char, 20, "%s %d", kari_char, type->type_size);
+	//strncpy(type_char, kari_char, 20);
 
 	return type_char;
+}
+
+void print_lvar(LVar *lvar) {
+	fprintf(stderr, "	name:	%s\n", get_name(lvar->name, lvar->len));
+	fprintf(stderr, "	type:	%s\n", print_type(lvar->type));
+	fprintf(stderr, "	size:	%d\n", lvar->type->type_size);
+	fprintf(stderr, "	offset:	%d\n", lvar->offset);
+	fprintf(stderr, "	scope:	%d\n", lvar->scope);
+	if (lvar->type->aggr)
+		print_aggr(lvar->type->aggr);
+}
+
+void print_lvars(LVar *lvar) {
+	if (lvar)
+		return print_lvar(lvar);
+	print_lvars(lvar->next);
+}
+
+void print_func(Func *func) {
+	fprintf(stderr, "	name:	%s\n", get_name(func->name, func->len));
+	fprintf(stderr, "	type:	%s\n", print_type(func->type));
+}
+
+void print_content(Node *node) {
+	fprintf(stderr, "	val:	%d\n", node->val);
+	fprintf(stderr, "	name:	%s\n", get_name(node->name, node->len));
+	fprintf(stderr, "	type:	%s\n", print_type(node->type));
+	if (node->var) {
+		fprintf(stderr, "var\n");
+		print_lvar(node->var);
+	}
+	if (node->func) {
+		fprintf(stderr, "func\n");
+		print_func(node->func);
+	}
+}
+
+void print_all(Node *node) {
+	fprintf(stderr, "----print_all----\n");
+	print_content(node);
 }
 
 void analyse_pre(Node **code) {
@@ -62,7 +119,7 @@ void analyse(Node *node) {
 			break;
 
 		case ND_STRING:
-			print_node("STRING %s", str_copy(node));
+			print_node("STRING %s", get_name(node->name, node->len));
 			break;
 
 		case ND_STRUCT:
@@ -76,11 +133,11 @@ void analyse(Node *node) {
 			break;
 
 		case ND_LVAR:
-			print_node("LVAR %s %s", print_type(node->type), str_copy(node));
+			print_node("LVAR %s %s", print_type(node->type), get_name(node->name, node->len));
 			break;
 
 		case ND_VARDECL:
-			print_node("VARDECL %s %s", print_type(node->type), str_copy(node));
+			print_node("VARDECL %s %s", print_type(node->type), get_name(node->name, node->len));
 			break;
 
 		case ND_ADDR:
@@ -173,7 +230,7 @@ void analyse(Node *node) {
 			break;
 
 		case ND_DECL:
-			print_node("DECL %s", str_copy(node));
+			print_node("DECL %s", get_name(node->name, node->len));
 			break;
 
 		case ND_ADD: {
