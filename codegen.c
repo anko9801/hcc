@@ -278,6 +278,9 @@ void gen(Node *node) {
 	case ND_STRUCT:
 		return;
 
+	case ND_ENUM:
+		return;
+
 	case ND_DOT:
 		gen_lvalue(node);
 		gen_pop("rax");

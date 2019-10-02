@@ -15,7 +15,8 @@ char type_char[20] = "";
 char kari_char[20] = "";
 void print_content(Node *node);
 
-void print_aggr(AGGREGATE *aggr) {
+void print_aggr(Aggregate *aggr) {
+	fprintf(stderr, "aggregate\n");
 	fprintf(stderr, "	name:	%s\n", get_name(aggr->name, aggr->len));
 	fprintf(stderr, "	size:	%d\n", aggr->type_size);
 	for (int i = 0;i < aggr->elem->len;i++)
@@ -39,6 +40,9 @@ char *print_type(Type *type) {
 	}
 
 	switch (type->ty) {
+	case VOID:
+		sprintf(kari_char, "void%s", type_char);
+		break;
 	case INT:
 		sprintf(kari_char, "int%s", type_char);
 		break;
@@ -53,13 +57,16 @@ char *print_type(Type *type) {
 		break;
 	case STRUCT:
 		if (type->aggr) {
-			sprintf(kari_char, "struct %s%s", type_char, get_name(type->aggr->name, type->aggr->len));
+			sprintf(kari_char, "struct%s%s", type_char, get_name(type->aggr->name, type->aggr->len));
 		}
 		break;
+	case ENUM:
+		sprintf(kari_char, "enum%s%s", type_char, get_name(type->aggr->name, type->aggr->len));
+		break;
 	}
-	snprintf(type_char, 20, "%s %d", kari_char, type->type_size);
-	//strncpy(type_char, kari_char, 20);
+	snprintf(type_char, 20, "%s size:%d", kari_char, type->type_size);
 
+	fprintf(stderr, "%s\n", type_char);
 	return type_char;
 }
 
@@ -71,6 +78,8 @@ void print_lvar(LVar *lvar) {
 	fprintf(stderr, "	scope:	%d\n", lvar->scope);
 	if (lvar->type->aggr)
 		print_aggr(lvar->type->aggr);
+	if (lvar->type->ptr_to->aggr)
+		print_aggr(lvar->type->ptr_to->aggr);
 }
 
 void print_lvars(LVar *lvar) {
@@ -123,7 +132,11 @@ void analyse(Node *node) {
 			break;
 
 		case ND_STRUCT:
-			print_node("STRUCT");
+			print_node("STRUCT %s", get_name(node->name, node->len));
+			break;
+
+		case ND_ENUM:
+			print_node("ENUM");
 			break;
 
 		case ND_DOT:

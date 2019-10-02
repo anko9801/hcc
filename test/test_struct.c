@@ -9,6 +9,9 @@ struct test {
 	char *c;
 };
 
+typedef enum { red, green, blue } Color2;
+enum Color { red2, green2, blue2 };
+
 int main() {
 	test a;
 	test b;
@@ -27,5 +30,10 @@ int main() {
 	c->a = 2;
 	print(a.a);
 	print(c->a);
+
+
+	Color2 ttt;
+	ttt = red;
+	print(ttt);
 	return 0;
 }

@@ -30,13 +30,13 @@ void compile(char *src, char *file) {
 	user_input = src;
 	filename = file;
 	token = tokenize(src);
-	fprintf(stderr, "トークナイズ完了！\n");
+	fprintf(stderr, "complete tokenize of %s\n", file);
 	program();
-	fprintf(stderr, "パース完了！\n");
+	fprintf(stderr, "complete parsing of %s\n", file);
 	analyse_pre(code);
-	fprintf(stderr, "AST出力完了！\n");
+	fprintf(stderr, "complete making AST of %s\n", file);
 	gen_pre(code, funcs, extern_funcs);
-	fprintf(stderr, "CodeGen完了！\n");
+	fprintf(stderr, "complete Code Generating of %s\n", file);
 }
 
 void compile_at(char *file) {

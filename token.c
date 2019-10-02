@@ -143,6 +143,7 @@ Token *tokenize(char *p) {
 		if (is_reserved(&p, &cur, "void") ||
 			is_reserved(&p, &cur, "int") ||
 			is_reserved(&p, &cur, "char") ||
+			is_reserved(&p, &cur, "bool") ||
 			is_reserved(&p, &cur, "struct") ||
 			is_reserved(&p, &cur, "enum") ||
 			is_reserved(&p, &cur, "return") ||

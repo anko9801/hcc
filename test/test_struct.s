@@ -8,7 +8,7 @@
 _main:
 	push rbp
 	mov rbp, rsp
-	sub rsp, 40
+	sub rsp, 56
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -226,7 +226,16 @@ call.else8:
 	pop rsi
 call.end8:
 	push rax
-	push 0
-	pop rbp
-	ret
-	pop rsi
+	lea rax, [rbp-40]
+	push rax
+	lea rax, DWORD PTR [rip + red@GOTPCREL]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, [rbp-40]
+	push rax
+	pop rax

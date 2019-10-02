@@ -23,8 +23,12 @@ void error(char *fmt, ...) {
 void error_at(char *loc, char *fmt, ...) {
 	// locが含まれている行の開始地点と終了地点を取得
 	char *line = loc;
-	while (user_input < line && line[-1] != '\n')
+	int tab_num = 0;
+	while (user_input < line && line[-1] != '\n') {
 		line--;
+		if (*line == '\t')
+			tab_num++;
+	}
 
 	char *end = loc;
 	while (*end != '\n')
@@ -41,8 +45,11 @@ void error_at(char *loc, char *fmt, ...) {
 	fprintf(stderr, "%.*s\n", (int)(end - line), line);
 
 	// エラー箇所を"^"で指し示して、エラーメッセージを表示
-	int pos = loc - line + indent + 7;
-	fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
+	int pos = loc - line;
+	fprintf(stderr, "%*s", indent, ""); // pos個の空白を出力
+	for (int i = 0;i < tab_num;i++)
+		fprintf(stderr, "\t");
+	fprintf(stderr, "%*s", pos-1, "");
 	va_list ap;
 	va_start(ap, fmt);
 	fprintf(stderr, "^ ");
@@ -56,7 +63,7 @@ void error_at(char *loc, char *fmt, ...) {
 void expect(char *op) {
 	if (token->kind != TK_RESERVED || memcmp(token->str, op, strlen(op)))
 		// error("'%c'ではありません", op);
-		error_at(token->str, "'%s'ではありません", op);
+		error_at(token->str, "'%s' is expected, but %s", op, get_name(token->str, token->len));
 	token = token->next;
 }
 

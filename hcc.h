@@ -70,13 +70,14 @@ typedef enum {
 	ND_ADDR,
 	ND_DEREF,
 	ND_VARDECL,
+	ND_TYPE,
 } NodeKind;
 
 typedef struct Node Node;
 typedef struct Func Func;
 typedef struct LVar LVar;
 typedef struct Type Type;
-typedef struct AGGREGATE AGGREGATE;
+typedef struct Aggregate Aggregate;
 typedef struct Typedef Typedef;
 struct Node {
 	NodeKind kind; // ノードの型
@@ -113,12 +114,12 @@ struct Func {
 struct Type {
 	enum { VOID, INT, CHAR, PTR, ARRAY, STRUCT, ENUM } ty;
 	Type *ptr_to;
-	AGGREGATE *aggr;
+	Aggregate *aggr;
 	int type_size;
 	int array_size;
 };
 
-struct AGGREGATE {
+struct Aggregate {
 	char *name;
 	int len;
 	Vec *elem; // 変数のNode
@@ -133,8 +134,8 @@ struct Typedef {
 };
 
 
-void error(char *fmt, ...);
-void error_at(char *loc, char *fmt, ...);
+//void error(char *fmt, ...);
+//void error_at(char *loc, char *fmt, ...);
 void expect(char *op);
 Token *tokenize(char *p);
 void program();
@@ -150,10 +151,11 @@ char *print_type(Type *type);
 char *read_file(char *path);
 void compile_at(char *file);
 void print_all(Node *node);
+Node *aggregate_decl();
 
 extern char *user_input;
 extern Token *token;
-extern Node *code[100];
+extern Node *code[1000];
 extern Func *funcs;
 extern Func *extern_funcs;
 extern char *filename;
