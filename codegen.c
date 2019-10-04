@@ -79,7 +79,7 @@ void gen_global(Node *code) {
 		lhs = code->side[0];
 		rhs = code->side[1];
 
-		print_all(lhs);
+		//print_all(lhs);
 		switch (lhs->type->ty) {
 		case INT:
 			printf("	.long %d\n", rhs->val);
@@ -299,7 +299,7 @@ void gen(Node *node) {
 
 	case ND_VARDECL:
 		//fprintf(stderr, "vardecl\n");
-		print_all(node);
+		//print_all(node);
 		return;
 
 	case ND_ADDR:
@@ -327,7 +327,7 @@ void gen(Node *node) {
 		//fprintf(stderr, "assign\n");
 		Node *lhs = node->side[0];
 		Node *rhs = node->side[1];
-		print_all(lhs);
+		//print_all(lhs);
 
 		if (rhs->kind == ND_INITIALIZER) {
 			for (int i = 0; i < rhs->nodes->len;i++) {

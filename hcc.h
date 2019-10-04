@@ -6,13 +6,13 @@
 #include <stdarg.h>
 #include <stdbool.h>
 
-typedef struct {
+typedef struct Vec {
 	void **data;
 	int capacity;
 	int len;
 } Vec;
 
-typedef enum {
+typedef enum TokenKind {
 	TK_RESERVED,
 	TK_NUM,
 	TK_STRING,
@@ -31,7 +31,7 @@ struct Token {
 	int line;
 };
 
-typedef enum {
+typedef enum NodeKind {
 	ND_ADD,    // +
 	ND_SUB,    // -
 	ND_MUL,    // *
@@ -97,7 +97,7 @@ struct LVar {
 	char *name; // 変数の名前
 	int len;    // 名前の長さ
 	Type *type;
-	int scope;
+	Node *scope;
 	int offset; // RBPからのオフセット
 };
 
@@ -112,7 +112,7 @@ struct Func {
 };
 
 struct Type {
-	enum { VOID, INT, CHAR, PTR, ARRAY, STRUCT, ENUM } ty;
+	enum ty { VOID, INT, CHAR, PTR, ARRAY, STRUCT, ENUM } ty;
 	Type *ptr_to;
 	Aggregate *aggr;
 	int type_size;
@@ -133,6 +133,11 @@ struct Typedef {
 	int len;
 };
 
+typedef struct Hash {
+	Node *scope;
+	LVar *vars;
+} Hash;
+
 
 //void error(char *fmt, ...);
 //void error_at(char *loc, char *fmt, ...);
@@ -152,6 +157,10 @@ char *read_file(char *path);
 void compile_at(char *file);
 void print_all(Node *node);
 Node *aggregate_decl();
+Node *new_node(int type, Node *lhs, Node *rhs);
+//Node *new_nodev(int type, int num, Node *sides, ...);
+Node *new_node_s(int kind, Token *tok, Type *type);
+Node *new_node_num(int val);
 
 extern char *user_input;
 extern Token *token;

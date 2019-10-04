@@ -10,7 +10,7 @@ _main:
 	push rax
 	pop rbx
 	pop rax
-	mov QWORD PTR [rax], rax
+	mov QWORD PTR [rax], rbx
 	lea rax, [rbp-4]
 	push rax
 	pop rax
@@ -25,7 +25,6 @@ _main:
 	pop rax
 	mov eax, DWORD PTR [rax]
 	push rax
-	pop rax
-	mov rsp, rbp
 	pop rbp
 	ret
+	pop rsi

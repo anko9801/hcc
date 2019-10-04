@@ -57,28 +57,24 @@ char *print_type(Type *type) {
 		break;
 	case STRUCT:
 		if (type->aggr) {
-			sprintf(kari_char, "struct%s%s", type_char, get_name(type->aggr->name, type->aggr->len));
+			sprintf(kari_char, "struct%s %s", type_char, get_name(type->aggr->name, type->aggr->len));
 		}
 		break;
 	case ENUM:
-		sprintf(kari_char, "enum%s%s", type_char, get_name(type->aggr->name, type->aggr->len));
+		sprintf(kari_char, "enum%s %s", type_char, get_name(type->aggr->name, type->aggr->len));
 		break;
 	}
-	snprintf(type_char, 20, "%s size:%d", kari_char, type->type_size);
-
-	fprintf(stderr, "%s\n", type_char);
+	snprintf(type_char, 20, "%s(%d)", kari_char, type->type_size);
 	return type_char;
 }
 
 void print_lvar(LVar *lvar) {
-	fprintf(stderr, "	name:	%s\n", get_name(lvar->name, lvar->len));
-	fprintf(stderr, "	type:	%s\n", print_type(lvar->type));
-	fprintf(stderr, "	size:	%d\n", lvar->type->type_size);
-	fprintf(stderr, "	offset:	%d\n", lvar->offset);
-	fprintf(stderr, "	scope:	%d\n", lvar->scope);
+	fprintf(stderr, "	%s+%d %s\n", print_type(lvar->type), lvar->offset, get_name(lvar->name, lvar->len));
+	fprintf(stderr, "	size:	%d + %d\n", lvar->type->type_size, lvar->offset);
+
 	if (lvar->type->aggr)
 		print_aggr(lvar->type->aggr);
-	if (lvar->type->ptr_to->aggr)
+	if (lvar->type->ptr_to && lvar->type->ptr_to->aggr)
 		print_aggr(lvar->type->ptr_to->aggr);
 }
 
@@ -89,14 +85,11 @@ void print_lvars(LVar *lvar) {
 }
 
 void print_func(Func *func) {
-	fprintf(stderr, "	name:	%s\n", get_name(func->name, func->len));
-	fprintf(stderr, "	type:	%s\n", print_type(func->type));
+	fprintf(stderr, "	%s %s\n", print_type(func->type), get_name(func->name, func->len));
 }
 
 void print_content(Node *node) {
-	fprintf(stderr, "	val:	%d\n", node->val);
-	fprintf(stderr, "	name:	%s\n", get_name(node->name, node->len));
-	fprintf(stderr, "	type:	%s\n", print_type(node->type));
+	fprintf(stderr, "	%s %s = %d\n", print_type(node->type), get_name(node->name, node->len), node->val);
 	if (node->var) {
 		fprintf(stderr, "var\n");
 		print_lvar(node->var);
@@ -111,6 +104,10 @@ void print_all(Node *node) {
 	fprintf(stderr, "----print_all----\n");
 	print_content(node);
 }
+
+
+
+
 
 void analyse_pre(Node **code) {
 	for (int i = 0;code[i];i++) {
@@ -244,11 +241,24 @@ void analyse(Node *node) {
 
 		case ND_DECL:
 			print_node("DECL %s", get_name(node->name, node->len));
+			print_all(node);
 			break;
 
 		case ND_ADD: {
 			Node *lhs = node->side[0];
 			Node *rhs = node->side[1];
+
+			if (lhs->type->ty == PTR && lhs->type->ptr_to) {
+				rhs = new_node(ND_MUL, rhs, new_node_num(lhs->type->ptr_to->type_size));
+				rhs->type = lhs->type;
+				node->side[0] = lhs;
+				node->side[1] = rhs;
+			}else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
+				lhs = new_node(ND_MUL, lhs, new_node_num(rhs->type->ptr_to->type_size));
+				lhs->type = rhs->type;
+				node->side[0] = lhs;
+				node->side[1] = rhs;
+			}
 			if (lhs->kind == ND_NUM && rhs->kind == ND_NUM) {
 				node->kind = ND_NUM;
 				node->type = lhs->type;
@@ -265,6 +275,17 @@ void analyse(Node *node) {
 		case ND_SUB: {
 			Node *lhs = node->side[0];
 			Node *rhs = node->side[1];
+			if (lhs->type->ty == PTR && lhs->type->ptr_to) {
+				rhs = new_node(ND_MUL, rhs, new_node_num(lhs->type->ptr_to->type_size));
+				rhs->type = lhs->type;
+				node->side[0] = lhs;
+				node->side[1] = rhs;
+			}else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
+				lhs = new_node(ND_MUL, lhs, new_node_num(rhs->type->ptr_to->type_size));
+				lhs->type = rhs->type;
+				node->side[0] = lhs;
+				node->side[1] = rhs;
+			}
 			if (lhs->kind == ND_NUM && rhs->kind == ND_NUM) {
 				node->kind = ND_NUM;
 				node->type = lhs->type;

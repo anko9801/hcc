@@ -9,6 +9,9 @@ Node *code[1000];
 // 変数
 LVar *locals;
 LVar *globals;
+// Hash
+Vec *hash_table;
+Node *cur_scope;
 
 Func *funcs;
 Func *extern_funcs;
@@ -187,6 +190,36 @@ Node *new_node_num(int val) {
  * 変数や関数を作るための関数
  */
 
+Hash *add_hash(Node *scope, LVar *var) {
+	Hash *hash;
+	// ハッシュテーブルから探す
+	for (int i = 0;i < hash_table->len;i++) {
+		hash = (Hash *)hash_table->data[i];
+		if (hash->scope == scope) {
+			var->next = hash->vars;
+			var->scope = scope;
+			var->offset = hash->vars->offset + hash->vars->type->type_size;
+			hash->vars = var;
+			return hash;
+		}
+	}
+
+	// 無ければ作ってハッシュテーブルに追加
+	hash = calloc(1, sizeof(Hash));
+	hash->scope = scope;
+	hash->vars = var;
+	push_back(hash_table, hash);
+	return hash;
+}
+
+LVar *make_lvar(Token *tok, Type *type) {
+	LVar *lvar = calloc(1, sizeof(LVar));
+	lvar->name = tok->str;
+	lvar->len = tok->len;
+	lvar->type = type;
+	return lvar;
+}
+
 LVar *new_lvar(LVar *pre, Token *tok, Type *type) {
 	LVar *lvar = calloc(1, sizeof(LVar));
 	lvar->next = pre;
@@ -198,10 +231,13 @@ LVar *new_lvar(LVar *pre, Token *tok, Type *type) {
 	return lvar;
 }
 
+// なぜnextを使わない？？
 LVar *new_arg(LVar *pre, Token *tok, Type *type) {
 	LVar *lvar = calloc(1, sizeof(LVar));
+
 	lvar->name = tok->str;
 	lvar->len = tok->len;
+
 	lvar->offset = pre->offset + pre->type->type_size;
 	lvar->type = type;
 	return lvar;
@@ -258,6 +294,19 @@ Aggregate *find_aggr(Token *tok) {
 	return NULL;
 }
 
+Node *find_aggr_elem(Node *node, Token *rhs) {
+	Aggregate *aggr = node->type->ptr_to->aggr;
+	Node *var = NULL;
+
+	for (int i = 0;i < aggr->elem->len;i++) {
+		var = (Node *)aggr->elem->data[i];
+		if (strncmp(rhs->str, var->name, var->len) == 0 && rhs->len == var->len) {
+			return var;
+		}
+	}
+	return NULL;
+}
+
 Typedef *find_typedef(Token *tok) {
 	Typedef *tydef = NULL;
 
@@ -273,6 +322,9 @@ Typedef *find_typedef(Token *tok) {
 }
 
 
+/*
+ * 出力系
+ */
 
 void cu() {
 	int line = 0;
@@ -285,6 +337,41 @@ void cu() {
 	fprintf(stderr, "\n");
 }
 
+void print_variable_scope() {
+	Hash *hash;
+	for (int i = 0;i < hash_table->len;i++) {
+		hash = (Hash *)hash_table->data[i];
+		if (hash->scope)
+			fprintf(stderr, "%s\n", get_name(hash->scope->name, hash->scope->len));
+		else
+			fprintf(stderr, "<Global>\n");
+		for (LVar *lvar = hash->vars; lvar; lvar = lvar->next) {
+			fprintf(stderr, "\t%s\n", get_name(lvar->name, lvar->len));
+		}
+	}
+}
+
+void print_list() {
+	Aggregate *aggr;
+	Node *var;
+	fprintf(stderr, "print_list aggregate\n");
+	for (int i = 0;i < aggr_list->len;i++) {
+		aggr = (Aggregate *)aggr_list->data[i];
+		fprintf(stderr, "%s %d\n", get_name(aggr->name, aggr->len), aggr->type_size);
+		for (int j = 0;j < aggr->elem->len;j++) {
+			var = (Node *)aggr->elem->data[j];
+			print_all(var);
+		}
+	}
+
+	fprintf(stderr, "print_list typedef\n");
+	Typedef *tydef = NULL;
+	for (int i = 0;i < typedef_list->len;i++) {
+		tydef = (Typedef *)typedef_list->data[i];
+		fprintf(stderr, "%s %s\n", get_name(tydef->name, tydef->len), print_type(tydef->type));
+	}
+}
+
 /*
  * パーサ本体
  */
@@ -294,16 +381,17 @@ Node *stmt();
 Node *stmts();
 Node *rvalue();
 Node *initializer();
-Node *new_add(Node *lhs, Node *rhs);
-Node *new_sub(Node *lhs, Node *rhs);
 Node *variable_decl(int glocal);
+Node *dot(Node *node);
+Node *variable();
+Node *call_func();
 
 Type *type_spec() {
 	Type *type = NULL;
 
 	Typedef *tydef = find_typedef(token);
 	if (tydef) {
-		fprintf(stderr, "typedef %s %s %s\n", get_name(tydef->name, tydef->len), print_type(tydef->type), get_name(token->str, token->len));
+		//fprintf(stderr, "typedef %s %s %s\n", get_name(tydef->name, tydef->len), print_type(tydef->type), get_name(token->str, token->len));
 		token = token->next;
 		type = tydef->type;
 
@@ -346,31 +434,19 @@ Type *type_spec() {
 	return type;
 }
 
-Node *term() {
-	// 次のトークンが"("なら、"(" expr ")"のはず
+Node *call_func() {
+	Token *backup = token;
 
-	Node *node;
-	if (consume("(")) {
-		Node *node = expr();
-		expect(")");
-		return node;
-	}
-
-	node = variable_decl(0);
-	if (node) return node;
-
+	Node *node = NULL;
 	Token *tok = consume_ident();
+
 	if (tok) {
 		// 関数
 		if (consume("(")) {
 			Func *func = find_func(tok);
-			if (memcmp(tok->str, "calloc", 6) == 0) {
-				node = new_node_s(ND_CALL, tok, wrap_pointer(void_type()));
-			}else{
-				if (!func) error_at(token->str, "関数がありません");
+			if (!func) error_at(token->str, "関数がありません");
 
-				node = new_node_s(ND_CALL, tok, func->type);
-			}
+			node = new_node_s(ND_CALL, tok, func->type);
 
 			// 引数
 			Node *arg;
@@ -393,21 +469,33 @@ Node *term() {
 				}
 			}
 			node->nodes = args;
+
 			if (func)
 				node->type = func->type;
+
 			return node;
 		}
+	}
 
+	token = backup;
+	return NULL;
+}
+
+Node *variable() {
+	Token *backup = token;
+
+	Node *node;
+	Token *tok = consume_ident();
+
+	if (tok) {
 		LVar *lvar = find_lvar(tok);
 		if (lvar) {
 			node = new_node_s(ND_LVAR, tok, lvar->type);
 			node->var = lvar;
 
 			if (node->type && node->type->ty == ARRAY) {
-				fprintf(stderr, "%s -> ", print_type(node->type));
 				node = new_nodev(ND_ADDR, 1, node);
 				node->type = wrap_pointer(node->side[0]->type->ptr_to);
-				fprintf(stderr, "%s\n", print_type(node->type));
 			}
 			return node;
 		}else{
@@ -415,6 +503,28 @@ Node *term() {
 		}
 	}
 
+	token = backup;
+	return NULL;
+}
+
+Node *term() {
+	// 次のトークンが"("なら、"(" expr ")"のはず
+
+	Node *node;
+	if (consume("(")) {
+		Node *node = expr();
+		expect(")");
+		return node;
+	}
+
+	node = variable_decl(0);
+	if (node) return node;
+	node = call_func();
+	if (node) return node;
+	node = variable();
+	if (node) return node;
+
+	Token *tok;
 	if (consume("\"")) {
 		tok = consume_ident();
 		if (tok) {
@@ -439,13 +549,10 @@ Node *term() {
 		return node;
 	}
 
-	if (consume("break")) {
+	if (consume("break"))
 		return new_node0(ND_BREAK);
-	}
-
-	if (consume("continue")) {
+	if (consume("continue"))
 		return new_node0(ND_CONTINUE);
-	}
 
 	// そうでなければ数値のはず
 	int val = consume_number();
@@ -456,8 +563,6 @@ Node *term() {
 	return NULL;
 }
 
-Node *dot(Node *node);
-
 //postfix_exp	::= <primary_exp>
 //				| <postfix_exp> “[“ <exp> “]”
 //				| <postfix_exp> “(“ <argument_exp_list> “)”
@@ -466,6 +571,7 @@ Node *dot(Node *node);
 //				| <postfix_exp> “->” id
 //				| <postfix_exp> “++”
 //				| <postfix_exp> “—-"
+
 Node *postfix() {
 	Node *node = term();
 	Node *rhs;
@@ -477,8 +583,7 @@ Node *postfix() {
 		if (node->type->ty == PTR && node->type->ptr_to) {
 			rhs = new_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
 			rhs->type = node->type;
-		}
-		else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
+		}else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
 			node = new_node(ND_MUL, node, new_node_num(rhs->type->ptr_to->type_size));
 			node->type = rhs->type;
 		}
@@ -495,17 +600,18 @@ Node *postfix() {
 	if (node) return node;
 
 	if (consume("++")) {
-		rhs = new_add(node, new_node_num(1));
+		rhs = new_node(ND_ADD, node, new_node_num(1));
 		return new_node(ND_ASSIGN, node, rhs);
 	}
 
 	if (consume("--")) {
-		rhs = new_sub(node, new_node_num(1));
+		rhs = new_node(ND_SUB, node, new_node_num(1));
 		return new_node(ND_ASSIGN, node, rhs);
 	}
 
 	return node;
 }
+
 
 // unary = "+"? term
 //       | "-"? term
@@ -539,22 +645,16 @@ Node *unary() {
 
 	if (consume("+"))
 		return postfix();
-
 	if (consume("-"))
 		return new_node(ND_SUB, new_node_num(0), postfix());
-
 	if (consume("++"))
 		return new_node(ND_ADD, unary(), new_node_num(1));
-
 	if (consume("--"))
 		return new_node(ND_SUB, unary(), new_node_num(1));
-
 	if (consume("!"))
 		return new_nodev(ND_NOT, 1, unary());
-
 	if (consume("~"))
 		return new_nodev(ND_NOT, 1, unary());
-
 	if (consume("*")) {
 		node = unary();
 
@@ -603,28 +703,6 @@ Node *mul_expr() {
 	return node;
 }
 
-Node *new_add(Node *lhs, Node *rhs) {
-	if (lhs->type->ty == PTR && lhs->type->ptr_to) {
-		rhs = new_node(ND_MUL, rhs, new_node_num(lhs->type->ptr_to->type_size));
-		rhs->type = lhs->type;
-	}else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
-		lhs = new_node(ND_MUL, lhs, new_node_num(rhs->type->ptr_to->type_size));
-		lhs->type = rhs->type;
-	}
-	return new_node(ND_ADD, lhs, rhs);
-}
-
-Node *new_sub(Node *lhs, Node *rhs) {
-	if (lhs->type->ty == PTR && lhs->type->ptr_to) {
-		rhs = new_node(ND_MUL, rhs, new_node_num(lhs->type->ptr_to->type_size));
-		rhs->type = lhs->type;
-	}else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
-		lhs = new_node(ND_MUL, lhs, new_node_num(rhs->type->ptr_to->type_size));
-		lhs->type = rhs->type;
-	}
-	return new_node(ND_SUB, lhs, rhs);
-}
-
 Node *add_expr() {
 	Node *node = mul_expr();
 	Node *rhs;
@@ -632,10 +710,10 @@ Node *add_expr() {
 	for (;;) {
 		if (consume("+")) {
 			rhs = mul_expr();
-			node = new_add(node, rhs);
+			node = new_node(ND_ADD, node, rhs);
 		}else if (consume("-")) {
 			rhs = mul_expr();
-			node = new_sub(node, rhs);
+			node = new_node(ND_SUB, node, rhs);
 		}else
 			return node;
 	}
@@ -734,24 +812,11 @@ Node *rvalue() {
 	}
 }
 
-Node *find_aggr_elem(Node *node, Token *rhs) {
-	Aggregate *aggr = node->type->ptr_to->aggr;
-	Node *var = NULL;
-
-	for (int i = 0;i < aggr->elem->len;i++) {
-		var = (Node *)aggr->elem->data[i];
-		if (strncmp(rhs->str, var->name, var->len) == 0 && rhs->len == var->len) {
-			return var;
-		}
-	}
-	return NULL;
-}
-
 Node *dot(Node *node) {
 	if (consume(".")) {
 		if (node->type->ty == STRUCT) {
-			Token *rhs_name = consume_ident();
-			Node *var = find_aggr_elem(node, rhs_name);
+			Token *rhs = consume_ident();
+			Node *var = find_aggr_elem(node, rhs);
 
 			if (var) {
 				node = new_node(ND_DOT, node, var);
@@ -759,13 +824,12 @@ Node *dot(Node *node) {
 			}
 			error_at(token->str, "構造体のドット演算子のrhsが存在しません");
 		}
-	}
 
-	if (consume("->")) {
+	}else if (consume("->")) {
 		if (node->type->ty == PTR && node->type->ptr_to->ty == STRUCT) {
 			Token *rhs = consume_ident();
 			Node *var = find_aggr_elem(node, rhs);
-			print_all(node);
+			//print_all(node);
 			printf("%s\n", get_name(rhs->str, rhs->len));
 
 			if (var) {
@@ -778,6 +842,7 @@ Node *dot(Node *node) {
 			error_at(token->str, "構造体のアロー演算子のrhsが存在しません");
 		}
 	}
+
 	return node;
 }
 
@@ -793,6 +858,7 @@ Node *lvalue() {
 			node->type = type;
 			return node;
 		}
+		return NULL;
 	}
 	if (consume("&"))
 		return new_nodev(ND_ADDR, 1, lvalue());
@@ -804,14 +870,11 @@ Node *lvalue() {
 			node = new_node_s(ND_LVAR, tok, lvar->type);
 			node->var = lvar;
 			node->type = lvar->type;
-			print_all(node);
 			node = dot(node);
 
 			if (node->type && node->type->ty == ARRAY) {
-				fprintf(stderr, "%s -> ", print_type(node->type));
 				node = new_nodev(ND_ADDR, 1, node);
 				node->type = wrap_pointer(node->side[0]->type->ptr_to);
-				fprintf(stderr, "%s\n", print_type(node->type));
 			}
 
 			if (consume("[")) {
@@ -882,11 +945,11 @@ Node *expr() {
 		Node *rval;
 		if (consume("+=")) {
 			rval = expr();
-			rval = new_add(lval, rval);
+			rval = new_node(ND_ADD, lval, rval);
 			node = new_node(ND_ASSIGN, lval, rval);
 		}else if (consume("-=")) {
 			rval = expr();
-			rval = new_sub(lval, rval);
+			rval = new_node(ND_SUB, lval, rval);
 			node = new_node(ND_ASSIGN, lval, rval);
 		}else if (consume("*=")) {
 			rval = expr();
@@ -988,7 +1051,9 @@ Node *stmt() {
 		Node *Cond, *Then, *Else;
 
 		expect("(");
+		cu();
 		Cond = expr();
+		cu();
 		expect(")");
 		Then = stmts();
 		if (consume("else"))
@@ -1057,6 +1122,7 @@ Node *stmts() {
 	if (consume("{")) {
 		Vec *nodes = new_vector();
 		for(;;) {
+			cu();
 			push_back(nodes, stmt());
 			if (consume("}"))
 				break;
@@ -1108,16 +1174,18 @@ Node *variable_decl(int glocal) {
 				LVar *lvar;
 				//fprintf(stderr, "type: %s\n", print_type(ident_type));
 
-				if (glocal == 0) {
+				lvar = make_lvar(tok, ident_type);
+				add_hash(cur_scope, lvar);
+				/*if (glocal == 0) {
 					lvar = new_lvar(locals, tok, ident_type);
 					locals = lvar;
 				}else if (glocal == 1) {
 					lvar = new_lvar(globals, tok, ident_type);
-					lvar->scope = 1;
+					lvar->scope = NULL;
 					globals = lvar;
 				}else{
 					error("無効なスコープです");
-				}
+				}*/
 
 				Node *node = new_node_s(ND_VARDECL, tok, ident_type);
 				node->var = lvar;
@@ -1129,7 +1197,7 @@ Node *variable_decl(int glocal) {
 					rhs = initializer();
 					node = new_node(ND_ASSIGN, node, rhs);
 				}
-				if (glocal == 1) expect(";");
+				expect(";");
 
 				return node;
 			}
@@ -1203,7 +1271,11 @@ Node *func_decl_or_def() {
 					func = new_func(funcs, tok, ident_type, arg_first);
 					funcs = func;
 					node = new_node_s(ND_DEF, tok, ident_type);
+
+					cur_scope = node;
 					node->side[0] = stmts();
+					cur_scope = NULL;
+
 					func->locals = locals;
 					node->func = func;
 				}
@@ -1226,31 +1298,35 @@ Node *struct_decl() {
 
 		if (!aggr) aggr = calloc(1, sizeof(Aggregate));
 		aggr->elem = new_vector();
+		if (id) {
+			aggr->name = id->str;
+			aggr->len = id->len;
+		}
 
 		int size = 0;
+		Type *type = struct_type(aggr, size);
+		node = new_node_s(ND_STRUCT, id, type);
 
 		if (consume("{")) {
-			Node *var = variable_decl(1);
-
-			while (var) {
+			Node *prev_scope = cur_scope;
+			cur_scope = node;
+			Node *var;
+			while (true) {
+				var = variable_decl(1);
+				if (!var) break;
 				push_back(aggr->elem, var);
 				size += var->type->type_size;
-				var = variable_decl(1);
 			}
+
 			expect("}");
+			cur_scope = prev_scope;
 
 			size = (size + 7) / 8 * 8;
-			printf("size: %d\n", size);
 
-			//if (!id) id = consume_ident();
-			if (id) {
-				aggr->name = id->str;
-				aggr->len = id->len;
-			}
 			aggr->type_size = size;
 			push_back(aggr_list, aggr);
 
-			Type *type = struct_type(aggr, size);
+			type = struct_type(aggr, size);
 
 			for (int i = 0;i < typedef_list->len;i++) {
 				Typedef *tydef = (Typedef *)typedef_list->data[i];
@@ -1263,12 +1339,10 @@ Node *struct_decl() {
 				}
 			}
 
-			node = new_node_s(ND_STRUCT, id, type);
+			node->type = type;
 			return node;
 		}
 
-		Type *type = struct_type(aggr, size);
-		node = new_node_s(ND_STRUCT, id, type);
 		return node;
 	}
 	return node;
@@ -1286,12 +1360,25 @@ Node *enum_decl() {
 		if (!aggr)
 			aggr = calloc(1, sizeof(Aggregate));
 		aggr->elem = new_vector();
+		if (id) {
+			aggr->name = id->str;
+			aggr->len = id->len;
+		}
+
 		int size = 0;
 		Token *enumerator;
 		LVar *var;
 		Type *elem_type = int_type();
 		Node *lhs = NULL, *rhs = NULL;
 		LVar *lvar;
+
+		// スコープを作る
+		Type *type = enum_type(aggr, size);
+		node = new_node_s(ND_ENUM, id, type);
+
+		//printf("%s\n", get_name(id->str, id->len));
+		Node *prev_scope = cur_scope;
+		cur_scope = node;
 
 		// enumratorをパース
 		bool first = true;
@@ -1303,14 +1390,12 @@ Node *enum_decl() {
 			}
 
 			// enumの中身の名前を参照するため
-			var = calloc(1, sizeof(LVar));
-			var->name = enumerator->str;
-			var->len = enumerator->len;
-			var->type = elem_type;
-			size += elem_type->type_size;
+			var = make_lvar(enumerator, elem_type);
+			add_hash(cur_scope, var);
 			lhs = new_node_s(ND_VARDECL, enumerator, elem_type);
 			lhs->var = var;
 			push_back(aggr->elem, lhs);
+			size += elem_type->type_size;
 
 			node = lhs;
 			if (consume("=")) {
@@ -1335,9 +1420,10 @@ Node *enum_decl() {
 					node = new_node(ND_ASSIGN, lhs, node);
 				}
 			}
-			lvar = new_lvar(globals, enumerator, elem_type);
-			lvar->scope = 1;
-			globals = lvar;
+
+			//lvar = new_lvar(globals, enumerator, elem_type);
+			//lvar->scope = NULL;
+			//globals = lvar;
 
 			if (!consume(",")) {
 				expect("}");
@@ -1345,17 +1431,15 @@ Node *enum_decl() {
 			}
 		}
 
+		cur_scope = prev_scope;
+
 		size = (size + 7) / 8 * 8;
 
 		//if (!id) id = consume_ident();
-		if (id) {
-			aggr->name = id->str;
-			aggr->len = id->len;
-		}
 		aggr->type_size = size;
 		push_back(aggr_list, aggr);
 
-		Type *type = enum_type(aggr, size);
+		type = enum_type(aggr, size);
 
 		// typedefの不完全型を消化
 		for (int i = 0;i < typedef_list->len;i++) {
@@ -1369,7 +1453,7 @@ Node *enum_decl() {
 			}
 		}
 
-		node = new_node_s(ND_ENUM, id, type);
+		node->type = type;
 		return node;
 	}
 	return node;
@@ -1405,7 +1489,7 @@ Typedef *typedef_decl() {
 			tydef->type = type;
 			tydef->name = tok->str;
 			tydef->len = tok->len;
-			printf("typedef decl\n%s\n", print_type(tydef->type));
+			//printf("typedef decl\n%s\n", print_type(tydef->type));
 			push_back(typedef_list, tydef);
 
 			return tydef;
@@ -1463,6 +1547,7 @@ void program() {
 	globals = init_variable_list();
 	aggr_list = new_vector();
 	typedef_list = new_vector();
+	hash_table = new_vector();
 	int i = 0;
 	Node *node;
 	while (!at_eof()) {
@@ -1470,5 +1555,7 @@ void program() {
 		if (node)
 			code[i++] = node;
 	}
+	//print_list();
+	print_variable_scope();
 	code[i] = NULL;
 }

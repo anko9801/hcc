@@ -28,7 +28,7 @@ _main:
 	push rax
 	pop rbx
 	pop rax
-	mov QWORD PTR [rax], rax
+	mov QWORD PTR [rax], rbx
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -36,9 +36,16 @@ _main:
 	push rax
 	pop rdi
 	mov rax, 1
+	test rsp, 15
+	jne call.else0
+	call _print
+	jmp call.end0
+call.else0:
 	push rsi
 	call _print
 	pop rsi
+call.end0:
+	push rax
 	lea rax, [rbp-0]
 	push rax
 	push 4
@@ -51,9 +58,16 @@ _main:
 	push rax
 	pop rdi
 	mov rax, 1
+	test rsp, 15
+	jne call.else1
+	call _print
+	jmp call.end1
+call.else1:
 	push rsi
 	call _print
 	pop rsi
+call.end1:
+	push rax
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -81,9 +95,16 @@ _main:
 	push rax
 	pop rdi
 	mov rax, 1
+	test rsp, 15
+	jne call.else2
+	call _print
+	jmp call.end2
+call.else2:
 	push rsi
 	call _print
 	pop rsi
+call.end2:
+	push rax
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -109,12 +130,5 @@ _main:
 	pop rax
 	add rax, rbx
 	push rax
-	pop rax
-	mov rsp, rbp
-	pop rbp
-	ret
-	push 0
-	pop rax
-	mov rsp, rbp
 	pop rbp
 	ret
