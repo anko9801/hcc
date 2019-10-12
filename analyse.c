@@ -11,31 +11,30 @@ void print_node(char *fmt, ...) {
 	fprintf(stderr, "\n");
 }
 
-char type_char[20] = "";
-char kari_char[20] = "";
-void print_content(Node *node);
+char type_char[30] = "";
+char kari_char[30] = "";
+void print_content(int tab, Node *node);
 
-void print_aggr(Aggregate *aggr) {
-	fprintf(stderr, "aggregate\n");
-	fprintf(stderr, "	name:	%s\n", get_name(aggr->name, aggr->len));
-	fprintf(stderr, "	size:	%d\n", aggr->type_size);
+void print_aggr(int tab, Aggregate *aggr) {
 	for (int i = 0;i < aggr->elem->len;i++)
-		print_content((Node *)aggr->elem->data[i]);
+		print_content(tab + 1, (Node *)aggr->elem->data[i]);
 }
 
 char *print_type(Type *type) {
-	strncpy(type_char, "", 20);
-	strncpy(kari_char, "", 20);
+	strncpy(type_char, "", 30);
+	strncpy(kari_char, "", 30);
 
 	if (!type)
 		return "";
+
+	int size = type->type_size;
 
 	while (type->ptr_to) {
 		if (type->ty == PTR)
 			sprintf(kari_char, "*%s", type_char);
 		if (type->ty == ARRAY)
 			sprintf(kari_char, "%s[%d]", type_char, type->array_size);
-		strncpy(type_char, kari_char, 20);
+		strncpy(type_char, kari_char, 30);
 		type = type->ptr_to;
 	}
 
@@ -64,35 +63,38 @@ char *print_type(Type *type) {
 		sprintf(kari_char, "enum%s %s", type_char, get_name(type->aggr->name, type->aggr->len));
 		break;
 	}
-	snprintf(type_char, 20, "%s(%d)", kari_char, type->type_size);
+	snprintf(type_char, 30, "%s(%d)", kari_char, size);
 	return type_char;
 }
 
-void print_lvar(LVar *lvar) {
-	fprintf(stderr, "	%s+%d %s\n", print_type(lvar->type), lvar->offset, get_name(lvar->name, lvar->len));
-	fprintf(stderr, "	size:	%d + %d\n", lvar->type->type_size, lvar->offset);
+void print_lvar(int tab, LVar *lvar) {
+	for (int i = 0;i < tab;i++)
+		fprintf(stderr, "\t");
+	fprintf(stderr, "%s+%d %s\n", print_type(lvar->type), lvar->offset, get_name(lvar->name, lvar->len));
 
 	if (lvar->type->aggr)
-		print_aggr(lvar->type->aggr);
+		print_aggr(tab, lvar->type->aggr);
 	if (lvar->type->ptr_to && lvar->type->ptr_to->aggr)
-		print_aggr(lvar->type->ptr_to->aggr);
+		print_aggr(tab, lvar->type->ptr_to->aggr);
 }
 
-void print_lvars(LVar *lvar) {
+void print_lvars(int tab, LVar *lvar) {
 	if (lvar)
-		return print_lvar(lvar);
-	print_lvars(lvar->next);
+		return print_lvar(tab, lvar);
+	print_lvars(tab, lvar->next);
 }
 
 void print_func(Func *func) {
-	fprintf(stderr, "	%s %s\n", print_type(func->type), get_name(func->name, func->len));
+	fprintf(stderr, "%s %s\n", print_type(func->type), get_name(func->name, func->len));
 }
 
-void print_content(Node *node) {
-	fprintf(stderr, "	%s %s = %d\n", print_type(node->type), get_name(node->name, node->len), node->val);
+void print_content(int tab, Node *node) {
 	if (node->var) {
-		fprintf(stderr, "var\n");
-		print_lvar(node->var);
+		print_lvar(tab, node->var);
+	}else{
+		for (int i = 0;i < tab;i++)
+		fprintf(stderr, "\t");
+		fprintf(stderr, "%s %s = %d\n", print_type(node->type), get_name(node->name, node->len), node->val);
 	}
 	if (node->func) {
 		fprintf(stderr, "func\n");
@@ -102,7 +104,7 @@ void print_content(Node *node) {
 
 void print_all(Node *node) {
 	fprintf(stderr, "----print_all----\n");
-	print_content(node);
+	print_content(1, node);
 }
 
 

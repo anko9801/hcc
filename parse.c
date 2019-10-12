@@ -11,6 +11,8 @@ LVar *locals;
 LVar *globals;
 // Hash
 Vec *hash_table;
+Hashs *hashs;
+
 Node *cur_scope;
 
 Func *funcs;
@@ -189,6 +191,7 @@ Node *new_node_num(int val) {
 /*
  * 変数や関数を作るための関数
  */
+LVar *make_lvar(Token *tok, Type *type);
 
 Hash *add_hash(Node *scope, LVar *var) {
 	Hash *hash;
@@ -210,6 +213,84 @@ Hash *add_hash(Node *scope, LVar *var) {
 	hash->vars = var;
 	push_back(hash_table, hash);
 	return hash;
+}
+
+Hashs *search_hash(Hashs *hash, Node *scope) {
+	if (!hash)
+		return NULL;
+	if (hash->scope == scope) {
+		return hash;
+	}
+	Hashs *ans;
+	for (int i = 0;i < hash->child->len;i++) {
+		ans = search_hash(hash->child->data[i], scope);
+		if (ans) {
+			return ans;
+		}
+	}
+	return NULL;
+}
+
+/*
+ for (int i = 0;i < hash_table->len;i++) {
+		hash = (Hash *)hash_table->data[i];
+		if (hash->scope == scope) {
+			var->next = hash->vars;
+			var->scope = scope;
+			var->offset = hash->vars->offset + hash->vars->type->type_size;
+			hash->vars = var;
+			return hash;
+		}
+	}
+
+	// 無ければ作ってハッシュテーブルに追加
+	hash = calloc(1, sizeof(Hash));
+	hash->scope = scope;
+	hash->vars = var;
+	push_back(hash_table, hash);
+	return hash;
+	*/
+
+
+bool add_var(Node *scope, LVar *var) {
+	// ハッシュテーブルから探す
+	Hashs *hash = search_hash(hashs, scope);
+	printf("hash\n");
+	if (hash) {
+		if (hash->vars) {
+			var->next = hash->vars;
+			var->scope = scope;
+			var->offset = hash->vars->offset + hash->vars->type->type_size;
+			hash->vars = var;
+			fprintf(stderr, "%d  + %d\n", hash->vars->offset, hash->vars->type->type_size);
+		}else{
+			hash->vars = var;
+			hash->vars->next = NULL;
+		}
+		return true;
+	}
+	fprintf(stderr, "ohhhhhhhhhhhhhhhhhhh,nooooooooooooo\n");
+	return false;
+}
+
+Hashs *new_hash() {
+	Hashs *new_hash = calloc(1, sizeof(Hashs));
+	new_hash->child = new_vector();
+	new_hash->scope = NULL;
+	return new_hash;
+}
+
+bool add_node(Node *pre, Node *next) {
+	Hashs *hash = search_hash(hashs, pre);
+	if (hash) {
+		Hashs *new_hash = calloc(1, sizeof(Hashs));
+		new_hash->child = new_vector();
+		new_hash->scope = next;
+		push_back(hash->child, new_hash);
+		return true;
+	}else{
+		return false;
+	}
 }
 
 LVar *make_lvar(Token *tok, Type *type) {
@@ -259,12 +340,14 @@ Func *new_func(Func *pre, Token *tok, Type *type, LVar *args) {
  */
 
 LVar *find_lvar(Token *tok) {
-	for (LVar *var = locals; var; var = var->next)
-		if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
-			return var;
-	for (LVar *var = globals; var; var = var->next)
-		if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
-			return var;
+	Hash *hash;
+	for (int i = 0;i < hash_table->len;i++) {
+		hash = (Hash *)hash_table->data[i];
+		for (LVar *var = hash->vars; var; var = var->next) {
+			if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+				return var;
+		}
+	}
 	return NULL;
 }
 
@@ -298,6 +381,7 @@ Node *find_aggr_elem(Node *node, Token *rhs) {
 	Aggregate *aggr = node->type->ptr_to->aggr;
 	Node *var = NULL;
 
+	printf("%d\n", aggr->elem->len);
 	for (int i = 0;i < aggr->elem->len;i++) {
 		var = (Node *)aggr->elem->data[i];
 		if (strncmp(rhs->str, var->name, var->len) == 0 && rhs->len == var->len) {
@@ -337,18 +421,43 @@ void cu() {
 	fprintf(stderr, "\n");
 }
 
-void print_variable_scope() {
-	Hash *hash;
+void print_variable_scope(Hashs *hash, int tab) {
+	for (int i = 0;i < tab;i++)
+		fprintf(stderr, "\t");
+	if (hash->scope)
+		fprintf(stderr, "%s %s\n", print_type(hash->scope->type), get_name(hash->scope->name, hash->scope->len));
+	else
+		fprintf(stderr, "<Global>\n");
+
+	for (LVar *lvar = hash->vars; lvar; lvar = lvar->next) {
+		for (int i = 0;i < tab+1;i++)
+			fprintf(stderr, "\t");
+		fprintf(stderr, "%s %s\n", print_type(lvar->type), get_name(lvar->name, lvar->len));
+		/*if (lvar->type->ptr_to) {
+			for (int i = 0;i < tab+2;i++)
+				fprintf(stderr, "\t");
+			fprintf(stderr, "%s %s\n", print_type(lvar->type->ptr_to), get_name(lvar->name, lvar->len));
+		}*/
+	}
+
+	Hashs *hash_next;
+	for (int i = 0;i < hash->child->len;i++) {
+		hash_next = (Hashs *)hash->child->data[i];
+		print_variable_scope(hash_next, tab+1);
+	}
+	/*
 	for (int i = 0;i < hash_table->len;i++) {
 		hash = (Hash *)hash_table->data[i];
 		if (hash->scope)
-			fprintf(stderr, "%s\n", get_name(hash->scope->name, hash->scope->len));
+			fprintf(stderr, "%s %s\n", print_type(hash->scope->type), get_name(hash->scope->name, hash->scope->len));
 		else
 			fprintf(stderr, "<Global>\n");
 		for (LVar *lvar = hash->vars; lvar; lvar = lvar->next) {
-			fprintf(stderr, "\t%s\n", get_name(lvar->name, lvar->len));
+			fprintf(stderr, "\t%s %s\n", print_type(lvar->type), get_name(lvar->name, lvar->len));
+			if (lvar->type->ptr_to)
+				fprintf(stderr, "\t\t%s %s\n", print_type(lvar->type->ptr_to), get_name(lvar->name, lvar->len));
 		}
-	}
+	}*/
 }
 
 void print_list() {
@@ -394,6 +503,7 @@ Type *type_spec() {
 		//fprintf(stderr, "typedef %s %s %s\n", get_name(tydef->name, tydef->len), print_type(tydef->type), get_name(token->str, token->len));
 		token = token->next;
 		type = tydef->type;
+		printf("%s\n", print_type(type));
 
 	}else if (consume("void")) {
 		type = void_type();
@@ -529,7 +639,6 @@ Node *term() {
 		tok = consume_ident();
 		if (tok) {
 			node = new_node_s(ND_STRING, tok, wrap_pointer(char_type()));
-			node->type = wrap_pointer(char_type());
 			node->type->array_size = node->len;
 			push_back(strings, (void *)tok);
 		}
@@ -540,8 +649,7 @@ Node *term() {
 	if (consume("\'")) {
 		tok = consume_ident();
 		if (tok) {
-			node = new_node_s(ND_STRING, tok, wrap_pointer(char_type()));
-			node->type = char_type();
+			node = new_node_s(ND_STRING, tok, char_type());
 			node->type->array_size = node->len;
 			push_back(strings, (void *)tok);
 		}
@@ -813,6 +921,8 @@ Node *rvalue() {
 }
 
 Node *dot(Node *node) {
+	if (node->type)
+		printf("%s %s\n", print_type(node->type->ptr_to), get_name(node->name, node->len));
 	if (consume(".")) {
 		if (node->type->ty == STRUCT) {
 			Token *rhs = consume_ident();
@@ -827,10 +937,12 @@ Node *dot(Node *node) {
 
 	}else if (consume("->")) {
 		if (node->type->ty == PTR && node->type->ptr_to->ty == STRUCT) {
+			printf("%s %s\n", print_type(node->type->ptr_to), get_name(node->name, node->len));
 			Token *rhs = consume_ident();
 			Node *var = find_aggr_elem(node, rhs);
 			//print_all(node);
 			printf("%s\n", get_name(rhs->str, rhs->len));
+			printf("%s %s\n", print_type(node->type->ptr_to), get_name(node->name, node->len));
 
 			if (var) {
 				Type *type = node->type->ptr_to;
@@ -865,11 +977,13 @@ Node *lvalue() {
 
 	Token *tok = consume_ident();
 	if (tok) {
+		print_variable_scope(hashs, 0);
 		LVar *lvar = find_lvar(tok);
 		if (lvar) {
 			node = new_node_s(ND_LVAR, tok, lvar->type);
 			node->var = lvar;
 			node->type = lvar->type;
+			printf("l %s %s\n", print_type(node->type->ptr_to), get_name(node->name, node->len));
 			node = dot(node);
 
 			if (node->type && node->type->ty == ARRAY) {
@@ -1172,23 +1286,15 @@ Node *variable_decl(int glocal) {
 				}
 
 				LVar *lvar;
-				//fprintf(stderr, "type: %s\n", print_type(ident_type));
 
 				lvar = make_lvar(tok, ident_type);
-				add_hash(cur_scope, lvar);
-				/*if (glocal == 0) {
-					lvar = new_lvar(locals, tok, ident_type);
-					locals = lvar;
-				}else if (glocal == 1) {
-					lvar = new_lvar(globals, tok, ident_type);
-					lvar->scope = NULL;
-					globals = lvar;
-				}else{
-					error("無効なスコープです");
-				}*/
+				printf("test %s %s\n", print_type(lvar->type->ptr_to), get_name(lvar->name, lvar->len));
+				add_var(cur_scope, lvar);
+				printf("test\n");
 
 				Node *node = new_node_s(ND_VARDECL, tok, ident_type);
 				node->var = lvar;
+				print_all(node);
 
 				// 初期化
 				if (rhs) {
@@ -1197,8 +1303,9 @@ Node *variable_decl(int glocal) {
 					rhs = initializer();
 					node = new_node(ND_ASSIGN, node, rhs);
 				}
-				expect(";");
+				if (glocal == 1) expect(";");
 
+				printf("%s %s\n", print_type(node->type->ptr_to), get_name(node->name, node->len));
 				return node;
 			}
 		}
@@ -1237,11 +1344,17 @@ Node *func_decl_or_def() {
 				LVar *arg_first = args;
 				Type *arg_type;
 				LVar *lvar;
+				node = new_node_s(ND_DECL, tok, ident_type);
+				printf("func definition node\n");
+				add_node(cur_scope, node);
+				printf("func definition node end\n");
+				cur_scope = node;
 
 				while (!consume(")")) {
 					arg_type = type_spec();
 					if (!arg_type)
 						break;
+
 					arg = consume_ident();
 					if (!arg) {
 						error_at(token->str, "関数の引数が','で終わっています");
@@ -1251,8 +1364,8 @@ Node *func_decl_or_def() {
 					lvar = new_arg(args, arg, arg_type);
 					args->next = lvar;
 					args = lvar;
-					lvar = new_lvar(locals, arg, arg_type);
-					locals = lvar;
+					lvar = make_lvar(arg, arg_type);
+					add_var(cur_scope, lvar);
 
 					if (!consume(",")) {
 						expect(")");
@@ -1264,15 +1377,14 @@ Node *func_decl_or_def() {
 				if (consume(";")) {
 					func = new_func(extern_funcs, tok, ident_type, arg_first);
 					extern_funcs = func;
-					node = new_node_s(ND_DECL, tok, ident_type);
+					cur_scope = NULL;
+					node->kind = ND_DECL;
 					node->func = func;
 				// 関数定義
 				}else{
 					func = new_func(funcs, tok, ident_type, arg_first);
 					funcs = func;
-					node = new_node_s(ND_DEF, tok, ident_type);
-
-					cur_scope = node;
+					node->kind = ND_DEF;
 					node->side[0] = stmts();
 					cur_scope = NULL;
 
@@ -1309,6 +1421,9 @@ Node *struct_decl() {
 
 		if (consume("{")) {
 			Node *prev_scope = cur_scope;
+			printf("struct node\n");
+			add_node(cur_scope, node);
+			printf("struct node end\n");
 			cur_scope = node;
 			Node *var;
 			while (true) {
@@ -1324,7 +1439,6 @@ Node *struct_decl() {
 			size = (size + 7) / 8 * 8;
 
 			aggr->type_size = size;
-			push_back(aggr_list, aggr);
 
 			type = struct_type(aggr, size);
 
@@ -1339,6 +1453,7 @@ Node *struct_decl() {
 				}
 			}
 
+			push_back(aggr_list, aggr);
 			node->type = type;
 			return node;
 		}
@@ -1349,7 +1464,7 @@ Node *struct_decl() {
 }
 
 Node *enum_decl() {
-	Node *node = NULL;
+	Node *enum_node = NULL;
 
 	if (consume("enum")) {
 		Token *id = consume_ident();
@@ -1370,15 +1485,17 @@ Node *enum_decl() {
 		LVar *var;
 		Type *elem_type = int_type();
 		Node *lhs = NULL, *rhs = NULL;
+		Node *node;
 		LVar *lvar;
 
 		// スコープを作る
 		Type *type = enum_type(aggr, size);
-		node = new_node_s(ND_ENUM, id, type);
+		enum_node = new_node_s(ND_ENUM, id, type);
 
 		//printf("%s\n", get_name(id->str, id->len));
 		Node *prev_scope = cur_scope;
-		cur_scope = node;
+		add_node(cur_scope, enum_node);
+		cur_scope = enum_node;
 
 		// enumratorをパース
 		bool first = true;
@@ -1391,7 +1508,7 @@ Node *enum_decl() {
 
 			// enumの中身の名前を参照するため
 			var = make_lvar(enumerator, elem_type);
-			add_hash(cur_scope, var);
+			add_var(cur_scope, var);
 			lhs = new_node_s(ND_VARDECL, enumerator, elem_type);
 			lhs->var = var;
 			push_back(aggr->elem, lhs);
@@ -1421,10 +1538,6 @@ Node *enum_decl() {
 				}
 			}
 
-			//lvar = new_lvar(globals, enumerator, elem_type);
-			//lvar->scope = NULL;
-			//globals = lvar;
-
 			if (!consume(",")) {
 				expect("}");
 				break;
@@ -1434,10 +1547,7 @@ Node *enum_decl() {
 		cur_scope = prev_scope;
 
 		size = (size + 7) / 8 * 8;
-
-		//if (!id) id = consume_ident();
 		aggr->type_size = size;
-		push_back(aggr_list, aggr);
 
 		type = enum_type(aggr, size);
 
@@ -1453,10 +1563,11 @@ Node *enum_decl() {
 			}
 		}
 
-		node->type = type;
-		return node;
+		push_back(aggr_list, aggr);
+		enum_node->type = type;
+		return enum_node;
 	}
-	return node;
+	return enum_node;
 }
 
 Node *aggregate_decl() {
@@ -1548,6 +1659,7 @@ void program() {
 	aggr_list = new_vector();
 	typedef_list = new_vector();
 	hash_table = new_vector();
+	hashs = new_hash();
 	int i = 0;
 	Node *node;
 	while (!at_eof()) {
@@ -1556,6 +1668,7 @@ void program() {
 			code[i++] = node;
 	}
 	//print_list();
-	print_variable_scope();
+	printf("I love you\n");
+	print_variable_scope(hashs, 0);
 	code[i] = NULL;
 }

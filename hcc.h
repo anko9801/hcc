@@ -138,6 +138,12 @@ typedef struct Hash {
 	LVar *vars;
 } Hash;
 
+typedef struct Hashs {
+	Vec *child; // 下の階層のスコープ
+	Node *scope;
+	LVar *vars;
+} Hashs;
+
 
 //void error(char *fmt, ...);
 //void error_at(char *loc, char *fmt, ...);
@@ -168,3 +174,9 @@ extern Node *code[1000];
 extern Func *funcs;
 extern Func *extern_funcs;
 extern char *filename;
+
+
+/*
+ * セルフホストの為のプロトタイプ宣言
+ */
+void *calloc(int nitems, int size);
