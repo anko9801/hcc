@@ -27,6 +27,8 @@ char *read_file(char *path) {
 }
 
 void compile(char *src, char *file) {
+	char *prev_input = user_input;
+	char *prev_filename = filename;
 	user_input = src;
 	filename = file;
 	token = tokenize(src);
@@ -37,6 +39,8 @@ void compile(char *src, char *file) {
 	fprintf(stderr, "complete making AST of %s\n", file);
 	gen_pre(code, funcs, extern_funcs);
 	fprintf(stderr, "complete Code Generating of %s\n", file);
+	user_input = prev_input;
+	filename = prev_filename;
 }
 
 void compile_at(char *file) {

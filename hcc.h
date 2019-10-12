@@ -146,8 +146,6 @@ typedef struct Hashs {
 } Hashs;
 
 
-//void error(char *fmt, ...);
-//void error_at(char *loc, char *fmt, ...);
 void expect(char *op);
 Token *tokenize(char *p);
 void program();
@@ -177,7 +175,15 @@ extern Func *extern_funcs;
 extern char *filename;
 
 
+//void error(char *fmt, ...);
+//void error_at(char *loc, char *fmt, ...);
+
 /*
  * セルフホストの為のプロトタイプ宣言
  */
+
 void *calloc(int nitems, int size);
+int strncmp(char *str1, char *str2, int num);
+int strlen(char *str);
+int memcmp(void *ptr1, void *ptr2, int num);
+

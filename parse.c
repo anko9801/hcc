@@ -330,7 +330,6 @@ LVar *find_lvar(Token *tok) {
 }
 
 LVar *search_enum_lvar(Hashs *hash, Token *tok) {
-	printf("%s\n", get_name(tok->str, tok->len));
 	if (!hash)
 		return NULL;
 	if (hash->scope && hash->scope->type->ty == ENUM) {
@@ -339,6 +338,7 @@ LVar *search_enum_lvar(Hashs *hash, Token *tok) {
 				return var;
 		}
 	}
+
 	LVar *ans;
 	for (int i = 0;i < hash->child->len;i++) {
 		ans = search_enum_lvar((Hashs *)hash->child->data[i], tok);
@@ -379,7 +379,6 @@ Node *find_aggr_elem(Node *node, Token *rhs) {
 	Aggregate *aggr = node->type->ptr_to->aggr;
 	Node *var = NULL;
 
-	printf("%d\n", aggr->elem->len);
 	for (int i = 0;i < aggr->elem->len;i++) {
 		var = (Node *)aggr->elem->data[i];
 		if (strncmp(rhs->str, var->name, var->len) == 0 && rhs->len == var->len) {
@@ -599,6 +598,12 @@ Node *variable() {
 			if (!strncmp(tok->str, "NULL", tok->len)) {
 				return new_node_num(0);
 			}
+			if (!strncmp(tok->str, "false", tok->len)) {
+				return new_node_num(0);
+			}
+			if (!strncmp(tok->str, "true", tok->len)) {
+				return new_node_num(1);
+			}
 		}
 
 		error_at(token->str, "その変数は宣言されていません");
@@ -787,17 +792,15 @@ Node *unary() {
 Node *mul_expr() {
 	Node *node = unary();
 
-	if (node->type && node->type->ty == INT) {
-		for (;;) {
-			if (consume("*"))
-				node = new_node(ND_MUL, node, unary());
-			else if (consume("/"))
-				node = new_node(ND_DIV, node, unary());
-			else if (consume("%"))
-				node = new_node(ND_MOD, node, unary());
-			else
-				return node;
-		}
+	for (;;) {
+		if (consume("*"))
+			node = new_node(ND_MUL, node, unary());
+		else if (consume("/"))
+			node = new_node(ND_DIV, node, unary());
+		else if (consume("%"))
+			node = new_node(ND_MOD, node, unary());
+		else
+			return node;
 	}
 
 	return node;
@@ -913,9 +916,8 @@ Node *rvalue() {
 }
 
 Node *dot(Node *node) {
-	//cu();
-	if (node->type)
-		printf("%s %s\n", print_type(node->type->ptr_to), get_name(node->name, node->len));
+	/*if (node->type)
+		printf("%s %s\n", print_type(node->type->ptr_to), get_name(node->name, node->len));*/
 	if (consume(".")) {
 		if (node->type->ty == STRUCT) {
 			Token *rhs = consume_ident();
@@ -929,14 +931,9 @@ Node *dot(Node *node) {
 		}
 
 	}else if (consume("->")) {
-		//cu();
 		if (node->type->ty == PTR && node->type->ptr_to->ty == STRUCT) {
-			printf("%s %s\n", print_type(node->type->ptr_to), get_name(node->name, node->len));
 			Token *rhs = consume_ident();
 			Node *var = find_aggr_elem(node, rhs);
-
-			printf("%s\n", get_name(rhs->str, rhs->len));
-			printf("%s %s\n", print_type(node->type->ptr_to), get_name(node->name, node->len));
 
 			if (var) {
 				Type *type = node->type->ptr_to;
@@ -955,7 +952,6 @@ Node *dot(Node *node) {
 Node *lvalue() {
 	Token *backup = token;
 	Node *node = NULL;
-	cu();
 
 	if (consume("*")) {
 		node = rvalue();
@@ -970,21 +966,13 @@ Node *lvalue() {
 	if (consume("&"))
 		return new_nodev(ND_ADDR, 1, lvalue());
 
-	cu();
 	Token *tok = consume_ident();
-	cu();
 	if (tok) {
-		//print_variable_scope(hashs, 0);
 		LVar *lvar = find_lvar(tok);
-		cu();
 		if (lvar) {
-			cu();
 			node = new_node_s(ND_LVAR, tok, lvar->type);
 			node->var = lvar;
 			node->type = lvar->type;
-			printf("node name %s\n", get_name(node->name, node->len));
-			//printf("l %s %s\n", print_type(node->type->ptr_to), get_name(node->name, node->len));
-			cu();
 			node = dot(node);
 
 			if (node->type && node->type->ty == ARRAY) {
@@ -1237,7 +1225,7 @@ Node *stmts() {
 	if (consume("{")) {
 		Vec *nodes = new_vector();
 		for(;;) {
-			//cu();
+			cu();
 			push_back(nodes, stmt());
 			if (consume("}"))
 				break;
@@ -1484,7 +1472,6 @@ Node *enum_decl() {
 		Type *type = enum_type(aggr, size);
 		enum_node = new_node_s(ND_ENUM, id, type);
 
-		//printf("%s\n", get_name(id->str, id->len));
 		Node *prev_scope = cur_scope;
 		add_node(cur_scope, enum_node);
 		cur_scope = enum_node;
@@ -1613,6 +1600,7 @@ bool include() {
 				strncpy(str, tok->str, tok->len);
 				str[tok->len] = '\0';
 				Token *kari = token;
+				printf("compile %s\n", str);
 				compile_at(str);
 				token = kari;
 				expect("\"");

@@ -162,7 +162,10 @@ Token *tokenize(char *p) {
 			is_reserved(&p, &cur, "typedef") ||
 			is_reserved(&p, &cur, "__LINE__") ||
 			is_reserved_sign(&p, &cur, "->") ||
+			is_reserved_sign(&p, &cur, "||") ||
+			is_reserved_sign(&p, &cur, "&&") ||
 			is_reserved_sign(&p, &cur, "==") ||
+			is_reserved_sign(&p, &cur, "!=") ||
 			is_reserved_sign(&p, &cur, "+=") ||
 			is_reserved_sign(&p, &cur, "-=") ||
 			is_reserved_sign(&p, &cur, "*=") ||
