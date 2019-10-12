@@ -231,27 +231,6 @@ Hashs *search_hash(Hashs *hash, Node *scope) {
 	return NULL;
 }
 
-/*
- for (int i = 0;i < hash_table->len;i++) {
-		hash = (Hash *)hash_table->data[i];
-		if (hash->scope == scope) {
-			var->next = hash->vars;
-			var->scope = scope;
-			var->offset = hash->vars->offset + hash->vars->type->type_size;
-			hash->vars = var;
-			return hash;
-		}
-	}
-
-	// 無ければ作ってハッシュテーブルに追加
-	hash = calloc(1, sizeof(Hash));
-	hash->scope = scope;
-	hash->vars = var;
-	push_back(hash_table, hash);
-	return hash;
-	*/
-
-
 bool add_var(Node *scope, LVar *var) {
 	// ハッシュテーブルから探す
 	Hashs *hash = search_hash(hashs, scope);
@@ -339,24 +318,32 @@ Func *new_func(Func *pre, Token *tok, Type *type, LVar *args) {
  * 変数や関数、集合型、typedefを探す関数
  */
 
-/*LVar *find_lvar(Token *tok) {
-	Hash *hash;
-	for (int i = 0;i < hash_table->len;i++) {
-		hash = (Hash *)hash_table->data[i];
-		for (LVar *var = hash->vars; var; var = var->next) {
-			if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
-				return var;
-		}
-	}
-	return NULL;
-}*/
-
 LVar *find_lvar(Token *tok) {
 	Hashs *hash = search_hash(hashs, cur_scope);
 	for (;hash;hash = hash->parent) {
 		for (LVar *var = hash->vars; var; var = var->next) {
 			if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
 				return var;
+		}
+	}
+	return NULL;
+}
+
+LVar *search_enum_lvar(Hashs *hash, Token *tok) {
+	printf("%s\n", get_name(tok->str, tok->len));
+	if (!hash)
+		return NULL;
+	if (hash->scope && hash->scope->type->ty == ENUM) {
+		for (LVar *var = hash->vars; var; var = var->next) {
+			if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+				return var;
+		}
+	}
+	LVar *ans;
+	for (int i = 0;i < hash->child->len;i++) {
+		ans = search_enum_lvar((Hashs *)hash->child->data[i], tok);
+		if (ans) {
+			return ans;
 		}
 	}
 	return NULL;
@@ -597,6 +584,8 @@ Node *variable() {
 
 	if (tok) {
 		LVar *lvar = find_lvar(tok);
+		if (!lvar)
+			lvar = search_enum_lvar(hashs, tok);
 		if (lvar) {
 			node = new_node_s(ND_LVAR, tok, lvar->type);
 			node->var = lvar;
@@ -607,8 +596,13 @@ Node *variable() {
 			}
 			return node;
 		}else{
-			error_at(token->str, "その変数は宣言されていません");
+			if (!strncmp(tok->str, "NULL", tok->len)) {
+				return new_node_num(0);
+			}
 		}
+
+		error_at(token->str, "その変数は宣言されていません");
+
 	}
 
 	token = backup;
