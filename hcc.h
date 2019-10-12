@@ -140,6 +140,7 @@ typedef struct Hash {
 
 typedef struct Hashs {
 	Vec *child; // 下の階層のスコープ
+	struct Hashs *parent;
 	Node *scope;
 	LVar *vars;
 } Hashs;

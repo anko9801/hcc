@@ -93,7 +93,7 @@ void print_content(int tab, Node *node) {
 		print_lvar(tab, node->var);
 	}else{
 		for (int i = 0;i < tab;i++)
-		fprintf(stderr, "\t");
+			fprintf(stderr, "\t");
 		fprintf(stderr, "%s %s = %d\n", print_type(node->type), get_name(node->name, node->len), node->val);
 	}
 	if (node->func) {
@@ -131,7 +131,7 @@ void analyse(Node *node) {
 			break;
 
 		case ND_STRUCT:
-			print_node("STRUCT %s", get_name(node->name, node->len));
+			//print_node("STRUCT %s", get_name(node->name, node->len));
 			break;
 
 		case ND_ENUM:
@@ -149,7 +149,7 @@ void analyse(Node *node) {
 			break;
 
 		case ND_VARDECL:
-			print_node("VARDECL %s %s", print_type(node->type), get_name(node->name, node->len));
+			//print_node("VARDECL %s %s", print_type(node->type), get_name(node->name, node->len));
 			break;
 
 		case ND_ADDR:
@@ -242,8 +242,7 @@ void analyse(Node *node) {
 			break;
 
 		case ND_DECL:
-			print_node("DECL %s", get_name(node->name, node->len));
-			print_all(node);
+			//print_node("DECL %s", get_name(node->name, node->len));
 			break;
 
 		case ND_ADD: {
