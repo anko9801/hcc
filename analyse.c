@@ -95,6 +95,12 @@ void print_content(int tab, Node *node) {
 		for (int i = 0;i < tab;i++)
 			fprintf(stderr, "\t");
 		fprintf(stderr, "%s %s = %d\n", print_type(node->type), get_name(node->name, node->len), node->val);
+
+		if (node->type->ptr_to) {
+			for (int i = 0;i < tab;i++)
+				fprintf(stderr, "\t");
+			fprintf(stderr, "%s\n", print_type(node->type->ptr_to));
+		}
 	}
 	if (node->func) {
 		fprintf(stderr, "func\n");

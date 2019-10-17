@@ -67,6 +67,7 @@ typedef enum NodeKind {
 	ND_CALL,
 	ND_DECL,
 	ND_DEF,
+	ND_VARG, // 可変長引数
 	ND_ADDR,
 	ND_DEREF,
 	ND_VARDECL,
@@ -158,11 +159,12 @@ void analyse_pre(Node **node);
 void analyse(Node *node);
 char *get_name(char *name, int len);
 char *print_type(Type *type);
+void print_lvar(int tab, LVar *lvar);
 char *read_file(char *path);
 void compile_at(char *file);
 void print_all(Node *node);
 Node *aggregate_decl();
-Node *new_node(int type, Node *lhs, Node *rhs);
+Node *new_binary_node(int type, Node *lhs, Node *rhs);
 //Node *new_nodev(int type, int num, Node *sides, ...);
 Node *new_node_s(int kind, Token *tok, Type *type);
 Node *new_node_num(int val);
@@ -176,7 +178,7 @@ extern char *filename;
 
 
 //void error(char *fmt, ...);
-//void error_at(char *loc, char *fmt, ...);
+void error_at(char *loc, char *fmt, ...);
 
 /*
  * セルフホストの為のプロトタイプ宣言
@@ -186,4 +188,6 @@ void *calloc(int nitems, int size);
 int strncmp(char *str1, char *str2, int num);
 int strlen(char *str);
 int memcmp(void *ptr1, void *ptr2, int num);
+
+
 

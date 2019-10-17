@@ -87,6 +87,10 @@ Token *tokenize(char *p) {
 			int len = 0;
 			while (*p != '\'') {
 				//fprintf(stderr, "%c", *p);
+				if (*p == '\\') {
+					p++;
+					len++;
+				}
 				p++;
 				len++;
 			}
@@ -102,6 +106,10 @@ Token *tokenize(char *p) {
 			int len = 0;
 			while (*p != '\"') {
 				//fprintf(stderr, "%c", *p);
+				if (*p == '\\') {
+					p++;
+					len++;
+				}
 				p++;
 				len++;
 			}
@@ -161,6 +169,7 @@ Token *tokenize(char *p) {
 			is_reserved(&p, &cur, "include") ||
 			is_reserved(&p, &cur, "typedef") ||
 			is_reserved(&p, &cur, "__LINE__") ||
+			is_reserved_sign(&p, &cur, "...") ||
 			is_reserved_sign(&p, &cur, "->") ||
 			is_reserved_sign(&p, &cur, "||") ||
 			is_reserved_sign(&p, &cur, "&&") ||
