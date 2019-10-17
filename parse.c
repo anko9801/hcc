@@ -5,6 +5,7 @@ Token *token;
 
 // parser
 Node *code[1000];
+int pos = 0;
 
 // 変数
 LVar *locals;
@@ -435,10 +436,15 @@ Typedef *find_typedef(char *str, int len) {
 
 
 /*
+ * 本体
+ */
+void add_code(Node *node) {
+	code[pos++] = node;
+}
+
+/*
  * 出力系
  */
-
-void cu();
 /*
 void cu() {
 	int line = 0;
@@ -502,9 +508,7 @@ Type *prim_type_spec() {
 	Type *type = NULL;
 
 	Typedef *tydef = find_typedef(token->str, token->len);
-	cu();
 	if (tydef) {
-		cu();
 		token = token->next;
 		type = tydef->type;
 	}else if (consume("void")) {
@@ -640,7 +644,7 @@ Node *term() {
 
 	Node *node;
 	if (consume("(")) {
-		Node *node = expr();
+		node = expr();
 		expect(")");
 		return node;
 	}
@@ -699,7 +703,6 @@ Node *term() {
 //				| <postfix_exp> “—-"
 
 Node *postfix() {
-	// postfix(postfix(term->id)->id)
 	Node *node = term();
 	Node *rhs;
 	Token *id;
@@ -780,7 +783,7 @@ Node *unary() {
 	Token *backup = token;
 
 	if (consume("sizeof")) {
-		Token *backup = token;
+		backup = token;
 		if (consume("(")) {
 			Type *type = type_spec();
 			if (type) {
@@ -805,10 +808,13 @@ Node *unary() {
 	// キャスト
 	if (consume("(")) {
 		Type *type = type_spec();
-		if (consume(")")) {
+		if (type) {
+			expect(")");
 			Node *rhs = postfix();
 			rhs->type = type;
 			return rhs;
+		}else{
+			token = backup;
 		}
 	}
 
@@ -1112,7 +1118,10 @@ Node *initializer() {
 Node *expr() {
 	Node *node = NULL;
 	Token *backup = token;
+	cu();
+	printf("uoooooooo lvalue\n");
 	Node *lval = lvalue();
+	cu();
 
 	if (lval) {
 		Node *rval;
@@ -1165,7 +1174,9 @@ Node *expr() {
 		}
 	}else{
 		token = backup;
+		printf("uoooooooo rvalue\n");
 		node = rvalue();
+		printf("uoooooooo rvalue end\n");
 	}
 	return node;
 }
@@ -1315,12 +1326,12 @@ Node *variable_decl(int glocal) {
 	Node *node = NULL;
 	Token *backup = token;
 
-	if (consume("extern")) {
-	}
+	if (consume("extern")) {}
 	Type *ident_type = prim_type_spec();
+	Type *each_type;
 
 	if (ident_type) {
-		Type *each_type = ident_type;
+		each_type = ident_type;
 		for (;;) {
 			while (consume("*")) {
 				each_type = wrap_pointer(each_type);
@@ -1329,46 +1340,53 @@ Node *variable_decl(int glocal) {
 			Token *tok = consume_ident();
 			Node *rhs = NULL;
 
-			if (tok) {
-				// 関数チェッカー
-				if (!check("(")) {
-					if (consume("[")) {
-						int array_size = consume_number();
-						expect("]");
+			// 関数チェッカー
+			if (tok && !check("(")) {
+				if (consume("[")) {
+					int array_size = consume_number();
+					expect("]");
 
-						if (consume("=")) {
-							rhs = initializer();
-						}
-						if (array_size == -1) {
-							if (rhs->nodes)
-								array_size = rhs->nodes->len;
-							else
-								array_size = rhs->len;
-						}
-						Type *type = array_type(ident_type, array_size);
-						ident_type = type;
-					}
-
-					LVar *lvar;
-
-					lvar = make_lvar(tok, ident_type);
-					add_var(cur_scope, lvar);
-
-					Node *node = new_node_s(ND_VARDECL, tok, ident_type);
-					node->var = lvar;
-
-					// 初期化
-					if (rhs) {
-						node = new_binary_node(ND_ASSIGN, node, rhs);
-					}else if (consume("=")) {
+					if (consume("=")) {
 						rhs = initializer();
-						node = new_binary_node(ND_ASSIGN, node, rhs);
 					}
-					if (glocal == 1) expect(";");
-					return node;
+					if (array_size == -1) {
+						if (rhs->nodes)
+							array_size = rhs->nodes->len;
+						else
+							array_size = rhs->len;
+					}
+					Type *type = array_type(each_type, array_size);
+					each_type = type;
 				}
+
+				LVar *lvar;
+
+				lvar = make_lvar(tok, each_type);
+				add_var(cur_scope, lvar);
+
+				node = new_node_s(ND_VARDECL, tok, each_type);
+				node->var = lvar;
+
+				// 初期化
+				if (rhs) {
+					node = new_binary_node(ND_ASSIGN, node, rhs);
+				}else if (consume("=")) {
+					rhs = initializer();
+					node = new_binary_node(ND_ASSIGN, node, rhs);
+				}
+
+				if (!consume(",")) break;
+				else {
+					add_code(node);
+				}
+			}else{
+				token = backup;
+				return node;
 			}
 		}
+
+		if (glocal == 1) expect(";");
+		return node;
 	}
 
 	token = backup;
@@ -1512,9 +1530,7 @@ Node *struct_decl() {
 			cur_scope = prev_scope;
 
 			size = (size + 7) / 8 * 8;
-
 			aggr->type_size = size;
-
 			type = struct_type(aggr, size);
 
 			for (int i = 0;i < typedef_list->len;i++) {
@@ -1537,17 +1553,6 @@ Node *struct_decl() {
 	}
 	return node;
 }
-
-/*
- for (LVar *lvar = hash->vars; lvar; lvar = lvar->next) {
-	}
-
-	Hashs *hash_next;
-	for (int i = 0;i < hash->child->len;i++) {
-		hash_next = (Hashs *)hash->child->data[i];
-		print_variable_scope(hash_next, tab+1);
-	}
-	*/
 
 Node *enum_decl() {
 	Node *enum_node = NULL;
@@ -1633,7 +1638,6 @@ Node *enum_decl() {
 
 		size = (size + 7) / 8 * 8;
 		aggr->type_size = size;
-
 		type = enum_type(aggr, size);
 
 		// typedefの不完全型を消化
@@ -1745,14 +1749,13 @@ void program() {
 	typedef_list = new_vector();
 	hash_table = new_vector();
 	hashs = new_hash();
-	int i = 0;
 	Node *node;
 	while (!at_eof()) {
 		cu();
 		node = global();
 		if (node)
-			code[i++] = node;
+			add_code(node);
 	}
 	print_variable_scope(hashs, 0);
-	code[i] = NULL;
+	code[pos] = NULL;
 }
