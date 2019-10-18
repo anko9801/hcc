@@ -23,10 +23,6 @@ void gen_global_ascii(char *val) {
 	printf("	.ascii \"%s\\0\"\n", val);
 }
 
-void gen_global_asciz(char *val) {
-	printf("	.asciz \"%s\"\n", val);
-}
-
 void gen_global_string(char *val) {
 	printf("	.string \"%s\"\n", val);
 }
@@ -37,36 +33,21 @@ void gen_global_array(Node *lhs, Node *rhs) {
 		case ND_INITIALIZER:
 			for (int i = 0; i < rhs->nodes->len; i++) {
 				node = (Node *)rhs->nodes->data[i];
-				switch (node->type->ty) {
-					case INT:
-						gen_global_int(node->val);
-						break;
-					case CHAR:
-						gen_global_char(get_name(node->name, node->len));
-						break;
-					default:
-						break;
-				}
+				if (node->type->ty == INT)
+					printf("	.long %d\n", node->val);
+				if (node->type->ty == CHAR)
+					printf("	.byte '%s'\n", get_name(node->name, node->len));
 			}
-			// 余分なものを0で埋める
 			for (int i = rhs->nodes->len; i < lhs->type->array_size;i++) {
-				switch (node->type->ty) {
-					case INT:
-						gen_global_int(0);
-						break;
-					case CHAR:
-						printf("	.byte 0\n");
-						break;
-					default:
-						break;
-				}
+				if (node->type->ty == INT)
+					printf("	.long 0\n");
+				if (node->type->ty == CHAR)
+					printf("	.byte 0\n");
 			}
 			break;
-
 		case ND_STRING:
-			gen_global_ascii(get_name(rhs->name, rhs->len));
+			printf("	.ascii \"%s\\0\"\n", get_name(rhs->name, rhs->len));
 			break;
-
 		default:
 			break;
 	}
@@ -77,8 +58,7 @@ char *gen_global_ptr_sub(Node *rhs) {
 
 	switch (rhs->kind) {
 		case ND_ADDR:
-			snprintf(buffer, 100, "%s",
-					gen_global_ptr_sub(rhs->side[0]));
+			snprintf(buffer, 100, "%s", gen_global_ptr_sub(rhs->side[0]));
 			return buffer;
 
 		case ND_ADD:
@@ -94,13 +74,10 @@ char *gen_global_ptr_sub(Node *rhs) {
 			return buffer;
 
 		case ND_LVAR:
-			snprintf(buffer, 100, "%s", get_name(rhs->name, rhs->len));
-			return buffer;
-
-		case ND_NUM:
-			snprintf(buffer, 100, "%d", rhs->val);
-			return buffer;
-
+			
+		case ND_STRING:
+			gen_global_ascii(get_name(rhs->name, rhs->len));
+			break;
 		default:
 			break;
 	}
@@ -112,14 +89,15 @@ void gen_global_ptr(Node *rhs) {
 			printf("	.ascii \"%s\\0\"\n", get_name(rhs->name, rhs->len));
 			break;
 		default:
-			printf("	.quad %s\n", gen_global_ptr_sub(rhs->side[0]));
+			printf("	.quad ");
+			gen_global_ptr_sub(rhs->side[0]);
+			printf("\n");
 			break;
 	}
 }
 
-void gen_global(Node *code) {
-	Node *lhs, *rhs;
-
+void gen_global_scope(Node *code) {
+	Node *node, *lhs, *rhs;
 	switch (code->kind) {
 		case ND_VARDECL:
 			printf("%s:\n", get_name(code->name, code->len));
@@ -142,7 +120,7 @@ void gen_global(Node *code) {
 					gen_global_array(lhs, rhs);
 					break;
 				case PTR:
-					gen_global_ptr(rhs);
+
 					break;
 				default:
 					break;
@@ -162,7 +140,84 @@ void gen_strings() {
 	for (int i = 0;strings->data[i];i++) {
 		Token *tok = (Token *)strings->data[i];
 		printf(".LC%d:\n", i);
-		gen_global_string(get_name(tok->str, tok->len));
+		printf("	.string \"%s\"\n", get_name(tok->str, tok->len));
+	}
+}
+
+void gen_global(Node *code) {
+	Node *node, *lhs, *rhs;
+	switch (code->kind) {
+	case ND_VARDECL:
+		printf("%s:\n", get_name(code->name, code->len));
+		printf("	.zero %d\n", code->type->type_size);
+		break;
+
+	case ND_ASSIGN:
+		lhs = code->side[0];
+		rhs = code->side[1];
+
+		switch (lhs->type->ty) {
+		case INT:
+			gen_global_int_var(get_name(lhs->name, lhs->len), rhs->val);
+			break;
+		case CHAR:
+			gen_global_char_var(get_name(lhs->name, lhs->len), get_name(rhs->name, rhs->len));
+			break;
+		case ARRAY: {
+			Node *node;
+			switch (rhs->kind) {
+			case ND_INITIALIZER:
+				for (int i = 0; i < rhs->nodes->len; i++) {
+					node = (Node *)rhs->nodes->data[i];
+					if (node->type->ty == INT)
+						printf("	.long %d\n", node->val);
+					if (node->type->ty == CHAR)
+						printf("	.byte '%s'\n", get_name(node->name, node->len));
+				}
+				for (int i = rhs->nodes->len; i < lhs->type->array_size;i++) {
+					if (node->type->ty == INT)
+						printf("	.long 0\n");
+					if (node->type->ty == CHAR)
+						printf("	.byte 0\n");
+				}
+				break;
+			case ND_STRING:
+				printf("	.ascii \"%s\\0\"\n", get_name(rhs->name, rhs->len));
+				break;
+			default:
+				break;
+			}
+			break;
+		}
+
+		case PTR:
+			switch (rhs->kind) {
+			case ND_ADDR:
+				printf("	.quad %s\n", get_name(rhs->side[0]->name, rhs->side[0]->len));
+				break;
+			case ND_ADD:
+				printf("	.quad %s + %d\n", get_name(rhs->side[0]->name, rhs->side[0]->len), rhs->side[1]->val);
+				break;
+			case ND_SUB:
+				printf("	.quad %s - %d\n", get_name(rhs->side[0]->name, rhs->side[0]->len), rhs->side[1]->val);
+				break;
+			case ND_STRING:
+				printf("	.ascii \"%s\\0\"\n", get_name(rhs->name, rhs->len));
+				break;
+			default:
+				break;
+			}
+			break;
+		default:
+			break;
+		}
+		break;
+	case ND_DEF:
+		gen(code);
+		break;
+
+	default:
+		break;
 	}
 }
 
