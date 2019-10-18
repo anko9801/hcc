@@ -1,9 +1,5 @@
 #include "hcc.h"
-
-// 入力プログラム
-char *user_input;
-// 入力ファイル名
-char *filename;
+#include "error.h"
 
 // エラーを報告するための関数
 // printfと同じ引数を取る

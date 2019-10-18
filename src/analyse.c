@@ -1,6 +1,6 @@
 #include "hcc.h"
+#include "analyse.h"
 
-int tab = -1;
 void print_node(char *fmt, ...) {
 	for (int i = 0; i < tab; i++) {
 		fprintf(stderr, "  ");
@@ -10,10 +10,6 @@ void print_node(char *fmt, ...) {
 	vfprintf(stderr, fmt, ap);
 	fprintf(stderr, "\n");
 }
-
-char type_char[30] = "";
-char kari_char[30] = "";
-void print_content(int tab, Node *node);
 
 void print_aggr(int tab, Aggregate *aggr) {
 	for (int i = 0;i < aggr->elem->len;i++)
@@ -155,7 +151,7 @@ void analyse(Node *node) {
 			break;
 
 		case ND_VARDECL:
-			//print_node("VARDECL %s %s", print_type(node->type), get_name(node->name, node->len));
+			print_node("VARDECL %s %s", print_type(node->type), get_name(node->name, node->len));
 			break;
 
 		case ND_ADDR:
@@ -196,6 +192,7 @@ void analyse(Node *node) {
 			analyse(node->side[1]);
 			print_node("ELSE");
 			analyse(node->side[2]);
+			tab--;
 			break;
 
 		case ND_WHILE:
@@ -214,6 +211,7 @@ void analyse(Node *node) {
 			analyse(node->side[2]);
 			print_node("LOOP");
 			analyse(node->side[3]);
+			tab++;
 			break;
 		
 		case ND_BREAK:
@@ -225,7 +223,7 @@ void analyse(Node *node) {
 			break;
 
 		case ND_BLOCK:
-			tab--;
+			//tab--;
 			for (int i = 0;i < node->nodes->len;i++) {
 				analyse((Node*)node->nodes->data[i]);
 			}
@@ -256,12 +254,12 @@ void analyse(Node *node) {
 			Node *rhs = node->side[1];
 
 			if (lhs->type->ty == PTR && lhs->type->ptr_to) {
-				rhs = new_node(ND_MUL, rhs, new_node_num(lhs->type->ptr_to->type_size));
+				rhs = new_binary_node(ND_MUL, rhs, new_node_num(lhs->type->ptr_to->type_size));
 				rhs->type = lhs->type;
 				node->side[0] = lhs;
 				node->side[1] = rhs;
 			}else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
-				lhs = new_node(ND_MUL, lhs, new_node_num(rhs->type->ptr_to->type_size));
+				lhs = new_binary_node(ND_MUL, lhs, new_node_num(rhs->type->ptr_to->type_size));
 				lhs->type = rhs->type;
 				node->side[0] = lhs;
 				node->side[1] = rhs;
@@ -271,6 +269,18 @@ void analyse(Node *node) {
 				node->type = lhs->type;
 				node->val = lhs->val + rhs->val;
 				print_node("NUM %d", node->val);
+				break;
+			}
+			if (lhs->kind == ND_NUM && lhs->val == 0) {
+				node->kind = rhs->kind;
+				node->type = rhs->type;
+				analyse(rhs);
+				break;
+			}
+			if (rhs->kind == ND_NUM && rhs->val == 0) {
+				node->kind = lhs->kind;
+				node->type = lhs->type;
+				analyse(lhs);
 				break;
 			}
 			print_node("ADD");
@@ -283,12 +293,12 @@ void analyse(Node *node) {
 			Node *lhs = node->side[0];
 			Node *rhs = node->side[1];
 			if (lhs->type->ty == PTR && lhs->type->ptr_to) {
-				rhs = new_node(ND_MUL, rhs, new_node_num(lhs->type->ptr_to->type_size));
+				rhs = new_binary_node(ND_MUL, rhs, new_node_num(lhs->type->ptr_to->type_size));
 				rhs->type = lhs->type;
 				node->side[0] = lhs;
 				node->side[1] = rhs;
 			}else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
-				lhs = new_node(ND_MUL, lhs, new_node_num(rhs->type->ptr_to->type_size));
+				lhs = new_binary_node(ND_MUL, lhs, new_node_num(rhs->type->ptr_to->type_size));
 				lhs->type = rhs->type;
 				node->side[0] = lhs;
 				node->side[1] = rhs;

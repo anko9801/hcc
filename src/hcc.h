@@ -186,11 +186,10 @@ void error_at(char *loc, char *fmt, ...);
 
 void *calloc(int nitems, int size);
 int strncmp(char *str1, char *str2, int num);
+char *strncpy(char *destination, char *source, int num);
 int strlen(char *str);
 int memcmp(void *ptr1, void *ptr2, int num);
 int printf(char *str);
 
 void cu();
-
-
-
+void print_variable_scope(Hashs *hash, int tab);

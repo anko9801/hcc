@@ -1,27 +1,5 @@
 #include "hcc.h"
-
-// 現在着目しているトークン
-Token *token;
-
-// parser
-Node *code[1000];
-int pos = 0;
-
-// 変数
-LVar *locals;
-LVar *globals;
-// Hash
-Vec *hash_table;
-Hashs *hashs;
-
-Node *cur_scope;
-
-Func *funcs;
-Func *extern_funcs;
-
-Vec *strings;
-Vec *typedef_list;
-Vec *aggr_list;
+#include "parse.h"
 
 /*
  * 型を作るための関数
@@ -442,6 +420,10 @@ void add_code(Node *node) {
 	code[pos++] = node;
 }
 
+void add_cur_scope_code(Node *node) {
+	push_back(cur_nodes, node);
+}
+
 /*
  * 出力系
  */
@@ -493,16 +475,6 @@ void print_variable_scope(Hashs *hash, int tab) {
 /*
  * パーサ本体
  */
-
-Node *expr();
-Node *stmt();
-Node *stmts();
-Node *rvalue();
-Node *initializer();
-Node *variable_decl(int glocal);
-Node *dot(Node *node);
-Node *variable();
-Node *call_func();
 
 Type *prim_type_spec() {
 	Type *type = NULL;
@@ -640,7 +612,7 @@ Node *variable() {
 
 Node *term() {
 	// 次のトークンが"("なら、"(" expr ")"のはず
-	cu();
+	//cu();
 
 	Node *node;
 	if (consume("(")) {
@@ -690,6 +662,7 @@ Node *term() {
 		return new_node_num(val);
 
 	//error_at(token->str, "項がありません");
+	cu();
 	return NULL;
 }
 
@@ -706,9 +679,11 @@ Node *postfix() {
 	Node *node = term();
 	Node *rhs;
 	Token *id;
+	Token *backup = token;
 
 	if (!node) return node;
 	for (;;) {
+		backup = token;
 		if (consume(".")) {
 			if (node->type->ty == STRUCT) {
 				id = consume_ident();
@@ -719,10 +694,14 @@ Node *postfix() {
 				}else{
 					error_at(token->str, "構造体のドット演算子のrhsが存在しません");
 				}
+			}else{
+				token = backup;
 			}
 
 		}else if (consume("->")) {
 			if (node->type->ty == PTR && node->type->ptr_to->ty == STRUCT) {
+				// A->B->C[a]
+				// *((*(*A).B).C + a)
 				id = consume_ident();
 				Node *var = find_aggr_elem(node, id->str, id->len);
 
@@ -735,6 +714,8 @@ Node *postfix() {
 				}else{
 					error_at(token->str, "構造体のアロー演算子のrhsが存在しません");
 				}
+			}else{
+				token = backup;
 			}
 		}else if (consume("[")) {
 			rhs = rvalue();
@@ -753,7 +734,6 @@ Node *postfix() {
 			node = new_binary_node(ND_ADD, node, rhs);
 			node = new_node(ND_DEREF, node);
 			node->type = type;
-
 
 		}else{
 			break;
@@ -800,7 +780,6 @@ Node *unary() {
 			else
 				return new_node_num(0);
 		}else{
-			
 			return NULL;
 		}
 	}
@@ -811,6 +790,7 @@ Node *unary() {
 		if (type) {
 			expect(")");
 			Node *rhs = postfix();
+			if (!rhs) return rhs;
 			rhs->type = type;
 			return rhs;
 		}else{
@@ -832,6 +812,8 @@ Node *unary() {
 		return new_node(ND_NOT, unary());
 	if (consume("*")) {
 		node = unary();
+
+		if (!node) return node;
 
 		// PTRならばそのDEREFした型を代入
 		if (node->type && node->type->ty == PTR) {
@@ -912,6 +894,7 @@ Node *sht_expr() {
 Node *relational() {
 	Node *node = sht_expr();
 
+	if (!node) return node;
 	for (;;) {
 		if (consume("<"))
 			if (consume("="))
@@ -1013,8 +996,6 @@ Node *dot(Node *node) {
 					node->type = type;
 					node = new_binary_node(ND_DOT, node, var);
 					node->type = var->type;
-					print_all(node);
-					//return node;
 				}else{
 					error_at(token->str, "構造体のアロー演算子のrhsが存在しません");
 				}
@@ -1118,10 +1099,7 @@ Node *initializer() {
 Node *expr() {
 	Node *node = NULL;
 	Token *backup = token;
-	cu();
-	printf("uoooooooo lvalue\n");
 	Node *lval = lvalue();
-	cu();
 
 	if (lval) {
 		Node *rval;
@@ -1174,9 +1152,8 @@ Node *expr() {
 		}
 	}else{
 		token = backup;
-		printf("uoooooooo rvalue\n");
 		node = rvalue();
-		printf("uoooooooo rvalue end\n");
+		cu();
 	}
 	return node;
 }
@@ -1228,6 +1205,8 @@ Node *stmt() {
 
 	if (consume("return")) {
 		node = expr();
+		if (!node)
+			node = new_node_num(0);
 		node = new_node(ND_RETURN, node);
 		expect(";");
 
@@ -1304,13 +1283,16 @@ Node *stmts() {
 
 	if (consume("{")) {
 		Vec *nodes = new_vector();
+		Vec *kari = cur_nodes;
+		cur_nodes = nodes;
 		for(;;) {
-			cu();
+			//cu();
 			push_back(nodes, stmt());
 			if (consume("}"))
 				break;
 		}
 
+		cur_nodes = kari;
 		node = calloc(1, sizeof(Node));
 		node->kind = ND_BLOCK;
 		node->nodes = nodes;
@@ -1331,8 +1313,8 @@ Node *variable_decl(int glocal) {
 	Type *each_type;
 
 	if (ident_type) {
-		each_type = ident_type;
 		for (;;) {
+			each_type = ident_type;
 			while (consume("*")) {
 				each_type = wrap_pointer(each_type);
 			}
@@ -1377,7 +1359,7 @@ Node *variable_decl(int glocal) {
 
 				if (!consume(",")) break;
 				else {
-					add_code(node);
+					add_cur_scope_code(node);
 				}
 			}else{
 				token = backup;
@@ -1405,14 +1387,13 @@ Node *func_decl_or_def() {
 	Node *node = NULL;
 	Token *backup = token;
 
-	if (consume("extern")) {
-	}
-
+	if (consume("extern")) {}
 	Type *ident_type = type_spec();
 	locals = init_variable_list();
 
 	if (ident_type) {
 		Token *tok = consume_ident();
+
 		if (tok) {
 			// 関数
 			if (consume("(")) {
@@ -1700,7 +1681,7 @@ Typedef *typedef_decl() {
 	return NULL;
 }
 
-bool include() {
+bool include_file() {
 	if (consume("#")) {
 		if (consume("include")) {
 			if (consume("\"")) {
@@ -1729,7 +1710,7 @@ bool include() {
 Node *global() {
 	Node *node;
 
-	if (include()) return NULL;
+	if (include_file()) return NULL;
 	if (typedef_decl()) return NULL;
 	node = aggregate_decl();
 	if (consume(";") && node) return node;
@@ -1751,11 +1732,12 @@ void program() {
 	hashs = new_hash();
 	Node *node;
 	while (!at_eof()) {
-		cu();
+		//cu();
 		node = global();
 		if (node)
 			add_code(node);
 	}
 	print_variable_scope(hashs, 0);
 	code[pos] = NULL;
+	return;
 }

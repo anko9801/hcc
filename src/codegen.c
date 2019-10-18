@@ -1,23 +1,5 @@
 #include "hcc.h"
-
-int if_cnt = 0;
-int while_cnt = 0;
-int for_cnt = 0;
-int call_cnt = 0;
-int rsp = 0;
-extern Node *new_node(int type, Node *lhs, Node *rhs);
-extern Node *new_node_num(int val);
-extern LVar *globals;
-extern Vec *strings;
-
-char kari[100];
-
-typedef struct {
-	int which; // while: 1, for: 2
-	int nth;
-} loop_info;
-
-loop_info cur_loop = {0, 0};
+#include "codegen.h"
 
 char *get_name(char *name, int len) {
 	strncpy(kari, name, len);
@@ -49,14 +31,6 @@ void gen_funcs(Func *funcs) {
 	}
 }
 
-void gen_strings() {
-	for (int i = 0;strings->data[i];i++) {
-		Token *tok = (Token *)strings->data[i];
-		printf(".LC%d:\n", i);
-		printf("	.string \"%s\"\n", get_name(tok->str, tok->len));
-	}
-}
-
 void gen_push(char *reg) {
 	printf("	push %s\n", reg);
 	rsp += 8;
@@ -65,6 +39,79 @@ void gen_push(char *reg) {
 void gen_pop(char *reg) {
 	printf("	pop %s\n", reg);
 	rsp -= 8;
+}
+
+void gen_global_int_var(char *name, int val) {
+	printf("%s:\n", name);
+	printf("	.long %d\n", val);
+}
+
+void gen_global_char_var(char *name, char *val) {
+	printf("%s:\n", name);
+	printf("	.byte '%s'\n", val);
+}
+
+void gen_global_string_var(char *name, char *val) {
+	printf("%s:\n", name);
+	printf("	.ascii \"%s\\0\"\n", val);
+}
+
+void gen_global_string(char *name, char *val) {
+	printf("%s:\n", name);
+	printf("	.string \"%s\"\n", val);
+}
+
+void gen_strings() {
+	for (int i = 0;strings->data[i];i++) {
+		Token *tok = (Token *)strings->data[i];
+		printf(".LC%d:\n", i);
+		printf("	.string \"%s\"\n", get_name(tok->str, tok->len));
+	}
+}
+
+void gen_global_ptr_var(Node *rhs) {
+	switch (rhs->kind) {
+		case ND_ADDR:
+			printf("	.quad %s\n", get_name(rhs->side[0]->name, rhs->side[0]->len));
+			break;
+		case ND_ADD:
+			printf("	.quad %s + %d\n", get_name(rhs->side[0]->name, rhs->side[0]->len), rhs->side[1]->val);
+			break;
+		case ND_SUB:
+			printf("	.quad %s - %d\n", get_name(rhs->side[0]->name, rhs->side[0]->len), rhs->side[1]->val);
+			break;
+		case ND_STRING:
+			printf("	.ascii \"%s\\0\"\n", get_name(rhs->name, rhs->len));
+			break;
+		default:
+			break;
+	}
+}
+
+void gen_global_array(Node *rhs) {
+	Node *node;
+	switch (rhs->kind) {
+		case ND_INITIALIZER:
+			for (int i = 0; i < rhs->nodes->len; i++) {
+				node = (Node *)rhs->nodes->data[i];
+				if (node->type->ty == INT)
+					printf("	.long %d\n", node->val);
+				if (node->type->ty == CHAR)
+					printf("	.byte '%s'\n", get_name(node->name, node->len));
+			}
+			for (int i = rhs->nodes->len; i < lhs->type->array_size;i++) {
+				if (node->type->ty == INT)
+					printf("	.long 0\n");
+				if (node->type->ty == CHAR)
+					printf("	.byte 0\n");
+			}
+			break;
+		case ND_STRING:
+			printf("	.ascii \"%s\\0\"\n", get_name(rhs->name, rhs->len));
+			break;
+		default:
+			break;
+	}
 }
 
 void gen_global(Node *code) {
@@ -79,16 +126,13 @@ void gen_global(Node *code) {
 		lhs = code->side[0];
 		rhs = code->side[1];
 
-		//print_all(lhs);
 		switch (lhs->type->ty) {
 		case INT:
-			printf("	.long %d\n", rhs->val);
+			gen_global_int_var(get_name(lhs->name, lhs->len), rhs->val);
 			break;
-
 		case CHAR:
-			printf("	.byte '%s'\n", get_name(rhs->name, rhs->len));
+			gen_global_char_var(get_name(lhs->name, lhs->len), get_name(rhs->name, rhs->len));
 			break;
-
 		case ARRAY: {
 			Node *node;
 			switch (rhs->kind) {
@@ -110,6 +154,8 @@ void gen_global(Node *code) {
 			case ND_STRING:
 				printf("	.ascii \"%s\\0\"\n", get_name(rhs->name, rhs->len));
 				break;
+			default:
+				break;
 			}
 			break;
 		}
@@ -128,7 +174,11 @@ void gen_global(Node *code) {
 			case ND_STRING:
 				printf("	.ascii \"%s\\0\"\n", get_name(rhs->name, rhs->len));
 				break;
+			default:
+				break;
 			}
+			break;
+		default:
 			break;
 		}
 		break;
@@ -156,6 +206,8 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 
 char *gen_type(Type *type) {
 	switch (type->ty) {
+	case VOID:
+		return "";
 	case INT:
 		return "DWORD PTR";
 	case CHAR:
@@ -164,13 +216,17 @@ char *gen_type(Type *type) {
 		return "QWORD PTR";
 	case ARRAY:
 		return "QWORD PTR";
-	default:
-		error("知らない型です");
+
+	case STRUCT:
+		return "QWORD PTR";
+	case ENUM:
+		return "DWORD PTR";
 	}
 }
 
 void gen_lvalue(Node *node) {
 	char str[100];
+
 	switch (node->kind) {
 	case ND_LVAR:
 		if (node->var->scope == 0) {
@@ -198,10 +254,14 @@ void gen_lvalue(Node *node) {
 		return;
 
 	case ND_DOT:
-		gen_lvalue(node->side[0]);
-		gen_pop("rax");
-		printf("	lea rax, [rax-%d]\n", node->side[1]->var->offset);
-		gen_push("rax");
+		if (node->side[1]->var) {
+			gen_lvalue(node->side[0]);
+			gen_pop("rax");
+			printf("	lea rax, [rax-%d]\n", node->side[1]->var->offset);
+			gen_push("rax");
+		}else{
+			gen(node->side[0]);
+		}
 		return;
 
 	default:
@@ -231,32 +291,41 @@ void gen_assign(Type *type) {
 }
 
 char *gen_cond(Node *node) {
-	//fprintf(stderr, "cond\n");
-	gen(node->side[0]);
-	gen(node->side[1]);
-	gen_pop("rax");
-	gen_pop("rbx");
+	if (node) {
+		if (node->side[0] && node->side[1]) {
+			gen(node->side[0]);
+			gen(node->side[1]);
+			gen_pop("rax");
+			gen_pop("rbx");
 
-	printf("	cmp rax, rbx\n");
+			printf("	cmp rax, rbx\n");
+		}else{
+			gen(node);
+			gen_pop("rax");
+			printf("	cmp rax, 0\n");
+			return "je";
+		}
 
-	switch(node->kind) {
-	case ND_LT:
-		return "jl";
-	case ND_LE:
-		return "jle";
-	case ND_EQ:
-		return "je";
-	case ND_NE:
-		return "jne";
-	default:
-		error("条件式の中に知らないものが入ってます\n");
-		return NULL;
+		switch(node->kind) {
+			case ND_LT:
+				return "jl";
+			case ND_LE:
+				return "jle";
+			case ND_EQ:
+				return "je";
+			case ND_NE:
+				return "jne";
+			default:
+				//error("条件式の中に知らないものが入ってます\n");
+				return NULL;
+		}
 	}
 }
 
 void gen(Node *node) {
 	char str[100];
 	char *args_list[6] = {"di", "si", "dx", "cx", "8", "9"};
+	if (!node) return;
 	switch (node->kind) {
 	case ND_NUM:
 		snprintf(kari, 100, "%d", node->val);
@@ -284,12 +353,12 @@ void gen(Node *node) {
 	case ND_DOT:
 		gen_lvalue(node);
 		gen_pop("rax");
+		if (node->side[1]->var)
 		gen_mov(node->side[1]->var->type);
 		gen_push("rax");
 		return;
 
 	case ND_LVAR:
-		//fprintf(stderr, "lvar\n");
 		gen_lvalue(node);
 
 		gen_pop("rax");
@@ -298,17 +367,13 @@ void gen(Node *node) {
 		return;
 
 	case ND_VARDECL:
-		//fprintf(stderr, "vardecl\n");
-		//print_all(node);
 		return;
 
 	case ND_ADDR:
-		//fprintf(stderr, "addr\n");
 		gen_lvalue(node->side[0]);
 		return;
 
 	case ND_DEREF:
-		//fprintf(stderr, "deref\n");
 		gen(node->side[0]);
 
 		gen_pop("rax");
@@ -520,6 +585,9 @@ void gen(Node *node) {
 		return;
 	case ND_DECL:
 		return;
+
+	default:
+		break;
 	}
 
 	gen(node->side[0]);
@@ -588,7 +656,8 @@ void gen(Node *node) {
 		break;
 
 	default:
-		error("I don't know this nodekind\n");
+		printf("test");
+		//error("I don't know this nodekind\n");
 	}
 
 	gen_push("rax");

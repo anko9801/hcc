@@ -1,9 +1,5 @@
 #include "hcc.h"
-
-// 現在着目しているトークン
-Token *token;
-
-int line = 0;
+#include "token.h"
 
 int is_alnum(char c) {
 	return	('a' <= c && c <= 'z') ||
