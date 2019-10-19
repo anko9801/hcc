@@ -37,8 +37,6 @@ void compile(char *src, char *file) {
 	fprintf(stderr, "complete parsing of %s\n", file);
 	analyse_pre(code);
 	fprintf(stderr, "complete making AST of %s\n", file);
-	gen_pre(code, funcs, extern_funcs);
-	fprintf(stderr, "complete Code Generating of %s\n", file);
 	user_input = prev_input;
 	filename = prev_filename;
 }
@@ -53,6 +51,11 @@ int main(int argc, char **argv) {
 		return 0;
 	}
 
+	aggr_list = new_vector();
+	typedef_list = new_vector();
+	hashs = new_hash();
 	compile_at(argv[1]);
+	gen_pre(code, funcs, extern_funcs);
+	fprintf(stderr, "complete Code Generating of %s\n", argv[1]);
 	return 0;
 }

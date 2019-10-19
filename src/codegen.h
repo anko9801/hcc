@@ -112,3 +112,7 @@ char *regs8[16] = {
 	"r14b",
 	"r15b",
 };
+
+int args_list[6] = {
+	RDI, RSI, RDX, RCX, R8, R9
+};

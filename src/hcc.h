@@ -168,6 +168,10 @@ Node *new_binary_node(int type, Node *lhs, Node *rhs);
 //Node *new_nodev(int type, int num, Node *sides, ...);
 Node *new_node_s(int kind, Token *tok, Type *type);
 Node *new_node_num(int val);
+Hashs *new_hash();
+
+void gen_extern(Func *extern_funcs);
+void gen_funcs(Func *funcs);
 
 extern char *user_input;
 extern Token *token;
@@ -176,6 +180,10 @@ extern Func *funcs;
 extern Func *extern_funcs;
 extern char *filename;
 
+extern Hashs *hashs;
+extern Vec *strings;
+extern Vec *typedef_list;
+extern Vec *aggr_list;
 
 //void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);

@@ -102,7 +102,7 @@ char *gen_global_ptr_sub(Node *rhs) {
 			return buffer;
 
 		default:
-			break;
+			return "";
 	}
 }
 
@@ -205,31 +205,32 @@ void gen_pre(Node **code, Func *funcs, Func *extern_funcs) {
 
 	gen_extern(extern_funcs);
 	gen_funcs(funcs);
-	gen_strings();
 
 	Node *lhs, *rhs;
 	for (int i = 0;code[i];i++) {
 		gen_global(code[i]);
 	}
+
+	gen_strings();
 }
 
 char *gen_type(Type *type) {
 	switch (type->ty) {
-	case VOID:
-		return "";
-	case INT:
-		return "DWORD PTR";
-	case CHAR:
-		return "BYTE PTR";
-	case PTR:
-		return "QWORD PTR";
-	case ARRAY:
-		return "QWORD PTR";
+		case VOID:
+			return "";
+		case INT:
+			return "DWORD PTR";
+		case CHAR:
+			return "BYTE PTR";
+		case PTR:
+			return "QWORD PTR";
+		case ARRAY:
+			return "QWORD PTR";
 
-	case STRUCT:
-		return "QWORD PTR";
-	case ENUM:
-		return "DWORD PTR";
+		case STRUCT:
+			return "QWORD PTR";
+		case ENUM:
+			return "DWORD PTR";
 	}
 }
 
@@ -240,17 +241,17 @@ void gen_lvalue(Node *node) {
 	case ND_LVAR:
 		if (node->var->scope == 0) {
 			printf("	lea rax, [rbp-%d]\n", node->var->offset);
-			gen_push("rax");
+			gen_push(regs64[RAX]);
 		}else{
 			printf("	lea rax, %s [rip + %s@GOTPCREL]\n", gen_type(node->var->type), get_name(node->var->name, node->var->len));
-			gen_push("rax");
+			gen_push(regs64[RAX]);
 		}
 		return;
 
 	case ND_VARDECL:
 		if (node->var->scope == 0) {
 			printf("	lea rax, [rbp-%d]\n", node->var->offset);
-			gen_push("rax");
+			gen_push(regs64[RAX]);
 		}
 		return;
 
@@ -265,9 +266,9 @@ void gen_lvalue(Node *node) {
 	case ND_DOT:
 		if (node->side[1]->var) {
 			gen_lvalue(node->side[0]);
-			gen_pop("rax");
+			gen_pop(regs64[RAX]);
 			printf("	lea rax, [rax-%d]\n", node->side[1]->var->offset);
-			gen_push("rax");
+			gen_push(regs64[RAX]);
 		}else{
 			gen(node->side[0]);
 		}
@@ -304,13 +305,12 @@ char *gen_cond(Node *node) {
 		if (node->side[0] && node->side[1]) {
 			gen(node->side[0]);
 			gen(node->side[1]);
-			gen_pop("rax");
-			gen_pop("rbx");
-
+			gen_pop(regs64[RAX]);
+			gen_pop(regs64[RBX]);
 			printf("	cmp rax, rbx\n");
 		}else{
 			gen(node);
-			gen_pop("rax");
+			gen_pop(regs64[RAX]);
 			printf("	cmp rax, 0\n");
 			return "je";
 		}
@@ -329,11 +329,12 @@ char *gen_cond(Node *node) {
 				return NULL;
 		}
 	}
+	return "";
 }
 
 void gen(Node *node) {
 	char str[100];
-	char *args_list[6] = {"di", "si", "dx", "cx", "8", "9"};
+
 	if (!node) return;
 	switch (node->kind) {
 	case ND_NUM:
@@ -349,7 +350,7 @@ void gen(Node *node) {
 				break;
 		}
 		printf("	lea rax, qword ptr [rip + .LC%d]\n", i);
-		gen_push("rax");
+		gen_push(regs64[RAX]);
 		return;
 	}
 
@@ -361,18 +362,18 @@ void gen(Node *node) {
 
 	case ND_DOT:
 		gen_lvalue(node);
-		gen_pop("rax");
+		gen_pop(regs64[RAX]);
 		if (node->side[1]->var)
 		gen_mov(node->side[1]->var->type);
-		gen_push("rax");
+		gen_push(regs64[RAX]);
 		return;
 
 	case ND_LVAR:
 		gen_lvalue(node);
 
-		gen_pop("rax");
+		gen_pop(regs64[RAX]);
 		gen_mov(node->type);
-		gen_push("rax");
+		gen_push(regs64[RAX]);
 		return;
 
 	case ND_VARDECL:
@@ -385,29 +386,27 @@ void gen(Node *node) {
 	case ND_DEREF:
 		gen(node->side[0]);
 
-		gen_pop("rax");
+		gen_pop(regs64[RAX]);
 		gen_mov(node->type);
-		gen_push("rax");
+		gen_push(regs64[RAX]);
 		return;
 
 	case ND_NOT:
 		gen(node->side[0]);
-		gen_pop("rax");
+		gen_pop(regs64[RAX]);
 		printf("	not eax\n");
-		gen_push("rax");
+		gen_push(regs64[RAX]);
 		return;
 
 	case ND_ASSIGN: {
-		//fprintf(stderr, "assign\n");
 		Node *lhs = node->side[0];
 		Node *rhs = node->side[1];
-		//print_all(lhs);
 
 		if (rhs->kind == ND_INITIALIZER) {
 			for (int i = 0; i < rhs->nodes->len;i++) {
 				Node *node = (Node*)rhs->nodes->data[i];
 				gen(node);
-				gen_pop("rax");
+				gen_pop(regs64[RAX]);
 				if (node->type->ty == INT && lhs->type->ty == INT)
 					printf("	mov %s [rbp-%d], eax\n", gen_type(lhs->type), lhs->var->offset + i * lhs->type->type_size / lhs->type->array_size);
 				else
@@ -423,8 +422,8 @@ void gen(Node *node) {
 			gen_lvalue(node->side[0]);
 			gen(node->side[1]);
 
-			gen_pop("rbx");
-			gen_pop("rax");
+			gen_pop(regs64[RBX]);
+			gen_pop(regs64[RAX]);
 			gen_assign(node->side[1]->type);
 			//printf("	push rbx\n");
 		}
@@ -543,19 +542,11 @@ void gen(Node *node) {
 	case ND_CALL:
 		for (int i = 0;i < node->nodes->len && i < 6;i++) {
 			gen((Node*)node->nodes->data[i]);
-			snprintf(kari, 100, "r%s", args_list[i]);
+			snprintf(kari, 100, "%s", regs64[args_list[i]]);
 			gen_pop(kari);
 		}
 
 		printf("	mov rax, %d\n", node->nodes->len);
-
-		/*if (rsp % 16 == 0) {
-			printf("	call _%s\n", get_name(node->name, node->len));
-		}else{
-			gen_push("rsi");
-			printf("	call _%s\n", get_name(node->name, node->len));
-			gen_pop("rsi");
-		}*/
 
 		printf("	test rsp, 15\n");
 		printf("	jne call.else%d\n", call_cnt);
@@ -567,7 +558,7 @@ void gen(Node *node) {
 		printf("	pop rsi\n");
 		printf("call.end%d:\n", call_cnt);
 
-		gen_push("rax");
+		gen_push(regs64[RAX]);
 		call_cnt++;
 		return;
 
@@ -581,11 +572,11 @@ void gen(Node *node) {
 		arg = arg->next;
 		for (int i = 0;i < 6 && arg;i++) {
 			if (node->type->ty == CHAR) {
-				printf("	movsx %s [rbp-%d], e%s\n", gen_type(node->type), arg->offset, args_list[i]);
+				printf("	movsx %s [rbp-%d], %s\n", gen_type(node->type), arg->offset, regs32[args_list[i]]);
 			}else if (node->type->ty == INT) {
-				printf("	mov %s [rbp-%d], e%s\n", gen_type(node->type), arg->offset, args_list[i]);
+				printf("	mov %s [rbp-%d], %s\n", gen_type(node->type), arg->offset, regs32[args_list[i]]);
 			}else{
-				printf("	mov %s [rbp-%d], r%s\n", gen_type(node->type), arg->offset, args_list[i]);
+				printf("	mov %s [rbp-%d], %s\n", gen_type(node->type), arg->offset, regs64[args_list[i]]);
 			}
 			arg = arg->next;
 		}
@@ -601,8 +592,8 @@ void gen(Node *node) {
 
 	gen(node->side[0]);
 	gen(node->side[1]);
-	gen_pop("rbx");
-	gen_pop("rax");
+	gen_pop(regs64[RBX]);
+	gen_pop(regs64[RAX]);
 
 	switch (node->kind) {
 	case ND_ADD:
@@ -669,5 +660,5 @@ void gen(Node *node) {
 		//error("I don't know this nodekind\n");
 	}
 
-	gen_push("rax");
+	gen_push(regs64[RAX]);
 }

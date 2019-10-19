@@ -199,28 +199,6 @@ Node *new_node_num(int val) {
  */
 LVar *make_lvar(Token *tok, Type *type);
 
-Hash *add_hash(Node *scope, LVar *var) {
-	Hash *hash;
-	// ハッシュテーブルから探す
-	for (int i = 0;i < hash_table->len;i++) {
-		hash = (Hash *)hash_table->data[i];
-		if (hash->scope == scope) {
-			var->next = hash->vars;
-			var->scope = scope;
-			var->offset = hash->vars->offset + hash->vars->type->type_size;
-			hash->vars = var;
-			return hash;
-		}
-	}
-
-	// 無ければ作ってハッシュテーブルに追加
-	hash = calloc(1, sizeof(Hash));
-	hash->scope = scope;
-	hash->vars = var;
-	push_back(hash_table, hash);
-	return hash;
-}
-
 Hashs *search_hash(Hashs *hash, Node *scope) {
 	if (!hash)
 		return NULL;
@@ -501,7 +479,6 @@ Type *prim_type_spec() {
 		type = int_type();
 	}else if (consume("unsigned")) {
 		type = int_type();
-
 	}else{
 		Node *node = aggregate_decl();
 
@@ -662,7 +639,6 @@ Node *term() {
 		return new_node_num(val);
 
 	//error_at(token->str, "項がありません");
-	cu();
 	return NULL;
 }
 
@@ -1024,6 +1000,7 @@ Node *lvalue() {
 	}
 	if (consume("&"))
 		return new_node(ND_ADDR, lvalue());
+	cu();
 
 	Token *tok = consume_ident();
 	if (tok) {
@@ -1100,6 +1077,7 @@ Node *expr() {
 	Node *node = NULL;
 	Token *backup = token;
 	Node *lval = lvalue();
+	cu();
 
 	if (lval) {
 		Node *rval;
@@ -1321,6 +1299,7 @@ Node *variable_decl(int glocal) {
 
 			Token *tok = consume_ident();
 			Node *rhs = NULL;
+			cu();
 
 			// 関数チェッカー
 			if (tok && !check("(")) {
@@ -1726,10 +1705,9 @@ Node *global() {
 void program() {
 	strings = new_vector();
 	globals = init_variable_list();
-	aggr_list = new_vector();
+	/*aggr_list = new_vector();
 	typedef_list = new_vector();
-	hash_table = new_vector();
-	hashs = new_hash();
+	hashs = new_hash();*/
 	Node *node;
 	while (!at_eof()) {
 		//cu();

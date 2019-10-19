@@ -9,7 +9,6 @@ int pos = 0;
 LVar *locals;
 LVar *globals;
 // Hash
-Vec *hash_table;
 Hashs *hashs;
 
 Node *cur_scope;
