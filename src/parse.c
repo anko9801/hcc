@@ -147,14 +147,14 @@ Node *new_node_if(int type, Node *Cond, Node *Then, Node *Else) {
 	return node;
 }
 
-Node *new_node_for(int type, Node *Cond1, Node *Cond2, Node *Cond3, Node *Loop) {
+Node *new_node_for(int type, Node *Cond1, Node *Cond2, Node *Cond3, Node *loop) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = type;
 	node->type = NULL;
 	node->side[0] = Cond1;
 	node->side[1] = Cond2;
 	node->side[2] = Cond3;
-	node->side[3] = Loop;
+	node->side[3] = loop;
 	return node;
 }
 
@@ -226,6 +226,7 @@ bool add_var(Node *scope, LVar *var) {
 			var->offset = hash->vars->offset + hash->vars->type->type_size;
 			hash->vars = var;
 		}else{
+			var->scope = scope;
 			hash->vars = var;
 			hash->vars->next = NULL;
 		}
@@ -428,15 +429,15 @@ void print_variable_scope(Hashs *hash, int tab) {
 	for (LVar *lvar = hash->vars; lvar; lvar = lvar->next) {
 		for (int i = 0;i < tab+1;i++)
 			fprintf(stderr, "\t");
-		fprintf(stderr, "%s %s\n", print_type(lvar->type), get_name(lvar->name, lvar->len));
+		fprintf(stderr, "%s %s %d\n", print_type(lvar->type), get_name(lvar->name, lvar->len), lvar->scope);
 		if (lvar->type->ptr_to) {
 			for (int i = 0;i < tab+2;i++)
 				fprintf(stderr, "\t");
-			fprintf(stderr, "%s %s\n", print_type(lvar->type->ptr_to), get_name(lvar->name, lvar->len));
+			fprintf(stderr, "%s %s\n", print_type(lvar->type->ptr_to), get_name(lvar->name, lvar->len), lvar->scope);
 			if (lvar->type->ptr_to->ptr_to) {
 				for (int i = 0;i < tab+3;i++)
 					fprintf(stderr, "\t");
-				fprintf(stderr, "%s %s\n", print_type(lvar->type->ptr_to->ptr_to), get_name(lvar->name, lvar->len));
+				fprintf(stderr, "%s %s\n", print_type(lvar->type->ptr_to->ptr_to), get_name(lvar->name, lvar->len), lvar->scope);
 			}
 		}
 	}
@@ -1000,7 +1001,6 @@ Node *lvalue() {
 	}
 	if (consume("&"))
 		return new_node(ND_ADDR, lvalue());
-	cu();
 
 	Token *tok = consume_ident();
 	if (tok) {
@@ -1077,7 +1077,6 @@ Node *expr() {
 	Node *node = NULL;
 	Token *backup = token;
 	Node *lval = lvalue();
-	cu();
 
 	if (lval) {
 		Node *rval;
@@ -1131,7 +1130,6 @@ Node *expr() {
 	}else{
 		token = backup;
 		node = rvalue();
-		cu();
 	}
 	return node;
 }
@@ -1179,7 +1177,7 @@ Node *switch_case() {
 }
 
 Node *stmt() {
-	Node *node;
+	Node *node, *Loop;
 
 	if (consume("return")) {
 		node = expr();
@@ -1225,7 +1223,7 @@ Node *stmt() {
 	// 	node->nodes = cases;
 
 	}else if (consume("while")) {
-		Node *Cond, *Loop;
+		Node *Cond;
 
 		expect("(");
 		Cond = expr();
@@ -1235,7 +1233,7 @@ Node *stmt() {
 		node = new_binary_node(ND_WHILE, Cond, Loop);
 
 	}else if (consume("for")) {
-		Node *Cond1, *Cond2, *Cond3, *Loop;
+		Node *Cond1, *Cond2, *Cond3;
 
 		expect("(");
 		Cond1 = expr();
@@ -1285,8 +1283,11 @@ Node *stmts() {
 Node *variable_decl(int glocal) {
 	Node *node = NULL;
 	Token *backup = token;
+	bool codegen = true;
 
-	if (consume("extern")) {}
+	if (consume("extern")) {
+		codegen = false;
+	}
 	Type *ident_type = prim_type_spec();
 	Type *each_type;
 
@@ -1299,7 +1300,6 @@ Node *variable_decl(int glocal) {
 
 			Token *tok = consume_ident();
 			Node *rhs = NULL;
-			cu();
 
 			// 関数チェッカー
 			if (tok && !check("(")) {
@@ -1325,15 +1325,17 @@ Node *variable_decl(int glocal) {
 				lvar = make_lvar(tok, each_type);
 				add_var(cur_scope, lvar);
 
-				node = new_node_s(ND_VARDECL, tok, each_type);
-				node->var = lvar;
+				if (codegen) {
+					node = new_node_s(ND_VARDECL, tok, each_type);
+					node->var = lvar;
 
-				// 初期化
-				if (rhs) {
-					node = new_binary_node(ND_ASSIGN, node, rhs);
-				}else if (consume("=")) {
-					rhs = initializer();
-					node = new_binary_node(ND_ASSIGN, node, rhs);
+					// 初期化
+					if (rhs) {
+						node = new_binary_node(ND_ASSIGN, node, rhs);
+					}else if (consume("=")) {
+						rhs = initializer();
+						node = new_binary_node(ND_ASSIGN, node, rhs);
+					}
 				}
 
 				if (!consume(",")) break;
@@ -1436,6 +1438,8 @@ Node *func_decl_or_def() {
 					cur_scope = NULL;
 
 					func->locals = locals;
+					Hashs *hash = search_hash(hashs, cur_scope);
+					//fprintf(stderr, "locals %d %d\n", hash->vars->offset, hash->vars->type->type_size);
 					node->func = func;
 				}
 				return node;
@@ -1480,8 +1484,9 @@ Node *struct_decl() {
 			cur_scope = node;
 			Node *var;
 			while (true) {
-				var = variable_decl(1);
+				var = variable_decl(0);
 				if (!var) break;
+				expect(";");
 				push_back(aggr->elem, var);
 				size += var->type->type_size;
 			}

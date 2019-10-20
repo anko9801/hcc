@@ -134,11 +134,6 @@ struct Typedef {
 	int len;
 };
 
-typedef struct Hash {
-	Node *scope;
-	LVar *vars;
-} Hash;
-
 typedef struct Hashs {
 	Vec *child; // 下の階層のスコープ
 	struct Hashs *parent;
@@ -169,9 +164,12 @@ Node *new_binary_node(int type, Node *lhs, Node *rhs);
 Node *new_node_s(int kind, Token *tok, Type *type);
 Node *new_node_num(int val);
 Hashs *new_hash();
+Hashs *search_hash(Hashs *hash, Node *scope);
+
 
 void gen_extern(Func *extern_funcs);
 void gen_funcs(Func *funcs);
+
 
 extern char *user_input;
 extern Token *token;
@@ -198,6 +196,21 @@ char *strncpy(char *destination, char *source, int num);
 int strlen(char *str);
 int memcmp(void *ptr1, void *ptr2, int num);
 int printf(char *str);
+typedef struct FILE {
+	int unused;
+} FILE;
+extern FILE *stderr;
+int fprintf(FILE *stream, char *format);
+typedef char* va_list;
+
+#define __va_argsiz(t)	\
+	(((sizeof(t) + sizeof(int) - 1) / sizeof(int)) * sizeof(int))
+#define va_start(ap, pN)	\
+	((ap) = ((va_list) (&pN) + __va_argsiz(pN)))
+#define va_end(ap)	((void)0)
+#define va_arg(ap, t)					\
+	 (((ap) = (ap) + __va_argsiz(t)),		\
+	  *((t*) (void*) ((ap) - __va_argsiz(t))))
 
 void cu();
 void print_variable_scope(Hashs *hash, int tab);

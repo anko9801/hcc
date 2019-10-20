@@ -1,14 +1,18 @@
 #include "hcc.h"
 #include "analyse.h"
 
+bool print_nodes = false;
+
 void print_node(char *fmt, ...) {
-	for (int i = 0; i < tab; i++) {
-		fprintf(stderr, "  ");
+	if (print_nodes) {
+		for (int i = 0; i < tab; i++) {
+			fprintf(stderr, "  ");
+		}
+		va_list ap;
+		va_start(ap, fmt);
+		vfprintf(stderr, fmt, ap);
+		fprintf(stderr, "\n");
 	}
-	va_list ap;
-	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
-	fprintf(stderr, "\n");
 }
 
 void print_aggr(int tab, Aggregate *aggr) {

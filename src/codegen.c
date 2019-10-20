@@ -162,6 +162,10 @@ void gen_strings() {
 	for (int i = 0;strings->data[i];i++) {
 		Token *tok = (Token *)strings->data[i];
 		printf(".LC%d:\n", i);
+		if (!strncmp(tok->str, "\\'", tok->len)) {
+			tok->str++;
+			tok->len--;
+		}
 		gen_global_string(get_name(tok->str, tok->len));
 	}
 }
@@ -239,7 +243,7 @@ void gen_lvalue(Node *node) {
 
 	switch (node->kind) {
 	case ND_LVAR:
-		if (node->var->scope == 0) {
+		if (node->var->scope) {
 			printf("	lea rax, [rbp-%d]\n", node->var->offset);
 			gen_push(regs64[RAX]);
 		}else{
@@ -282,8 +286,8 @@ void gen_lvalue(Node *node) {
 
 void gen_mov(Type *type) {
 	if (type->ty == CHAR) {
-		printf("	movsx eax, %s [rax]\n", gen_type(type));
-	}else if (type->ty == INT) {
+		printf("	mov %s, %s [rax]\n", regs8[RAX], gen_type(type));
+	}else if (type->ty == INT || type->ty == ENUM) {
 		printf("	mov eax, %s [rax]\n", gen_type(type));
 	}else{
 		printf("	mov rax, %s [rax]\n", gen_type(type));
@@ -292,8 +296,8 @@ void gen_mov(Type *type) {
 
 void gen_assign(Type *type) {
 	if (type->ty == CHAR) {
-		printf("	mov %s [rax], ebx\n", gen_type(type));
-	}else if (type->ty == INT) {
+		printf("	mov %s [rax], %s\n", gen_type(type), regs8[RBX]);
+	}else if (type->ty == INT || type->ty == ENUM) {
 		printf("	mov %s [rax], ebx\n", gen_type(type));
 	}else{
 		printf("	mov %s [rax], rbx\n", gen_type(type));
@@ -325,7 +329,8 @@ char *gen_cond(Node *node) {
 			case ND_NE:
 				return "jne";
 			default:
-				//error("条件式の中に知らないものが入ってます\n");
+				return "je";
+				error("条件式の中に知らないものが入ってます\n");
 				return NULL;
 		}
 	}
@@ -438,17 +443,26 @@ void gen(Node *node) {
 		return;
 
 	case ND_IF:
+		if_cnt += 1;
+		int cur_if = if_cnt;
+		int nested_if = if_cnt;
 		if (node->side[2]) {
 			printf("	%s .Lif.then%d\n", gen_cond(node->side[0]), if_cnt);
 			printf("	jmp .Lif.else%d\n", if_cnt);
 			printf(".Lif.then%d:\n", if_cnt);
 
+			if_cnt = nested_if;
 			gen(node->side[1]);
+			nested_if = if_cnt;
+			if_cnt = cur_if;
 
 			printf("	jmp .Lif.end%d\n", if_cnt);
 			printf(".Lif.else%d:\n", if_cnt);
 
+			if_cnt = nested_if;
 			gen(node->side[2]);
+			nested_if = if_cnt;
+			if_cnt = cur_if;
 
 			printf("	jmp .Lif.end%d\n", if_cnt);
 			printf(".Lif.end%d:\n", if_cnt);
@@ -457,11 +471,14 @@ void gen(Node *node) {
 			printf("	jmp .Lif.end%d\n", if_cnt);
 			printf(".Lif.then%d:\n", if_cnt);
 
+			if_cnt = nested_if;
 			gen(node->side[1]);
+			nested_if = if_cnt;
+			if_cnt = cur_if;
 
 			printf(".Lif.end%d:\n", if_cnt);
 		}
-		if_cnt += 1;
+		if_cnt = nested_if;
 		return;
 
 	case ND_WHILE: {
@@ -487,29 +504,45 @@ void gen(Node *node) {
 	}
 
 	case ND_FOR: {
+		for_cnt += 1;
+		int cur_for = for_cnt;
+		int nested_for = for_cnt;
 		loop_info pre_loop = cur_loop;
 		cur_loop.which = 2;
 		cur_loop.nth = for_cnt;
 
+		for_cnt = nested_for;
 		gen(node->side[0]);
+		nested_for = for_cnt;
+		for_cnt = cur_for;
 
 		printf(".Lfor.loop%d:\n", for_cnt);
 
+		for_cnt = nested_for;
 		gen(node->side[1]);
+		nested_for = for_cnt;
+		for_cnt = cur_for;
 
 		printf("	cmp rax, 0\n");
 		printf("	je .Lfor.end%d\n", for_cnt);
 
+		for_cnt = nested_for;
 		gen(node->side[3]);
+		nested_for = for_cnt;
+		for_cnt = cur_for;
 
 		printf(".Lfor.inc%d:\n", for_cnt);
+
+		for_cnt = nested_for;
 		gen(node->side[2]);
+		nested_for = for_cnt;
+		for_cnt = cur_for;
 
 		printf("	jmp .Lfor.loop%d\n", for_cnt);
 		printf(".Lfor.end%d:\n", for_cnt);
 
+		for_cnt = nested_for;
 		cur_loop = pre_loop;
-		for_cnt += 1;
 		return;
 	}
 
@@ -535,8 +568,8 @@ void gen(Node *node) {
 		for (int i = 0;i < node->nodes->len;i++) {
 			gen((Node*)node->nodes->data[i]);
 		}
-		if (rsp % 16 != 0)
-			gen_pop("rsi");
+		/*if (rsp % 16 != 0)
+			gen_pop("rsi");*/
 		return;
 
 	case ND_CALL:
@@ -566,14 +599,16 @@ void gen(Node *node) {
 		printf("_%s:\n", get_name(node->name, node->len));
 		gen_push("rbp");
 		printf("	mov rbp, rsp\n");
-		printf("	sub rsp, %d\n", (node->func->locals->offset + node->func->locals->type->type_size + 7) / 8 * 8);
+		Hashs *hash = search_hash(hashs, node);
+		if (hash->vars)
+			printf("	sub rsp, %d\n", (hash->vars->offset + hash->vars->type->type_size + 7) / 8 * 8);
 
 		LVar *arg = node->func->args;
 		arg = arg->next;
 		for (int i = 0;i < 6 && arg;i++) {
 			if (node->type->ty == CHAR) {
-				printf("	movsx %s [rbp-%d], %s\n", gen_type(node->type), arg->offset, regs32[args_list[i]]);
-			}else if (node->type->ty == INT) {
+				printf("	mov %s [rbp-%d], %s\n", gen_type(node->type), arg->offset, regs8[args_list[i]]);
+			}else if (node->type->ty == INT || node->type->ty == ENUM) {
 				printf("	mov %s [rbp-%d], %s\n", gen_type(node->type), arg->offset, regs32[args_list[i]]);
 			}else{
 				printf("	mov %s [rbp-%d], %s\n", gen_type(node->type), arg->offset, regs64[args_list[i]]);
