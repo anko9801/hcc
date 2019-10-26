@@ -158,7 +158,7 @@ Node *new_node_for(int type, Node *Cond1, Node *Cond2, Node *Cond3, Node *loop) 
 	return node;
 }
 
-
+/*
 Node *new_nodev(int type, int num, Node *sides, ...) {
 	va_list arg_list;
 	va_start(arg_list, sides);
@@ -174,7 +174,7 @@ Node *new_nodev(int type, int num, Node *sides, ...) {
 	va_end(arg_list);
 	return node;
 }
-
+*/
 Node *new_node_s(int kind, Token *tok, Type *type) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = kind;
@@ -410,9 +410,14 @@ void add_cur_scope_code(Node *node) {
 void cu() {
 	int line = 0;
 	fprintf(stderr, "----start-----\n");
+	Token *tok = token;
 	for (int i = 0;line < 5;i++) {
-		fprintf(stderr, "%c", token->str[i]);
-		if (token->str[i] == '\n') line++;
+		fprintf(stderr, "%s ", get_name(tok->str, tok->len));
+		if (*(tok->str + tok->len) == '\n') {
+			fprintf(stderr, "\n");
+			line++;
+		}
+		tok = tok->next;
 		if (i == 100) break;
 	}
 	fprintf(stderr, "\n");
@@ -596,6 +601,7 @@ Node *term() {
 	if (consume("(")) {
 		node = expr();
 		expect(")");
+		cu();
 		return node;
 	}
 
@@ -1005,7 +1011,9 @@ Node *lvalue() {
 	Token *tok = consume_ident();
 	if (tok) {
 		LVar *lvar = find_lvar(tok);
+		cu();
 		if (lvar) {
+			cu();
 			node = new_node_s(ND_LVAR, tok, lvar->type);
 			node->var = lvar;
 			node->type = lvar->type;
@@ -1077,6 +1085,7 @@ Node *expr() {
 	Node *node = NULL;
 	Token *backup = token;
 	Node *lval = lvalue();
+	cu();
 
 	if (lval) {
 		Node *rval;
@@ -1262,7 +1271,7 @@ Node *stmts() {
 		Vec *kari = cur_nodes;
 		cur_nodes = nodes;
 		for(;;) {
-			//cu();
+			cu();
 			push_back(nodes, stmt());
 			if (consume("}"))
 				break;
@@ -1710,9 +1719,6 @@ Node *global() {
 void program() {
 	strings = new_vector();
 	globals = init_variable_list();
-	/*aggr_list = new_vector();
-	typedef_list = new_vector();
-	hashs = new_hash();*/
 	Node *node;
 	print_token(token);
 	while (!at_eof()) {

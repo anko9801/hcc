@@ -85,16 +85,14 @@ Token *preprocessor(Token *tok) {
 						tok = tok->next;
 						end = tok->next;
 						tok->next = NULL;
-						print_token(begin);
 						break;
 					}
 					tok = tok->next;
 				}
 
-				// define文を消す(消せない
+				// define文を消す
 				begin->next = end;
-				tok = end;
-				print_token(tok);
+				tok = begin;
 
 				for (int i = 0;i < 100;i++) {
 					if (!defines[i]) {
@@ -219,7 +217,7 @@ Token *preprocessor(Token *tok) {
 void print_token(Token *tok) {
 	for (int i = 0;i < 1100;i++) {
 		if (!tok) break;
-		fprintf(stderr, "%s ", get_name(tok->str, tok->len));
+		fprintf(stderr, "%s  ", get_name(tok->str, tok->len));
 		if (!strncmp(tok->str, "{", 1) || !strncmp(tok->str, ";", 1))
 			fprintf(stderr, "\n");
 		tok = tok->next;
