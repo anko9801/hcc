@@ -31,7 +31,7 @@
 - [ ] optimizations
   - [ ] linear scan register allocation
   - [ ] naive mem2reg
-  - [ ] constant folding
+  - [x] constant folding
   - [ ] copy propagation
   - [ ] dead code elimination
   - [ ] tail call optimization
