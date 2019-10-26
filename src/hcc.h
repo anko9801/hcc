@@ -29,6 +29,7 @@ struct Token {
 	char *str;
 	int len;
 	int line;
+	int label;
 };
 
 typedef enum NodeKind {
@@ -161,6 +162,10 @@ void print_all(Node *node);
 Node *aggregate_decl();
 Node *new_binary_node(int type, Node *lhs, Node *rhs);
 //Node *new_nodev(int type, int num, Node *sides, ...);
+Token *new_token(TokenKind kind, Token *cur, char *str, int line);
+bool is_reserved(char **p, Token **cur, char *str);
+
+Token *consume_ident();
 Node *new_node_s(int kind, Token *tok, Type *type);
 Node *new_node_num(int val);
 Hashs *new_hash();
@@ -169,7 +174,8 @@ Hashs *search_hash(Hashs *hash, Node *scope);
 
 void gen_extern(Func *extern_funcs);
 void gen_funcs(Func *funcs);
-
+Token *preprocessor(Token *tok);
+void print_token(Token *tok);
 
 extern char *user_input;
 extern Token *token;

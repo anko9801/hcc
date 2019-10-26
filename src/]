@@ -1,0 +1,200 @@
+#include "hcc.h"
+
+typedef struct Define {
+	Token *pre_label;
+	Token *post_label;
+	int len;
+	Token *var[10];
+} Define;
+
+/*
+#define va_arg(ap, t)					\
+	 (((ap) = (ap) + __va_argsiz(t)),		\
+	  *((t*) (void*) ((ap) - __va_argsiz(t))))
+*/
+
+// プリプロセッサのconsume
+bool preconsume(Token **tok, char *op) {
+	if (strlen(op) != (*tok)->len ||
+		strncmp((*tok)->str, op, (*tok)->len)) {
+		return false;
+	}
+	*tok = (*tok)->next;
+	return true;
+}
+
+Token *preprocessor(Token *tok) {
+	Define *defines[100];
+	Token *first = tok;
+	// 番兵
+	Token *kari = calloc(1, sizeof(Token));
+	kari->next = tok;
+	tok = kari;
+	while (tok->next->kind != TK_EOF) {
+		if (!strncmp("#", tok->next->str, tok->next->len)) {
+			Token *begin = tok;
+			tok = tok->next->next;
+			fprintf(stderr, "#%s ", get_name(tok->str, tok->len));
+
+			if (preconsume(&tok, "define")) {
+				fprintf(stderr, "%s\n", get_name(tok->str, tok->len));
+				Define *define = calloc(1, sizeof(Define));
+				define->pre_label = tok;
+				tok = tok->next;
+
+				// 変数格納
+				int var_len = 0;
+				if (preconsume(&tok, "(")) {
+					for (int i = 0;i < 10;i++) {
+						define->var[i] = tok;
+						tok = tok->next;
+						if (preconsume(&tok, ",")) {
+							continue;
+						}
+						if (preconsume(&tok, ")")) {
+							var_len = i+1;
+							break;
+						}
+					}
+				}
+
+				define->len = var_len;
+				define->post_label = tok;
+
+				// 改行までいったら終了
+				Token *end;
+				while (true) {
+					fprintf(stderr, "test %d\n", define->len);
+					for (int i = 0;i < define->len;i++) {
+						fprintf(stderr, "test2\n");
+						if (!strncmp(tok->str, define->var[i]->str, define->var[i]->len)) {
+							// 変数のフラグを立てる
+							tok->label = i;
+							break;
+						}
+					}
+					fprintf(stderr, "test3\n");
+					if (*(tok->str) != '\\' && *(tok->str + tok->len + 1) == '\n') {
+						fprintf(stderr, "test4\n");
+						end = tok->next;
+						tok->next = NULL;
+						break;
+					}
+					tok = tok->next;
+				}
+
+				fprintf(stderr, "test5\n");
+				// define文を消す
+				begin->next = end;
+				fprintf(stderr, "test6\n");
+				print_token(first);
+
+			}else if (preconsume(&tok, "include")) {
+				Token *end, *src = NULL;
+				fprintf(stderr, "%s ", get_name(tok->str, tok->len));
+				if (preconsume(&tok, "\"")) {
+					fprintf(stderr, "%s\n", get_name(tok->str, tok->len));
+					Token *prefile = tok;
+					tok = tok->next;
+					if (!preconsume(&tok, "\"")) {
+						fprintf(stderr, "\n");
+					}
+					char file[100];
+					strncpy(file, prefile->str, prefile->len);
+					file[prefile->len] = '\0';
+					src = tokenize(read_file(file));
+					end = tok;
+				}else if (preconsume(&tok, "<")) {
+					consume_ident();
+					if (preconsume(&tok, "."))
+						consume_ident();
+					if (!preconsume(&tok, ">")) {
+						fprintf(stderr, ">\n");
+					}
+					end = tok;
+				}
+
+				// 生成
+				if (src) {
+					fprintf(stderr, "%s\n", get_name(src->str, src->len));
+					begin->next = src;
+					while (src->next->kind != TK_EOF) {
+						src = src->next;
+					}
+					src->next = end;
+					print_token(begin);
+					tok = begin;
+				}else{
+					begin->next = end;
+				}
+			}
+		}
+
+		// 探索
+		Token *back_token = tok;
+		for (int i = 0;i < 100;i++) {
+			if (!defines[i]) break;
+			if (!strncmp(tok->next->str, defines[i]->pre_label->str, tok->next->len)) {
+				Token *begin = tok;
+				tok = tok->next;
+				tok = tok->next;
+
+				if (preconsume(&tok, "(")) {
+					Token *vars[10];
+					Token *end;
+					for (int j = 0;j < defines[i]->len;j++) {
+						vars[j] = tok;
+						for (;;) {
+							tok = tok->next;
+							if (preconsume(&tok, ",")) {
+								tok->next = NULL;
+								break;
+							}
+							if (defines[i]->len-1 == j && preconsume(&tok, ")")) {
+								end = tok;
+								tok->next = NULL;
+								break;
+							}
+						}
+					}
+
+					// 生成
+					tok = begin;
+					tok->next = defines[i]->pre_label;
+					while (tok->next) {
+						if (tok->next->label != -1) {
+							Token *next = tok->next->next;
+							tok->next = vars[tok->label];
+							while (tok->next) {
+								tok = tok->next;
+							}
+							tok->next = next;
+						}
+						tok = tok->next;
+					}
+					tok->next = end;
+				}else{
+					Token *kari = back_token->next;
+					back_token->next = defines[i]->post_label;
+					while (!back_token->next) {
+						back_token = back_token->next;
+					}
+					back_token->next = kari;
+				}
+
+				tok = begin;
+			}
+		}
+		tok = tok->next;
+	}
+	return first;
+}
+
+
+void print_token(Token *tok) {
+	while (tok) {
+		fprintf(stderr, "%s ", get_name(tok->str, tok->len));
+		tok = tok->next;
+	}
+	fprintf(stderr, "\n\n\n\n\n\n");
+}

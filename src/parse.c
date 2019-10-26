@@ -158,7 +158,7 @@ Node *new_node_for(int type, Node *Cond1, Node *Cond2, Node *Cond3, Node *loop) 
 	return node;
 }
 
-/*
+
 Node *new_nodev(int type, int num, Node *sides, ...) {
 	va_list arg_list;
 	va_start(arg_list, sides);
@@ -173,7 +173,7 @@ Node *new_nodev(int type, int num, Node *sides, ...) {
 
 	va_end(arg_list);
 	return node;
-}*/
+}
 
 Node *new_node_s(int kind, Token *tok, Type *type) {
 	Node *node = calloc(1, sizeof(Node));
@@ -429,7 +429,7 @@ void print_variable_scope(Hashs *hash, int tab) {
 	for (LVar *lvar = hash->vars; lvar; lvar = lvar->next) {
 		for (int i = 0;i < tab+1;i++)
 			fprintf(stderr, "\t");
-		fprintf(stderr, "%s %s %d\n", print_type(lvar->type), get_name(lvar->name, lvar->len), lvar->scope);
+		fprintf(stderr, "%s %s\n", print_type(lvar->type), get_name(lvar->name, lvar->len));
 		if (lvar->type->ptr_to) {
 			for (int i = 0;i < tab+2;i++)
 				fprintf(stderr, "\t");

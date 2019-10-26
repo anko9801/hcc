@@ -10,7 +10,8 @@ int is_alnum(char c) {
 
 int is_alpha(char c) {
 	return	('a' <= c && c <= 'z') ||
-			('A' <= c && c <= 'Z');
+			('A' <= c && c <= 'Z') ||
+			(c == '_');
 }
 
 // 新しいトークンを作成してcurに繋げる
@@ -19,6 +20,7 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int line) {
 	tok->kind = kind;
 	tok->str = str;
 	tok->line = line;
+	tok->label = -1;
 	cur->next = tok;
 	return tok;
 }
