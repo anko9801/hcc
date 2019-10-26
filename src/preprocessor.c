@@ -43,10 +43,8 @@ Token *preprocessor(Token *tok) {
 		if (!strncmp("#", tok->next->str, tok->next->len)) {
 			Token *begin = tok;
 			tok = tok->next->next;
-			fprintf(stderr, "#%s ", get_name(tok->str, tok->len));
 
 			if (preconsume(&tok, "define")) {
-				fprintf(stderr, "%s ", get_name(tok->str, tok->len));
 				Define *define = calloc(1, sizeof(Define));
 				define->pre_label = tok;
 				tok = tok->next;
@@ -69,7 +67,6 @@ Token *preprocessor(Token *tok) {
 
 				define->len = var_len;
 				define->post_label = tok;
-				fprintf(stderr, "%d\n", define->len);
 
 				// 改行までいったら終了
 				Token *end;
@@ -84,18 +81,20 @@ Token *preprocessor(Token *tok) {
 							break;
 						}
 					}
-					if (*(tok->str + tok->len + 1) == '\n') {
-						print_token(tok);
+					if (*(tok->next->str) != '\\' && *(tok->str + tok->len + 1) == '\n') {
+						tok = tok->next;
 						end = tok->next;
 						tok->next = NULL;
+						print_token(begin);
 						break;
 					}
 					tok = tok->next;
 				}
 
-				// define文を消す
+				// define文を消す(消せない
 				begin->next = end;
-				tok = begin;
+				tok = end;
+				print_token(tok);
 
 				for (int i = 0;i < 100;i++) {
 					if (!defines[i]) {
@@ -104,12 +103,12 @@ Token *preprocessor(Token *tok) {
 					}
 				}
 
+				continue;
+
 			}else if (preconsume(&tok, "include")) {
 				// begin: #の前, end: 
 				Token *end, *src = NULL;
-				fprintf(stderr, "\n");
 				if (preconsume(&tok, "\"")) {
-					fprintf(stderr, "%s\n", get_name(tok->str, tok->len));
 					Token *prefile = tok;
 					tok = tok->next;
 					if (!preconsume(&tok, "\"")) {
@@ -156,7 +155,7 @@ Token *preprocessor(Token *tok) {
 				if (preconsume(&tok, "(")) {
 					Token *vars[10];
 					Token *end;
-					fprintf(stderr, "define %s %d\n", get_name(defines[i]->pre_label->str, defines[i]->pre_label->len), defines[i]->len);
+					fprintf(stderr, "expanding define %s %d\n", get_name(defines[i]->pre_label->str, defines[i]->pre_label->len), defines[i]->len);
 					for (int j = 0;j < defines[i]->len;j++) {
 						vars[j] = tok;
 						for (;;) {
@@ -188,7 +187,6 @@ Token *preprocessor(Token *tok) {
 							tok->next = tok->next->next;
 						}
 						if (tok->next->label != -1) {
-							fprintf(stderr, "%s %d-------------------------------------------------------------------------------------------------------------------------------------\n", get_name(tok->next->str, tok->next->len), tok->next->label);
 							Token *next = tok->next->next;
 							// 自己に繋がっても平気なように
 							tok->next = deep_copy(vars[tok->next->label]);
@@ -200,7 +198,6 @@ Token *preprocessor(Token *tok) {
 						tok = tok->next;
 					}
 					tok->next = end;
-					//print_token(begin);
 				}else{
 					Token *kari = back_token->next;
 					back_token->next = defines[i]->post_label;
@@ -215,15 +212,12 @@ Token *preprocessor(Token *tok) {
 		}
 		tok = tok->next;
 	}
-	fprintf(stderr, "end\n");
-	print_token(first);
-	print_token(kari->next);
-	return kari;
+	return kari->next;
 }
 
 
 void print_token(Token *tok) {
-	for (int i = 0;i < 10000;i++) {
+	for (int i = 0;i < 1100;i++) {
 		if (!tok) break;
 		fprintf(stderr, "%s ", get_name(tok->str, tok->len));
 		if (!strncmp(tok->str, "{", 1) || !strncmp(tok->str, ";", 1))

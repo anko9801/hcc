@@ -1714,6 +1714,7 @@ void program() {
 	typedef_list = new_vector();
 	hashs = new_hash();*/
 	Node *node;
+	print_token(token);
 	while (!at_eof()) {
 		//cu();
 		node = global();
