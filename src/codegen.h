@@ -1,6 +1,7 @@
 int if_cnt = 0;
 int while_cnt = 0;
 int for_cnt = 0;
+int switch_cnt = 0;
 int call_cnt = 0;
 int rsp = 0;
 

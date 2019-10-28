@@ -10,6 +10,7 @@ Vec *new_vector() {
 
 void push_back(Vec *vec, void *elem) {
 	Token *t = elem;
+
 	if (vec->capacity == vec->len) {
 		vec->capacity *= 2;
 		vec->data = realloc(vec->data, sizeof(void *) * vec->capacity);

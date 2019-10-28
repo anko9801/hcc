@@ -1,1 +1,7639 @@
-# include " hcc.h " # include " parse.h " Type * void_type ( ) { Type * type = calloc ( 1 , sizeof ( Type ) ) ; type -> ty = VOID ; type -> ptr_to = NULL ; type -> type_size = 0 ; type -> array_size = 1 ; return type ; } Type * int_type ( ) { Type * type = calloc ( 1 , sizeof ( Type ) ) ; type -> ty = INT ; type -> ptr_to = NULL ; type -> type_size = 4 ; type -> array_size = 1 ; return type ; } Type * char_type ( ) { Type * type = calloc ( 1 , sizeof ( Type ) ) ; type -> ty = CHAR ; type -> ptr_to = NULL ; type -> type_size = 1 ; type -> array_size = 1 ; return type ; } Type * wrap_pointer ( Type * ptr_to ) { Type * type = calloc ( 1 , sizeof ( Type ) ) ; type -> ty = PTR ; type -> ptr_to = ptr_to ; type -> type_size = 8 ; type -> array_size = 1 ; return type ; } Type * array_type ( Type * element_type , int size ) { Type * type = calloc ( 1 , sizeof ( Type ) ) ; type -> ty = ARRAY ; type -> ptr_to = element_type ; type -> type_size = element_type -> type_size * size ; type -> array_size = size ; return type ; } Type * struct_type ( Aggregate * aggr , int size ) { Type * type = calloc ( 1 , sizeof ( Type ) ) ; type -> ty = STRUCT ; type -> aggr = aggr ; type -> type_size = size ; type -> array_size = 1 ; return type ; } Type * enum_type ( Aggregate * aggr , int size ) { Type * type = calloc ( 1 , sizeof ( Type ) ) ; type -> ty = ENUM ; type -> aggr = aggr ; type -> type_size = size ; type -> array_size = 1 ; return type ; } bool check ( char * op ) { if ( token -> kind != TK_RESERVED || strlen ( op ) != token -> len || memcmp ( token -> str , op , token -> len ) ) return false ; return true ; } bool consume ( char * op ) { if ( token -> kind != TK_RESERVED || strlen ( op ) != token -> len || memcmp ( token -> str , op , token -> len ) ) { return false ; } token = token -> next ; return true ; } Token * consume_ident ( ) { Token * tok = token ; if ( token -> kind != TK_IDENT && token -> kind != TK_STRING ) return NULL ; token = token -> next ; return tok ; } int consume_number ( ) { if ( token -> kind != TK_NUM ) return - 1 ; int val = token -> val ; token = token -> next ; return val ; } bool at_eof ( ) { return token -> kind == TK_EOF ; } Node * new_node0 ( int type ) { Node * node = calloc ( 1 , sizeof ( Node ) ) ; node -> kind = type ; return node ; } Node * new_node ( int type , Node * lhs ) { Node * node = calloc ( 1 , sizeof ( Node ) ) ; node -> kind = type ; node -> type = lhs -> type ; node -> side [ 0 ] = lhs ; return node ; } Node * new_binary_node ( int type , Node * lhs , Node * rhs ) { Node * node = calloc ( 1 , sizeof ( Node ) ) ; node -> kind = type ; node -> type = lhs -> type ; node -> side [ 0 ] = lhs ; node -> side [ 1 ] = rhs ; return node ; } Node * new_node_if ( int type , Node * Cond , Node * Then , Node * Else ) { Node * node = calloc ( 1 , sizeof ( Node ) ) ; node -> kind = type ; node -> type = NULL ; node -> side [ 0 ] = Cond ; node -> side [ 1 ] = Then ; node -> side [ 2 ] = Else ; return node ; } Node * new_node_for ( int type , Node * Cond1 , Node * Cond2 , Node * Cond3 , Node * loop ) { Node * node = calloc ( 1 , sizeof ( Node ) ) ; node -> kind = type ; node -> type = NULL ; node -> side [ 0 ] = Cond1 ; node -> side [ 1 ] = Cond2 ; node -> side [ 2 ] = Cond3 ; node -> side [ 3 ] = loop ; return node ; } Node * new_node_s ( int kind , Token * tok , Type * type ) { Node * node = calloc ( 1 , sizeof ( Node ) ) ; node -> kind = kind ; if ( tok ) { node -> name = tok -> str ; node -> len = tok -> len ; } node -> type = type ; return node ; } Node * new_node_num ( int val ) { Node * node = calloc ( 1 , sizeof ( Node ) ) ; node -> kind = ND_NUM ; node -> val = val ; node -> type = int_type ( ) ; return node ; } LVar * make_lvar ( Token * tok , Type * type ) ; Hashs * search_hash ( Hashs * hash , Node * scope ) { if ( ! hash ) return NULL ; if ( hash -> scope == scope ) { return hash ; } Hashs * ans ; for ( int i = 0 ; i < hash -> child -> len ; i ++ ) { ans = search_hash ( hash -> child -> data [ i ] , scope ) ; if ( ans ) { return ans ; } } return NULL ; } bool add_var ( Node * scope , LVar * var ) { Hashs * hash = search_hash ( hashs , scope ) ; if ( hash ) { if ( hash -> vars ) { var -> next = hash -> vars ; var -> scope = scope ; var -> offset = hash -> vars -> offset + hash -> vars -> type -> type_size ; hash -> vars = var ; } else { var -> scope = scope ; hash -> vars = var ; hash -> vars -> next = NULL ; } return true ; } return false ; } Hashs * new_hash ( ) { Hashs * new_hash = calloc ( 1 , sizeof ( Hashs ) ) ; new_hash -> child = new_vector ( ) ; new_hash -> parent = NULL ; new_hash -> scope = NULL ; return new_hash ; } bool add_node ( Node * pre , Node * next ) { Hashs * hash = search_hash ( hashs , pre ) ; if ( hash ) { Hashs * new_hash = calloc ( 1 , sizeof ( Hashs ) ) ; new_hash -> child = new_vector ( ) ; new_hash -> parent = hash ; new_hash -> scope = next ; push_back ( hash -> child , new_hash ) ; return true ; } else { return false ; } } LVar * make_lvar ( Token * tok , Type * type ) { LVar * lvar = calloc ( 1 , sizeof ( LVar ) ) ; lvar -> name = tok -> str ; lvar -> len = tok -> len ; lvar -> type = type ; return lvar ; } LVar * new_lvar ( LVar * pre , Token * tok , Type * type ) { LVar * lvar = calloc ( 1 , sizeof ( LVar ) ) ; lvar -> next = pre ; lvar -> name = tok -> str ; lvar -> len = tok -> len ; lvar -> scope = 0 ; lvar -> offset = pre -> offset + pre -> type -> type_size ; lvar -> type = type ; return lvar ; } LVar * new_arg ( LVar * pre , Token * tok , Type * type ) { LVar * lvar = calloc ( 1 , sizeof ( LVar ) ) ; lvar -> name = tok -> str ; lvar -> len = tok -> len ; lvar -> offset = pre -> offset + pre -> type -> type_size ; lvar -> type = type ; return lvar ; } Func * new_func ( Func * pre , Token * tok , Type * type , LVar * args ) { Func * func = calloc ( 1 , sizeof ( Func ) ) ; func -> next = pre ; func -> name = tok -> str ; func -> len = tok -> len ; func -> args = args ; func -> locals = args ; func -> type = type ; return func ; } LVar * find_lvar ( Token * tok ) { Hashs * hash = search_hash ( hashs , cur_scope ) ; for ( ; hash ; hash = hash -> parent ) { for ( LVar * var = hash -> vars ; var ; var = var -> next ) { if ( var -> len == tok -> len && ! memcmp ( tok -> str , var -> name , var -> len ) ) return var ; } } return NULL ; } LVar * search_enum_lvar ( Hashs * hash , Token * tok ) { if ( ! hash ) return NULL ; if ( hash -> scope && hash -> scope -> type -> ty == ENUM ) { for ( LVar * var = hash -> vars ; var ; var = var -> next ) { if ( var -> len == tok -> len && ! memcmp ( tok -> str , var -> name , var -> len ) ) return var ; } } LVar * ans ; for ( int i = 0 ; i < hash -> child -> len ; i ++ ) { ans = search_enum_lvar ( ( Hashs * ) hash -> child -> data [ i ] , tok ) ; if ( ans ) { return ans ; } } return NULL ; } Func * find_func ( Token * tok ) { for ( Func * func = funcs ; func ; func = func -> next ) { if ( func -> len == tok -> len && ! memcmp ( tok -> str , func -> name , func -> len ) ) return func ; } for ( Func * func = extern_funcs ; func ; func = func -> next ) { if ( func -> len == tok -> len && ! memcmp ( tok -> str , func -> name , func -> len ) ) return func ; } return NULL ; } Aggregate * find_aggr ( Token * tok ) { if ( ! tok ) return NULL ; Aggregate * aggr ; for ( int i = 0 ; i < aggr_list -> len ; i ++ ) { aggr = ( Aggregate * ) aggr_list -> data [ i ] ; if ( strncmp ( tok -> str , aggr -> name , aggr -> len ) == 0 && tok -> len == aggr -> len ) { return aggr ; } } return NULL ; } Node * find_aggr_elem ( Node * node , char * str , int len ) { Aggregate * aggr = node -> type -> ptr_to -> aggr ; Node * var = NULL ; for ( int i = 0 ; i < aggr -> elem -> len ; i ++ ) { var = ( Node * ) aggr -> elem -> data [ i ] ; if ( strncmp ( str , var -> name , var -> len ) == 0 && len == var -> len ) { if ( var -> type -> ptr_to ) { } return var ; } } return NULL ; } Typedef * find_typedef ( char * str , int len ) { Typedef * tydef = NULL ; for ( int i = 0 ; i < typedef_list -> len ; i ++ ) { tydef = ( Typedef * ) typedef_list -> data [ i ] ; if ( strncmp ( str , tydef -> name , tydef -> len ) == 0 && len == tydef -> len ) { return tydef ; } } return NULL ; } void add_code ( Node * node ) { code [ pos ++ ] = node ; } void add_cur_scope_code ( Node * node ) { push_back ( cur_nodes , node ) ; } Type * prim_type_spec ( ) { Type * type = NULL ; Typedef * tydef = find_typedef ( token -> str , token -> len ) ; if ( tydef ) { token = token -> next ; type = tydef -> type ; } else if ( consume ( " void " ) ) { type = void_type ( ) ; } else if ( consume ( " bool " ) ) { type = char_type ( ) ; } else if ( consume ( " char " ) ) { type = char_type ( ) ; } else if ( consume ( " short " ) ) { type = int_type ( ) ; } else if ( consume ( " int " ) ) { type = int_type ( ) ; } else if ( consume ( " long " ) ) { type = int_type ( ) ; } else if ( consume ( " float " ) ) { type = int_type ( ) ; } else if ( consume ( " signed " ) ) { type = int_type ( ) ; } else if ( consume ( " unsigned " ) ) { type = int_type ( ) ; } else { Node * node = aggregate_decl ( ) ; if ( ! node ) { if ( consume ( " struct " ) ) { Aggregate * aggr = find_aggr ( token ) ; if ( ! aggr ) return NULL ; type = struct_type ( aggr , aggr -> type_size ) ; } return NULL ; } type = node -> type ; } return type ; } Type * type_spec ( ) { Type * type = prim_type_spec ( ) ; while ( consume ( " * " ) ) { type = wrap_pointer ( type ) ; } return type ; } Node * call_func ( ) { Token * backup = token ; Node * node = NULL ; Token * tok = consume_ident ( ) ; if ( tok ) { if ( consume ( " ( " ) ) { Func * func = find_func ( tok ) ; if ( ! func ) error_at ( token -> str , " 関数がありません " ) ; node = new_node_s ( ND_CALL , tok , func -> type ) ; Node * arg ; Vec * args = new_vector ( ) ; while ( ! consume ( " ) " ) ) { arg = expr ( ) ; if ( ! arg ) { error_at ( token -> str , " 関数の引数が','で終わっています " ) ; break ; } push_back ( args , arg ) ; if ( ! consume ( " , " ) ) { expect ( " ) " ) ; break ; } } node -> nodes = args ; if ( func ) node -> type = func -> type ; return node ; } } token = backup ; return NULL ; } Node * variable ( ) { Token * backup = token ; Node * node ; Token * tok = consume_ident ( ) ; if ( tok ) { LVar * lvar = find_lvar ( tok ) ; if ( ! lvar ) lvar = search_enum_lvar ( hashs , tok ) ; if ( lvar ) { node = new_node_s ( ND_LVAR , tok , lvar -> type ) ; node -> var = lvar ; if ( node -> type && node -> type -> ty == ARRAY ) { node = new_node ( ND_ADDR , node ) ; node -> type = wrap_pointer ( node -> side [ 0 ] -> type -> ptr_to ) ; } return node ; } else { if ( ! strncmp ( tok -> str , " NULL " , tok -> len ) ) { return new_node_num ( 0 ) ; } if ( ! strncmp ( tok -> str , " false " , tok -> len ) ) { return new_node_num ( 0 ) ; } if ( ! strncmp ( tok -> str , " true " , tok -> len ) ) { return new_node_num ( 1 ) ; } } error_at ( token -> str , " その変数は宣言されていません " ) ; } token = backup ; return NULL ; } Node * term ( ) { Node * node ; if ( consume ( " ( " ) ) { node = expr ( ) ; expect ( " ) " ) ; return node ; } node = variable_decl ( 0 ) ; if ( node ) return node ; node = call_func ( ) ; if ( node ) return node ; node = variable ( ) ; if ( node ) return node ; Token * tok ; if ( consume ( " \" " ) ) { tok = consume_ident ( ) ; if ( tok ) { node = new_node_s ( ND_STRING , tok , wrap_pointer ( char_type ( ) ) ) ; node -> type -> array_size = node -> len ; push_back ( strings , ( void * ) tok ) ; } expect ( " \" " ) ; return node ; } if ( consume ( " \' " ) ) { tok = consume_ident ( ) ; if ( tok ) { node = new_node_s ( ND_STRING , tok , char_type ( ) ) ; node -> type -> array_size = node -> len ; push_back ( strings , ( void * ) tok ) ; } expect ( " \' " ) ; return node ; } if ( consume ( " break " ) ) return new_node0 ( ND_BREAK ) ; if ( consume ( " continue " ) ) return new_node0 ( ND_CONTINUE ) ; int val = consume_number ( ) ; if ( val != - 1 ) return new_node_num ( val ) ; return NULL ; } Node * postfix ( ) { Node * node = term ( ) ; Node * rhs ; Token * id ; Token * backup = token ; if ( ! node ) return node ; for ( ; ; ) { backup = token ; if ( consume ( " . " ) ) { if ( node -> type -> ty == STRUCT ) { id = consume_ident ( ) ; Node * var = find_aggr_elem ( node , id -> str , id -> len ) ; if ( var ) { node = new_binary_node ( ND_DOT , node , var ) ; } else { error_at ( token -> str , " 構造体のドット演算子のrhsが存在しません " ) ; } } else { token = backup ; } } else if ( consume ( " -> " ) ) { if ( node -> type -> ty == PTR && node -> type -> ptr_to -> ty == STRUCT ) { id = consume_ident ( ) ; Node * var = find_aggr_elem ( node , id -> str , id -> len ) ; if ( var ) { Type * type = node -> type -> ptr_to ; node = new_node ( ND_DEREF , node ) ; node -> type = type ; node = new_binary_node ( ND_DOT , node , var ) ; node -> type = var -> type ; } else { error_at ( token -> str , " 構造体のアロー演算子のrhsが存在しません " ) ; } } else { token = backup ; } } else if ( consume ( " [ " ) ) { rhs = rvalue ( ) ; expect ( " ] " ) ; if ( node -> type -> ty == PTR && node -> type -> ptr_to ) { rhs = new_binary_node ( ND_MUL , rhs , new_node_num ( node -> type -> ptr_to -> type_size ) ) ; rhs -> type = node -> type ; } else if ( rhs -> type -> ty == PTR && rhs -> type -> ptr_to ) { node = new_binary_node ( ND_MUL , node , new_node_num ( rhs -> type -> ptr_to -> type_size ) ) ; node -> type = rhs -> type ; } Type * type = node -> type -> ptr_to ; node = new_binary_node ( ND_ADD , node , rhs ) ; node = new_node ( ND_DEREF , node ) ; node -> type = type ; } else { break ; } } if ( consume ( " ++ " ) ) { rhs = new_binary_node ( ND_ADD , node , new_node_num ( 1 ) ) ; return new_binary_node ( ND_ASSIGN , node , rhs ) ; } if ( consume ( " -- " ) ) { rhs = new_binary_node ( ND_SUB , node , new_node_num ( 1 ) ) ; return new_binary_node ( ND_ASSIGN , node , rhs ) ; } return node ; } Node * unary ( ) { Node * node ; Token * backup = token ; if ( consume ( " sizeof " ) ) { backup = token ; if ( consume ( " ( " ) ) { Type * type = type_spec ( ) ; if ( type ) { expect ( " ) " ) ; return new_node_num ( type -> type_size * type -> array_size ) ; } else { token = backup ; } } node = unary ( ) ; if ( node ) { if ( node -> type ) return new_node_num ( node -> type -> type_size * node -> type -> array_size ) ; else return new_node_num ( 0 ) ; } else { return NULL ; } } if ( consume ( " ( " ) ) { Type * type = type_spec ( ) ; if ( type ) { expect ( " ) " ) ; Node * rhs = postfix ( ) ; if ( ! rhs ) return rhs ; rhs -> type = type ; return rhs ; } else { token = backup ; } } if ( consume ( " + " ) ) return postfix ( ) ; if ( consume ( " - " ) ) return new_binary_node ( ND_SUB , new_node_num ( 0 ) , postfix ( ) ) ; if ( consume ( " ++ " ) ) return new_binary_node ( ND_ADD , unary ( ) , new_node_num ( 1 ) ) ; if ( consume ( " -- " ) ) return new_binary_node ( ND_SUB , unary ( ) , new_node_num ( 1 ) ) ; if ( consume ( " ! " ) ) return new_node ( ND_NOT , unary ( ) ) ; if ( consume ( " ~ " ) ) return new_node ( ND_NOT , unary ( ) ) ; if ( consume ( " * " ) ) { node = unary ( ) ; if ( ! node ) return node ; if ( node -> type && node -> type -> ty == PTR ) { node = new_node ( ND_DEREF , node ) ; if ( node -> side [ 0 ] -> type && node -> side [ 0 ] -> type -> ty == PTR ) node -> type = node -> side [ 0 ] -> type -> ptr_to ; else error_at ( token -> str , " 型がありません\n " ) ; } else error_at ( token -> str , " error: indirection requires pointer operand ('int' invalid) " ) ; return node ; } if ( consume ( " & " ) ) { node = unary ( ) ; node = new_node ( ND_ADDR , node ) ; node -> type = wrap_pointer ( node -> side [ 0 ] -> type ) ; return node ; } node = postfix ( ) ; return node ; } Node * mul_expr ( ) { Node * node = unary ( ) ; if ( ! node ) return node ; for ( ; ; ) { if ( consume ( " * " ) ) node = new_binary_node ( ND_MUL , node , unary ( ) ) ; else if ( consume ( " / " ) ) node = new_binary_node ( ND_DIV , node , unary ( ) ) ; else if ( consume ( " % " ) ) node = new_binary_node ( ND_MOD , node , unary ( ) ) ; else return node ; } return node ; } Node * add_expr ( ) { Node * node = mul_expr ( ) ; Node * rhs ; if ( ! node ) return node ; for ( ; ; ) { if ( consume ( " + " ) ) { rhs = mul_expr ( ) ; node = new_binary_node ( ND_ADD , node , rhs ) ; } else if ( consume ( " - " ) ) { rhs = mul_expr ( ) ; node = new_binary_node ( ND_SUB , node , rhs ) ; } else return node ; } } Node * sht_expr ( ) { Node * node = add_expr ( ) ; if ( ! node ) return node ; for ( ; ; ) { if ( consume ( " << " ) ) node = new_binary_node ( ND_SAL , node , sht_expr ( ) ) ; else if ( consume ( " >> " ) ) node = new_binary_node ( ND_SAR , node , sht_expr ( ) ) ; else return node ; } } Node * relational ( ) { Node * node = sht_expr ( ) ; if ( ! node ) return node ; for ( ; ; ) { if ( consume ( " < " ) ) if ( consume ( " = " ) ) node = new_binary_node ( ND_LE , node , add_expr ( ) ) ; else node = new_binary_node ( ND_LT , node , add_expr ( ) ) ; else if ( consume ( " > " ) ) if ( consume ( " = " ) ) node = new_binary_node ( ND_LE , add_expr ( ) , node ) ; else node = new_binary_node ( ND_LT , add_expr ( ) , node ) ; else return node ; } } Node * equality ( ) { Node * node = relational ( ) ; for ( ; ; ) { if ( consume ( " == " ) ) node = new_binary_node ( ND_EQ , node , relational ( ) ) ; else if ( consume ( " != " ) ) node = new_binary_node ( ND_NE , node , relational ( ) ) ; else return node ; } } Node * bit_or ( ) { Node * node = equality ( ) ; for ( ; ; ) { if ( consume ( " | " ) ) node = new_binary_node ( ND_OR , node , bit_or ( ) ) ; else return node ; } } Node * bit_xor ( ) { Node * node = bit_or ( ) ; for ( ; ; ) { if ( consume ( " ^ " ) ) node = new_binary_node ( ND_XOR , node , bit_xor ( ) ) ; else return node ; } } Node * bit_and ( ) { Node * node = bit_xor ( ) ; for ( ; ; ) { if ( consume ( " & " ) ) node = new_binary_node ( ND_AND , node , bit_and ( ) ) ; else return node ; } } Node * rvalue ( ) { Node * node = bit_and ( ) ; for ( ; ; ) { if ( consume ( " && " ) ) node = new_binary_node ( ND_AND , node , rvalue ( ) ) ; else if ( consume ( " || " ) ) node = new_binary_node ( ND_OR , node , rvalue ( ) ) ; else return node ; } } Node * dot ( Node * node ) { for ( ; ; ) { if ( consume ( " . " ) ) { if ( node -> type -> ty == STRUCT ) { Token * rhs = consume_ident ( ) ; Node * var = find_aggr_elem ( node , rhs -> str , rhs -> len ) ; if ( var ) { node = new_binary_node ( ND_DOT , node , var ) ; } else { error_at ( token -> str , " 構造体のドット演算子のrhsが存在しません " ) ; } } } else if ( consume ( " -> " ) ) { if ( node -> type -> ty == PTR && node -> type -> ptr_to -> ty == STRUCT ) { Token * rhs = consume_ident ( ) ; Node * var = find_aggr_elem ( node , rhs -> str , rhs -> len ) ; if ( var ) { Type * type = node -> type -> ptr_to ; node = new_node ( ND_DEREF , node ) ; node -> type = type ; node = new_binary_node ( ND_DOT , node , var ) ; node -> type = var -> type ; } else { error_at ( token -> str , " 構造体のアロー演算子のrhsが存在しません " ) ; } } } else { break ; } } return node ; } Node * lvalue ( ) { Token * backup = token ; Node * node = NULL ; if ( consume ( " * " ) ) { node = rvalue ( ) ; if ( node -> type && node -> type -> ty == PTR ) { Type * type = node -> type -> ptr_to ; node = new_node ( ND_DEREF , node ) ; node -> type = type ; return node ; } return NULL ; } if ( consume ( " & " ) ) return new_node ( ND_ADDR , lvalue ( ) ) ; Token * tok = consume_ident ( ) ; if ( tok ) { LVar * lvar = find_lvar ( tok ) ; if ( lvar ) { node = new_node_s ( ND_LVAR , tok , lvar -> type ) ; node -> var = lvar ; node -> type = lvar -> type ; node = dot ( node ) ; if ( node -> type && node -> type -> ty == ARRAY ) { node = new_node ( ND_ADDR , node ) ; node -> type = wrap_pointer ( node -> side [ 0 ] -> type -> ptr_to ) ; } if ( consume ( " [ " ) ) { Node * rhs = rvalue ( ) ; if ( node -> type -> ty == PTR && node -> type -> ptr_to ) { rhs = new_binary_node ( ND_MUL , rhs , new_node_num ( node -> type -> ptr_to -> type_size ) ) ; rhs -> type = node -> type ; } else if ( rhs -> type -> ty == PTR && rhs -> type -> ptr_to ) { node = new_binary_node ( ND_MUL , node , new_node_num ( rhs -> type -> ptr_to -> type_size ) ) ; node -> type = rhs -> type ; } Type * type = node -> type -> ptr_to ; node = new_binary_node ( ND_ADD , node , rhs ) ; node = new_node ( ND_DEREF , node ) ; node -> type = type ; expect ( " ] " ) ; return node ; } } else { token = backup ; return NULL ; } return node ; } return node ; } Node * initializer ( ) { Node * node ; if ( consume ( " { " ) ) { Vec * nodes = new_vector ( ) ; for ( ; ; ) { push_back ( nodes , rvalue ( ) ) ; if ( ! consume ( " , " ) ) { expect ( " } " ) ; break ; } } node = calloc ( 1 , sizeof ( Node ) ) ; node -> kind = ND_INITIALIZER ; node -> nodes = nodes ; return node ; } else { node = rvalue ( ) ; } return node ; } Node * expr ( ) { Node * node = NULL ; Token * backup = token ; Node * lval = lvalue ( ) ; if ( lval ) { Node * rval ; if ( consume ( " += " ) ) { rval = expr ( ) ; rval = new_binary_node ( ND_ADD , lval , rval ) ; node = new_binary_node ( ND_ASSIGN , lval , rval ) ; } else if ( consume ( " -= " ) ) { rval = expr ( ) ; rval = new_binary_node ( ND_SUB , lval , rval ) ; node = new_binary_node ( ND_ASSIGN , lval , rval ) ; } else if ( consume ( " *= " ) ) { rval = expr ( ) ; rval = new_binary_node ( ND_MUL , lval , rval ) ; node = new_binary_node ( ND_ASSIGN , lval , rval ) ; } else if ( consume ( " /= " ) ) { rval = expr ( ) ; rval = new_binary_node ( ND_DIV , lval , rval ) ; node = new_binary_node ( ND_ASSIGN , lval , rval ) ; } else if ( consume ( " %= " ) ) { rval = expr ( ) ; rval = new_binary_node ( ND_MOD , lval , rval ) ; node = new_binary_node ( ND_ASSIGN , lval , rval ) ; } else if ( consume ( " <<= " ) ) { rval = expr ( ) ; rval = new_binary_node ( ND_SAL , lval , rval ) ; node = new_binary_node ( ND_ASSIGN , lval , rval ) ; } else if ( consume ( " >>= " ) ) { rval = expr ( ) ; rval = new_binary_node ( ND_SAR , lval , rval ) ; node = new_binary_node ( ND_ASSIGN , lval , rval ) ; } else if ( consume ( " &= " ) ) { rval = expr ( ) ; rval = new_binary_node ( ND_AND , lval , rval ) ; node = new_binary_node ( ND_ASSIGN , lval , rval ) ; } else if ( consume ( " ^= " ) ) { rval = expr ( ) ; rval = new_binary_node ( ND_XOR , lval , rval ) ; node = new_binary_node ( ND_ASSIGN , lval , rval ) ; } else if ( consume ( " |= " ) ) { rval = expr ( ) ; rval = new_binary_node ( ND_OR , lval , rval ) ; node = new_binary_node ( ND_ASSIGN , lval , rval ) ; } else if ( consume ( " = " ) ) { rval = expr ( ) ; node = new_binary_node ( ND_ASSIGN , lval , rval ) ; } else { token = backup ; node = rvalue ( ) ; } } else { token = backup ; node = rvalue ( ) ; } return node ; } Node * switch_case ( ) { Node * node_k ; Node * case_default ; Vec * nodes_stmt ; if ( consume ( " case " ) ) { case_default = rvalue ( ) ; expect ( " : " ) ; while ( ! check ( " case " ) && ! check ( " } " ) ) { node_k = stmt ( ) ; if ( node_k ) push_back ( nodes_stmt , ( void * ) node_k ) ; else break ; } node_k = new_node ( ND_CASE , case_default ) ; node_k -> nodes = nodes_stmt ; return node_k ; } else if ( consume ( " default " ) ) { case_default = NULL ; expect ( " : " ) ; while ( ! check ( " case " ) && ! check ( " } " ) ) { node_k = stmt ( ) ; push_back ( nodes_stmt , ( void * ) node_k ) ; } node_k = new_node ( ND_CASE , case_default ) ; node_k -> nodes = nodes_stmt ; return node_k ; } return NULL ; } Node * stmt ( ) { Node * node , * Loop ; if ( consume ( " return " ) ) { node = expr ( ) ; if ( ! node ) node = new_node_num ( 0 ) ; node = new_node ( ND_RETURN , node ) ; expect ( " ; " ) ; } else if ( consume ( " if " ) ) { Node * Cond , * Then , * Else ; expect ( " ( " ) ; Cond = expr ( ) ; expect ( " ) " ) ; Then = stmts ( ) ; if ( consume ( " else " ) ) Else = stmts ( ) ; else Else = NULL ; node = new_node_if ( ND_IF , Cond , Then , Else ) ; } else if ( consume ( " while " ) ) { Node * Cond ; expect ( " ( " ) ; Cond = expr ( ) ; expect ( " ) " ) ; Loop = stmts ( ) ; node = new_binary_node ( ND_WHILE , Cond , Loop ) ; } else if ( consume ( " for " ) ) { Node * Cond1 , * Cond2 , * Cond3 ; expect ( " ( " ) ; Cond1 = expr ( ) ; expect ( " ; " ) ; Cond2 = expr ( ) ; expect ( " ; " ) ; Cond3 = expr ( ) ; expect ( " ) " ) ; Loop = stmts ( ) ; node = new_node_for ( ND_FOR , Cond1 , Cond2 , Cond3 , Loop ) ; } else { node = expr ( ) ; if ( node ) expect ( " ; " ) ; } return node ; } Node * stmts ( ) { Node * node ; if ( consume ( " { " ) ) { Vec * nodes = new_vector ( ) ; Vec * kari = cur_nodes ; cur_nodes = nodes ; for ( ; ; ) { push_back ( nodes , stmt ( ) ) ; if ( consume ( " } " ) ) break ; } cur_nodes = kari ; node = calloc ( 1 , sizeof ( Node ) ) ; node -> kind = ND_BLOCK ; node -> nodes = nodes ; } else { node = stmt ( ) ; } return node ; } Node * variable_decl ( int glocal ) { Node * node = NULL ; Token * backup = token ; bool codegen = true ; if ( consume ( " extern " ) ) { codegen = false ; } Type * ident_type = prim_type_spec ( ) ; Type * each_type ; if ( ident_type ) { for ( ; ; ) { each_type = ident_type ; while ( consume ( " * " ) ) { each_type = wrap_pointer ( each_type ) ; } Token * tok = consume_ident ( ) ; Node * rhs = NULL ; if ( tok && ! check ( " ( " ) ) { if ( consume ( " [ " ) ) { int array_size = consume_number ( ) ; expect ( " ] " ) ; if ( consume ( " = " ) ) { rhs = initializer ( ) ; } if ( array_size == - 1 ) { if ( rhs -> nodes ) array_size = rhs -> nodes -> len ; else array_size = rhs -> len ; } Type * type = array_type ( each_type , array_size ) ; each_type = type ; } LVar * lvar ; lvar = make_lvar ( tok , each_type ) ; add_var ( cur_scope , lvar ) ; if ( codegen ) { node = new_node_s ( ND_VARDECL , tok , each_type ) ; node -> var = lvar ; if ( rhs ) { node = new_binary_node ( ND_ASSIGN , node , rhs ) ; } else if ( consume ( " = " ) ) { rhs = initializer ( ) ; node = new_binary_node ( ND_ASSIGN , node , rhs ) ; } } if ( ! consume ( " , " ) ) break ; else { add_cur_scope_code ( node ) ; } } else { token = backup ; return node ; } } if ( glocal == 1 ) expect ( " ; " ) ; return node ; } token = backup ; return node ; } LVar * init_variable_list ( ) { LVar * pre = calloc ( 1 , sizeof ( LVar ) ) ; pre -> type = calloc ( 1 , sizeof ( Type ) ) ; pre -> type -> type_size = 0 ; pre -> offset = 0 ; return pre ; } Node * func_decl_or_def ( ) { Node * node = NULL ; Token * backup = token ; if ( consume ( " extern " ) ) { } Type * ident_type = type_spec ( ) ; locals = init_variable_list ( ) ; if ( ident_type ) { Token * tok = consume_ident ( ) ; if ( tok ) { if ( consume ( " ( " ) ) { Func * func ; Token * arg ; LVar * args = init_variable_list ( ) ; LVar * arg_first = args ; Type * arg_type ; LVar * lvar ; node = new_node_s ( ND_DECL , tok , ident_type ) ; add_node ( cur_scope , node ) ; cur_scope = node ; while ( ! consume ( " ) " ) ) { arg_type = type_spec ( ) ; if ( ! arg_type ) { if ( consume ( " ... " ) ) { arg_type = lvar -> type ; lvar = new_arg ( args , arg , arg_type ) ; args -> next = lvar ; args = lvar ; lvar = make_lvar ( arg , arg_type ) ; add_var ( cur_scope , lvar ) ; expect ( " ) " ) ; break ; } break ; } arg = consume_ident ( ) ; if ( ! arg ) { error_at ( token -> str , " 関数の引数が','で終わっています " ) ; break ; } lvar = new_arg ( args , arg , arg_type ) ; args -> next = lvar ; args = lvar ; lvar = make_lvar ( arg , arg_type ) ; add_var ( cur_scope , lvar ) ; if ( ! consume ( " , " ) ) { expect ( " ) " ) ; break ; } } if ( consume ( " ; " ) ) { func = new_func ( extern_funcs , tok , ident_type , arg_first ) ; extern_funcs = func ; cur_scope = NULL ; node -> kind = ND_DECL ; node -> func = func ; } else { func = new_func ( funcs , tok , ident_type , arg_first ) ; funcs = func ; node -> kind = ND_DEF ; node -> side [ 0 ] = stmts ( ) ; cur_scope = NULL ; func -> locals = locals ; Hashs * hash = search_hash ( hashs , cur_scope ) ; node -> func = func ; } return node ; } } } token = backup ; return node ; } void move_type ( Type * ltype , Type * rtype ) { ltype -> ty = rtype -> ty ; ltype -> ptr_to = rtype -> ptr_to ; ltype -> aggr = rtype -> aggr ; ltype -> type_size = rtype -> type_size ; ltype -> array_size = rtype -> array_size ; } Node * struct_decl ( ) { Node * node = NULL ; if ( consume ( " struct " ) ) { Token * id = consume_ident ( ) ; Aggregate * aggr = find_aggr ( id ) ; if ( ! aggr ) aggr = calloc ( 1 , sizeof ( Aggregate ) ) ; aggr -> elem = new_vector ( ) ; if ( id ) { aggr -> name = id -> str ; aggr -> len = id -> len ; } int size = 0 ; Type * type = struct_type ( aggr , size ) ; node = new_node_s ( ND_STRUCT , id , type ) ; if ( consume ( " { " ) ) { Node * prev_scope = cur_scope ; add_node ( cur_scope , node ) ; cur_scope = node ; Node * var ; while ( true ) { var = variable_decl ( 0 ) ; if ( ! var ) break ; expect ( " ; " ) ; push_back ( aggr -> elem , var ) ; size += var -> type -> type_size ; } expect ( " } " ) ; cur_scope = prev_scope ; size = ( size + 7 ) / 8 * 8 ; aggr -> type_size = size ; type = struct_type ( aggr , size ) ; for ( int i = 0 ; i < typedef_list -> len ; i ++ ) { Typedef * tydef = ( Typedef * ) typedef_list -> data [ i ] ; if ( tydef -> type && tydef -> type -> aggr ) { aggr = tydef -> type -> aggr ; if ( strncmp ( aggr -> name , id -> str , aggr -> len ) == 0 && aggr -> len == id -> len ) { move_type ( tydef -> type , type ) ; } } } push_back ( aggr_list , aggr ) ; node -> type = type ; return node ; } return node ; } return node ; } Node * enum_decl ( ) { Node * enum_node = NULL ; if ( consume ( " enum " ) ) { Token * id = consume_ident ( ) ; expect ( " { " ) ; Aggregate * aggr = find_aggr ( id ) ; if ( ! aggr ) aggr = calloc ( 1 , sizeof ( Aggregate ) ) ; aggr -> elem = new_vector ( ) ; if ( id ) { aggr -> name = id -> str ; aggr -> len = id -> len ; } int size = 0 ; Token * enumerator ; LVar * var ; Type * elem_type = int_type ( ) ; Node * lhs = NULL , * rhs = NULL ; Node * node ; LVar * lvar ; Type * type = enum_type ( aggr , size ) ; enum_node = new_node_s ( ND_ENUM , id , type ) ; Node * prev_scope = cur_scope ; add_node ( cur_scope , enum_node ) ; cur_scope = enum_node ; bool first = true ; while ( ! consume ( " } " ) ) { enumerator = consume_ident ( ) ; if ( ! enumerator ) { error_at ( token -> str , " enumが','で終わっています " ) ; break ; } var = make_lvar ( enumerator , elem_type ) ; add_var ( cur_scope , var ) ; lhs = new_node_s ( ND_VARDECL , enumerator , elem_type ) ; lhs -> var = var ; push_back ( aggr -> elem , lhs ) ; size += elem_type -> type_size ; node = lhs ; if ( consume ( " = " ) ) { rhs = initializer ( ) ; node = new_binary_node ( ND_ASSIGN , node , rhs ) ; } if ( first ) { if ( rhs ) { elem_type = rhs -> type ; node -> type = elem_type ; node = new_binary_node ( ND_ASSIGN , lhs , rhs ) ; } else { rhs = new_node_num ( 0 ) ; node = new_binary_node ( ND_ASSIGN , lhs , rhs ) ; } first = false ; } else { if ( ! rhs ) { rhs = new_node_num ( 1 ) ; node = new_binary_node ( ND_ADD , lhs , rhs ) ; node = new_binary_node ( ND_ASSIGN , lhs , node ) ; } } if ( ! consume ( " , " ) ) { expect ( " } " ) ; break ; } } cur_scope = prev_scope ; size = ( size + 7 ) / 8 * 8 ; aggr -> type_size = size ; type = enum_type ( aggr , size ) ; for ( int i = 0 ; i < typedef_list -> len ; i ++ ) { Typedef * tydef = ( Typedef * ) typedef_list -> data [ i ] ; if ( tydef -> type && tydef -> type -> aggr ) { aggr = tydef -> type -> aggr ; if ( id && strncmp ( aggr -> name , id -> str , aggr -> len ) == 0 && aggr -> len == id -> len ) { move_type ( tydef -> type , type ) ; } } } push_back ( aggr_list , aggr ) ; enum_node -> type = type ; return enum_node ; } return enum_node ; } Node * aggregate_decl ( ) { Node * node = NULL ; node = struct_decl ( ) ; if ( node ) return node ; node = enum_decl ( ) ; if ( node ) return node ; return node ; } Typedef * typedef_decl ( ) { Node * node ; Type * type ; Token * tok , * backup ; if ( consume ( " typedef " ) ) { backup = token ; type = type_spec ( ) ; if ( type ) { tok = consume_ident ( ) ; expect ( " ; " ) ; Typedef * tydef = calloc ( 1 , sizeof ( Typedef ) ) ; tydef -> type = type ; tydef -> name = tok -> str ; tydef -> len = tok -> len ; push_back ( typedef_list , tydef ) ; return tydef ; } else { token = backup ; } } return NULL ; } bool include_file ( ) { if ( consume ( " # " ) ) { if ( consume ( " include " ) ) { if ( consume ( " \" " ) ) { Token * tok = consume_ident ( ) ; char str [ 100 ] ; strncpy ( str , tok -> str , tok -> len ) ; str [ tok -> len ] = ' \0 ' ; Token * kari = token ; compile_at ( str ) ; token = kari ; expect ( " \" " ) ; } else if ( consume ( " < " 
+.intel_syntax noprefix
+.extern _print_content, _print_variable_scope, _cu, _vfprintf, _fprintf, _snprintf, _sprintf, _printf, _memcmp, _strlen, _strncpy, _strncmp, _calloc, _error_at, _error, _print_token, _preprocessor, _gen_funcs, _gen_extern, _search_hash, _new_hash, _new_node_num, _new_node_s, _consume_ident, _is_reserved, _new_token, _new_binary_node, _aggregate_decl, _print_all, _compile_at, _read_file, _print_lvar, _print_type, _get_name, _analyse, _analyse_pre, _gen_pre, _runtest, _push_back, _new_vector, _gen, _program, _tokenize, _expect
+.global _analyse, _analyse_pre, _print_all, _print_content, _print_func, _print_lvars, _print_lvar, _print_type, _print_aggr, _print_node
+token:
+	.zero 8
+funcs:
+	.zero 8
+filename:
+	.zero 8
+strings:
+	.zero 8
+aggr_list:
+	.zero 8
+tab:
+	.long -1
+type_char:
+	.ascii "\0"
+kari_char:
+	.ascii "\0"
+print_nodes:
+	.byte ''
+_print_node:
+	push rbp
+	mov rbp, rsp
+	sub rsp, 24
+	mov  [rbp-0], rdi
+	mov  [rbp-8], rsi
+	lea rax, BYTE PTR [rip + print_nodes@GOTPCREL]
+	push rax
+	pop rax
+	mov al, BYTE PTR [rax]
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then1
+	jmp .Lif.end1
+.Lif.then1:
+	push 0
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+.Lfor.loop1:
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, DWORD PTR [rip + tab@GOTPCREL]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	setl al
+	movzx rax, al
+	push rax
+	cmp rax, 0
+	je .Lfor.end1
+	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC2]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else0
+	call _fprintf
+	jmp .call.end0
+.call.else0:
+	push rsi
+	call _fprintf
+	pop rsi
+.call.end0:
+	push rax
+.Lfor.inc1:
+	lea rax, [rbp-8]
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	jmp .Lfor.loop1
+.Lfor.end1:
+	lea rax, [rbp-12]
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	push 12
+	push 1
+	pop rbx
+	pop rax
+	sub rax, rbx
+	push rax
+	push 4
+	pop rbx
+	pop rax
+	xor rdx, rdx
+	div rbx
+	push rax
+	push 4
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else1
+	call _vfprintf
+	jmp .call.end1
+.call.else1:
+	push rsi
+	call _vfprintf
+	pop rsi
+.call.end1:
+	push rax
+	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC3]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else2
+	call _fprintf
+	jmp .call.end2
+.call.else2:
+	push rsi
+	call _fprintf
+	pop rsi
+.call.end2:
+	push rax
+.Lif.end1:
+_print_aggr:
+	push rbp
+	mov rbp, rsp
+	sub rsp, 16
+	mov  [rbp-0], rdi
+	mov  [rbp-4], rsi
+	push 0
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+.Lfor.loop2:
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-12]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	setl al
+	movzx rax, al
+	push rax
+	cmp rax, 0
+	je .Lfor.end2
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rdi
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-12]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else3
+	call _print_content
+	jmp .call.end3
+.call.else3:
+	push rsi
+	call _print_content
+	pop rsi
+.call.end3:
+	push rax
+.Lfor.inc2:
+	lea rax, [rbp-12]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	jmp .Lfor.loop2
+.Lfor.end2:
+_print_type:
+	push rbp
+	mov rbp, rsp
+	sub rsp, 16
+	mov QWORD PTR [rbp-0], rdi
+	lea rax, QWORD PTR [rip + type_char@GOTPCREL]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC4]
+	push rax
+	pop rsi
+	push 30
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else4
+	call _strncpy
+	jmp .call.end4
+.call.else4:
+	push rsi
+	call _strncpy
+	pop rsi
+.call.end4:
+	push rax
+	lea rax, QWORD PTR [rip + kari_char@GOTPCREL]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC5]
+	push rax
+	pop rsi
+	push 30
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else5
+	call _strncpy
+	jmp .call.end5
+.call.else5:
+	push rsi
+	call _strncpy
+	pop rsi
+.call.end5:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	not eax
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then2
+	jmp .Lif.end2
+.Lif.then2:
+	lea rax, qword ptr [rip + .LC6]
+	push rax
+	pop rbp
+	ret
+.Lif.end2:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-48]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+.Lwhile.loop0:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	cmp rax, 0
+	je .Lwhile.end0
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then3
+	jmp .Lif.end3
+.Lif.then3:
+	lea rax, QWORD PTR [rip + kari_char@GOTPCREL]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC7]
+	push rax
+	pop rsi
+	lea rax, QWORD PTR [rip + type_char@GOTPCREL]
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else6
+	call _sprintf
+	jmp .call.end6
+.call.else6:
+	push rsi
+	call _sprintf
+	pop rsi
+.call.end6:
+	push rax
+.Lif.end3:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-16]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then4
+	jmp .Lif.end4
+.Lif.then4:
+	lea rax, QWORD PTR [rip + kari_char@GOTPCREL]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC8]
+	push rax
+	pop rsi
+	lea rax, QWORD PTR [rip + type_char@GOTPCREL]
+	push rax
+	pop rdx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-52]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rcx
+	mov rax, 4
+	test rsp, 15
+	jne .call.else7
+	call _sprintf
+	jmp .call.end7
+.call.else7:
+	push rsi
+	call _sprintf
+	pop rsi
+.call.end7:
+	push rax
+.Lif.end4:
+	lea rax, QWORD PTR [rip + type_char@GOTPCREL]
+	push rax
+	pop rdi
+	lea rax, QWORD PTR [rip + kari_char@GOTPCREL]
+	push rax
+	pop rsi
+	push 30
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else8
+	call _strncpy
+	jmp .call.end8
+.call.else8:
+	push rsi
+	call _strncpy
+	pop rsi
+.call.end8:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	jmp .Lwhile.loop0
+.Lwhile.end0:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch1.case0
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch1.case1
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch1.case2
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-16]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch1.case3
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch1.case4
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-20]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch1.case5
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-24]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch1.case6
+	jmp .Lswitch1.end
+.Lswitch1.case0
+	lea rax, QWORD PTR [rip + kari_char@GOTPCREL]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC9]
+	push rax
+	pop rsi
+	lea rax, QWORD PTR [rip + type_char@GOTPCREL]
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else9
+	call _sprintf
+	jmp .call.end9
+.call.else9:
+	push rsi
+	call _sprintf
+	pop rsi
+.call.end9:
+	push rax
+	jmp .Lswitch1.end
+.Lswitch1.case1
+	lea rax, QWORD PTR [rip + kari_char@GOTPCREL]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC10]
+	push rax
+	pop rsi
+	lea rax, QWORD PTR [rip + type_char@GOTPCREL]
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else10
+	call _sprintf
+	jmp .call.end10
+.call.else10:
+	push rsi
+	call _sprintf
+	pop rsi
+.call.end10:
+	push rax
+	jmp .Lswitch1.end
+.Lswitch1.case2
+	lea rax, QWORD PTR [rip + kari_char@GOTPCREL]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC11]
+	push rax
+	pop rsi
+	lea rax, QWORD PTR [rip + type_char@GOTPCREL]
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else11
+	call _sprintf
+	jmp .call.end11
+.call.else11:
+	push rsi
+	call _sprintf
+	pop rsi
+.call.end11:
+	push rax
+	jmp .Lswitch1.end
+.Lswitch1.case3
+	lea rax, QWORD PTR [rip + kari_char@GOTPCREL]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC12]
+	push rax
+	pop rsi
+	lea rax, QWORD PTR [rip + type_char@GOTPCREL]
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else12
+	call _sprintf
+	jmp .call.end12
+.call.else12:
+	push rsi
+	call _sprintf
+	pop rsi
+.call.end12:
+	push rax
+	jmp .Lswitch1.end
+.Lswitch1.case4
+	lea rax, QWORD PTR [rip + kari_char@GOTPCREL]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC13]
+	push rax
+	pop rsi
+	lea rax, QWORD PTR [rip + type_char@GOTPCREL]
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else13
+	call _sprintf
+	jmp .call.end13
+.call.else13:
+	push rsi
+	call _sprintf
+	pop rsi
+.call.end13:
+	push rax
+	jmp .Lswitch1.end
+.Lswitch1.case5
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then5
+	jmp .Lif.end5
+.Lif.then5:
+	lea rax, QWORD PTR [rip + kari_char@GOTPCREL]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC14]
+	push rax
+	pop rsi
+	lea rax, QWORD PTR [rip + type_char@GOTPCREL]
+	push rax
+	pop rdx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-40]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-40]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else14
+	call _get_name
+	jmp .call.end14
+.call.else14:
+	push rsi
+	call _get_name
+	pop rsi
+.call.end14:
+	push rax
+	pop rcx
+	mov rax, 4
+	test rsp, 15
+	jne .call.else15
+	call _sprintf
+	jmp .call.end15
+.call.else15:
+	push rsi
+	call _sprintf
+	pop rsi
+.call.end15:
+	push rax
+.Lif.end5:
+	jmp .Lswitch1.end
+.Lswitch1.case6
+	lea rax, QWORD PTR [rip + kari_char@GOTPCREL]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC15]
+	push rax
+	pop rsi
+	lea rax, QWORD PTR [rip + type_char@GOTPCREL]
+	push rax
+	pop rdx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-40]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-40]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else16
+	call _get_name
+	jmp .call.end16
+.call.else16:
+	push rsi
+	call _get_name
+	pop rsi
+.call.end16:
+	push rax
+	pop rcx
+	mov rax, 4
+	test rsp, 15
+	jne .call.else17
+	call _sprintf
+	jmp .call.end17
+.call.else17:
+	push rsi
+	call _sprintf
+	pop rsi
+.call.end17:
+	push rax
+	jmp .Lswitch1.end
+.Lswitch1.end
+	lea rax, QWORD PTR [rip + type_char@GOTPCREL]
+	push rax
+	pop rdi
+	push 30
+	pop rsi
+	lea rax, qword ptr [rip + .LC16]
+	push rax
+	pop rdx
+	lea rax, QWORD PTR [rip + kari_char@GOTPCREL]
+	push rax
+	pop rcx
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop r8
+	mov rax, 5
+	test rsp, 15
+	jne .call.else18
+	call _snprintf
+	jmp .call.end18
+.call.else18:
+	push rsi
+	call _snprintf
+	pop rsi
+.call.end18:
+	push rax
+	lea rax, QWORD PTR [rip + type_char@GOTPCREL]
+	push rax
+	pop rbp
+	ret
+_print_lvar:
+	push rbp
+	mov rbp, rsp
+	sub rsp, 16
+	mov  [rbp-0], rdi
+	mov  [rbp-4], rsi
+	push 0
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+.Lfor.loop3:
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	setl al
+	movzx rax, al
+	push rax
+	cmp rax, 0
+	je .Lfor.end3
+	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC17]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else19
+	call _fprintf
+	jmp .call.end19
+.call.else19:
+	push rsi
+	call _fprintf
+	pop rsi
+.call.end19:
+	push rax
+.Lfor.inc3:
+	lea rax, [rbp-12]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	jmp .Lfor.loop3
+.Lfor.end3:
+	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC18]
+	push rax
+	pop rsi
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-20]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else20
+	call _print_type
+	jmp .call.end20
+.call.else20:
+	push rsi
+	call _print_type
+	pop rsi
+.call.end20:
+	push rax
+	pop rdx
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-36]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rcx
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-8]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-16]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else21
+	call _get_name
+	jmp .call.end21
+.call.else21:
+	push rsi
+	call _get_name
+	pop rsi
+.call.end21:
+	push rax
+	pop r8
+	mov rax, 5
+	test rsp, 15
+	jne .call.else22
+	call _fprintf
+	jmp .call.end22
+.call.else22:
+	push rsi
+	call _fprintf
+	pop rsi
+.call.end22:
+	push rax
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-20]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then6
+	jmp .Lif.end6
+.Lif.then6:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-20]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-40]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else23
+	call _print_aggr
+	jmp .call.end23
+.call.else23:
+	push rsi
+	call _print_aggr
+	pop rsi
+.call.end23:
+	push rax
+.Lif.end6:
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-20]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-20]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-40]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then7
+	jmp .Lif.end7
+.Lif.then7:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-20]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-40]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else24
+	call _print_aggr
+	jmp .call.end24
+.call.else24:
+	push rsi
+	call _print_aggr
+	pop rsi
+.call.end24:
+	push rax
+.Lif.end7:
+_print_lvars:
+	push rbp
+	mov rbp, rsp
+	sub rsp, 16
+	mov  [rbp-0], rdi
+	mov  [rbp-4], rsi
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then8
+	jmp .Lif.end8
+.Lif.then8:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else25
+	call _print_lvar
+	jmp .call.end25
+.call.else25:
+	push rsi
+	call _print_lvar
+	pop rsi
+.call.end25:
+	push rax
+	pop rbp
+	ret
+.Lif.end8:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else26
+	call _print_lvars
+	jmp .call.end26
+.call.else26:
+	push rsi
+	call _print_lvars
+	pop rsi
+.call.end26:
+	push rax
+_print_func:
+	push rbp
+	mov rbp, rsp
+	sub rsp, 8
+	mov  [rbp-0], rdi
+	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC19]
+	push rax
+	pop rsi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-8]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else27
+	call _print_type
+	jmp .call.end27
+.call.else27:
+	push rsi
+	call _print_type
+	pop rsi
+.call.end27:
+	push rax
+	pop rdx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-16]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-24]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else28
+	call _get_name
+	jmp .call.end28
+.call.else28:
+	push rsi
+	call _get_name
+	pop rsi
+.call.end28:
+	push rax
+	pop rcx
+	mov rax, 4
+	test rsp, 15
+	jne .call.else29
+	call _fprintf
+	jmp .call.end29
+.call.else29:
+	push rsi
+	call _fprintf
+	pop rsi
+.call.end29:
+	push rax
+_print_content:
+	push rbp
+	mov rbp, rsp
+	sub rsp, 24
+	mov  [rbp-0], rdi
+	mov  [rbp-4], rsi
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then9
+	jmp .Lif.else9
+.Lif.then9:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-272]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else30
+	call _print_lvar
+	jmp .call.end30
+.call.else30:
+	push rsi
+	call _print_lvar
+	pop rsi
+.call.end30:
+	push rax
+	jmp .Lif.end9
+.Lif.else9:
+	push 0
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+.Lfor.loop4:
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	setl al
+	movzx rax, al
+	push rax
+	cmp rax, 0
+	je .Lfor.end4
+	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC20]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else31
+	call _fprintf
+	jmp .call.end31
+.call.else31:
+	push rsi
+	call _fprintf
+	pop rsi
+.call.end31:
+	push rax
+.Lfor.inc4:
+	lea rax, [rbp-12]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	jmp .Lfor.loop4
+.Lfor.end4:
+	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC21]
+	push rax
+	pop rsi
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else32
+	call _print_type
+	jmp .call.end32
+.call.else32:
+	push rsi
+	call _print_type
+	pop rsi
+.call.end32:
+	push rax
+	pop rdx
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-260]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-268]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else33
+	call _get_name
+	jmp .call.end33
+.call.else33:
+	push rsi
+	call _get_name
+	pop rsi
+.call.end33:
+	push rax
+	pop rcx
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop r8
+	mov rax, 5
+	test rsp, 15
+	jne .call.else34
+	call _fprintf
+	jmp .call.end34
+.call.else34:
+	push rsi
+	call _fprintf
+	pop rsi
+.call.end34:
+	push rax
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then10
+	jmp .Lif.end10
+.Lif.then10:
+	push 0
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+.Lfor.loop5:
+	lea rax, [rbp-16]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	setl al
+	movzx rax, al
+	push rax
+	cmp rax, 0
+	je .Lfor.end5
+	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC22]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else35
+	call _fprintf
+	jmp .call.end35
+.call.else35:
+	push rsi
+	call _fprintf
+	pop rsi
+.call.end35:
+	push rax
+.Lfor.inc5:
+	lea rax, [rbp-16]
+	push rax
+	lea rax, [rbp-16]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	jmp .Lfor.loop5
+.Lfor.end5:
+	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC23]
+	push rax
+	pop rsi
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else36
+	call _print_type
+	jmp .call.end36
+.call.else36:
+	push rsi
+	call _print_type
+	pop rsi
+.call.end36:
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else37
+	call _fprintf
+	jmp .call.end37
+.call.else37:
+	push rsi
+	call _fprintf
+	pop rsi
+.call.end37:
+	push rax
+.Lif.end10:
+	jmp .Lif.end9
+.Lif.end9:
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then11
+	jmp .Lif.end11
+.Lif.then11:
+	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC24]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else38
+	call _fprintf
+	jmp .call.end38
+.call.else38:
+	push rsi
+	call _fprintf
+	pop rsi
+.call.end38:
+	push rax
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-280]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else39
+	call _print_func
+	jmp .call.end39
+.call.else39:
+	push rsi
+	call _print_func
+	pop rsi
+.call.end39:
+	push rax
+.Lif.end11:
+_print_all:
+	push rbp
+	mov rbp, rsp
+	sub rsp, 8
+	mov  [rbp-0], rdi
+	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC25]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else40
+	call _fprintf
+	jmp .call.end40
+.call.else40:
+	push rsi
+	call _fprintf
+	pop rsi
+.call.end40:
+	push rax
+	push 1
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else41
+	call _print_content
+	jmp .call.end41
+.call.else41:
+	push rsi
+	call _print_content
+	pop rsi
+.call.end41:
+	push rax
+_analyse_pre:
+	push rbp
+	mov rbp, rsp
+	sub rsp, 16
+	mov  [rbp-0], rdi
+	push 0
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+.Lfor.loop6:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	cmp rax, 0
+	je .Lfor.end6
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else42
+	call _analyse
+	jmp .call.end42
+.call.else42:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end42:
+	push rax
+.Lfor.inc6:
+	lea rax, [rbp-8]
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	jmp .Lfor.loop6
+.Lfor.end6:
+_analyse:
+	push rbp
+	mov rbp, rsp
+	sub rsp, 200
+	mov  [rbp-0], rdi
+	lea rax, DWORD PTR [rip + tab@GOTPCREL]
+	push rax
+	lea rax, DWORD PTR [rip + tab@GOTPCREL]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then12
+	jmp .Lif.end12
+.Lif.then12:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case0
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-72]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case1
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-76]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case2
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-80]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case3
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-84]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case4
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-64]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case5
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-152]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case6
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-144]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case7
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-148]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case8
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-60]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case9
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-88]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case10
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-92]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case11
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-96]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case12
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-108]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case13
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-112]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case14
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-116]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case15
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case16
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-124]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case17
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case18
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-136]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case19
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-132]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case20
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case21
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case22
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case23
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case24
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-16]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case25
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-20]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case26
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-24]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case27
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-28]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case28
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-32]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case29
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-36]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case30
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-40]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case31
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-48]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case32
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-56]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case33
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-52]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case34
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-44]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	je .Lswitch2.case35
+	jmp .Lswitch2.default
+	jmp .Lswitch2.end
+.Lswitch2.case0
+	lea rax, qword ptr [rip + .LC26]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else43
+	call _print_node
+	jmp .call.end43
+.call.else43:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end43:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case1
+	lea rax, qword ptr [rip + .LC27]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-260]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-268]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else44
+	call _get_name
+	jmp .call.end44
+.call.else44:
+	push rsi
+	call _get_name
+	pop rsi
+.call.end44:
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else45
+	call _print_node
+	jmp .call.end45
+.call.else45:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end45:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case2
+	jmp .Lswitch2.end
+.Lswitch2.case3
+	lea rax, qword ptr [rip + .LC28]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else46
+	call _print_node
+	jmp .call.end46
+.call.else46:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end46:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case4
+	lea rax, qword ptr [rip + .LC29]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else47
+	call _print_node
+	jmp .call.end47
+.call.else47:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end47:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else48
+	call _analyse
+	jmp .call.end48
+.call.else48:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end48:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else49
+	call _analyse
+	jmp .call.end49
+.call.else49:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end49:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case5
+	lea rax, qword ptr [rip + .LC30]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else50
+	call _print_type
+	jmp .call.end50
+.call.else50:
+	push rsi
+	call _print_type
+	pop rsi
+.call.end50:
+	push rax
+	pop rsi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-260]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-268]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else51
+	call _get_name
+	jmp .call.end51
+.call.else51:
+	push rsi
+	call _get_name
+	pop rsi
+.call.end51:
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else52
+	call _print_node
+	jmp .call.end52
+.call.else52:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end52:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case6
+	lea rax, qword ptr [rip + .LC31]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else53
+	call _print_type
+	jmp .call.end53
+.call.else53:
+	push rsi
+	call _print_type
+	pop rsi
+.call.end53:
+	push rax
+	pop rsi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-260]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-268]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else54
+	call _get_name
+	jmp .call.end54
+.call.else54:
+	push rsi
+	call _get_name
+	pop rsi
+.call.end54:
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else55
+	call _print_node
+	jmp .call.end55
+.call.else55:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end55:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case7
+	lea rax, qword ptr [rip + .LC32]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else56
+	call _print_type
+	jmp .call.end56
+.call.else56:
+	push rsi
+	call _print_type
+	pop rsi
+.call.end56:
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else57
+	call _print_node
+	jmp .call.end57
+.call.else57:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end57:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else58
+	call _analyse
+	jmp .call.end58
+.call.else58:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end58:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case8
+	lea rax, qword ptr [rip + .LC33]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else59
+	call _print_node
+	jmp .call.end59
+.call.else59:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end59:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else60
+	call _analyse
+	jmp .call.end60
+.call.else60:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end60:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case9
+	lea rax, qword ptr [rip + .LC34]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else61
+	call _print_node
+	jmp .call.end61
+.call.else61:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end61:
+	push rax
+	lea rax, qword ptr [rip + .LC35]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else62
+	call _print_node
+	jmp .call.end62
+.call.else62:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end62:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else63
+	call _analyse
+	jmp .call.end63
+.call.else63:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end63:
+	push rax
+	lea rax, qword ptr [rip + .LC36]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else64
+	call _print_node
+	jmp .call.end64
+.call.else64:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end64:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else65
+	call _analyse
+	jmp .call.end65
+.call.else65:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end65:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case10
+	lea rax, qword ptr [rip + .LC37]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else66
+	call _print_node
+	jmp .call.end66
+.call.else66:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end66:
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+.Lfor.loop7:
+	lea rax, [rbp-108]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-240]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	setl al
+	movzx rax, al
+	push rax
+	cmp rax, 0
+	je .Lfor.end7
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-240]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	lea rax, [rbp-108]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else67
+	call _analyse
+	jmp .call.end67
+.call.else67:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end67:
+	push rax
+.Lfor.inc7:
+	lea rax, [rbp-108]
+	push rax
+	lea rax, [rbp-108]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	jmp .Lfor.loop7
+.Lfor.end7:
+	jmp .Lswitch2.end
+.Lswitch2.case11
+	lea rax, qword ptr [rip + .LC38]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else68
+	call _print_node
+	jmp .call.end68
+.call.else68:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end68:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else69
+	call _analyse
+	jmp .call.end69
+.call.else69:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end69:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case12
+	lea rax, qword ptr [rip + .LC39]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else70
+	call _print_node
+	jmp .call.end70
+.call.else70:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end70:
+	push rax
+	lea rax, qword ptr [rip + .LC40]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else71
+	call _print_node
+	jmp .call.end71
+.call.else71:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end71:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else72
+	call _analyse
+	jmp .call.end72
+.call.else72:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end72:
+	push rax
+	lea rax, qword ptr [rip + .LC41]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else73
+	call _print_node
+	jmp .call.end73
+.call.else73:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end73:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else74
+	call _analyse
+	jmp .call.end74
+.call.else74:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end74:
+	push rax
+	lea rax, qword ptr [rip + .LC42]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else75
+	call _print_node
+	jmp .call.end75
+.call.else75:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end75:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 2
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else76
+	call _analyse
+	jmp .call.end76
+.call.else76:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end76:
+	push rax
+	lea rax, DWORD PTR [rip + tab@GOTPCREL]
+	push rax
+	lea rax, DWORD PTR [rip + tab@GOTPCREL]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	sub rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	jmp .Lswitch2.end
+.Lswitch2.case13
+	lea rax, qword ptr [rip + .LC43]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else77
+	call _print_node
+	jmp .call.end77
+.call.else77:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end77:
+	push rax
+	lea rax, qword ptr [rip + .LC44]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else78
+	call _print_node
+	jmp .call.end78
+.call.else78:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end78:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else79
+	call _analyse
+	jmp .call.end79
+.call.else79:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end79:
+	push rax
+	lea rax, qword ptr [rip + .LC45]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else80
+	call _print_node
+	jmp .call.end80
+.call.else80:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end80:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else81
+	call _analyse
+	jmp .call.end81
+.call.else81:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end81:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case14
+	lea rax, qword ptr [rip + .LC46]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else82
+	call _print_node
+	jmp .call.end82
+.call.else82:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end82:
+	push rax
+	lea rax, qword ptr [rip + .LC47]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else83
+	call _print_node
+	jmp .call.end83
+.call.else83:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end83:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else84
+	call _analyse
+	jmp .call.end84
+.call.else84:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end84:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else85
+	call _analyse
+	jmp .call.end85
+.call.else85:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end85:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 2
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else86
+	call _analyse
+	jmp .call.end86
+.call.else86:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end86:
+	push rax
+	lea rax, qword ptr [rip + .LC48]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else87
+	call _print_node
+	jmp .call.end87
+.call.else87:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end87:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 3
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else88
+	call _analyse
+	jmp .call.end88
+.call.else88:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end88:
+	push rax
+	lea rax, DWORD PTR [rip + tab@GOTPCREL]
+	push rax
+	lea rax, DWORD PTR [rip + tab@GOTPCREL]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	jmp .Lswitch2.end
+.Lswitch2.case15
+	lea rax, qword ptr [rip + .LC49]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else89
+	call _print_node
+	jmp .call.end89
+.call.else89:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end89:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case16
+	lea rax, qword ptr [rip + .LC50]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else90
+	call _print_node
+	jmp .call.end90
+.call.else90:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end90:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case17
+	push 0
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+.Lfor.loop8:
+	lea rax, [rbp-112]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-240]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	setl al
+	movzx rax, al
+	push rax
+	cmp rax, 0
+	je .Lfor.end8
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-240]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	lea rax, [rbp-112]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else91
+	call _analyse
+	jmp .call.end91
+.call.else91:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end91:
+	push rax
+.Lfor.inc8:
+	lea rax, [rbp-112]
+	push rax
+	lea rax, [rbp-112]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	jmp .Lfor.loop8
+.Lfor.end8:
+	jmp .Lswitch2.end
+.Lswitch2.case18
+	lea rax, [rbp-8]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-260]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-268]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else92
+	call _strncpy
+	jmp .call.end92
+.call.else92:
+	push rsi
+	call _strncpy
+	pop rsi
+.call.end92:
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-268]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	lea rax, qword ptr [rip + .LC51]
+	push rax
+	pop rbx
+	pop rax
+	mov BYTE PTR [rax], bl
+	lea rax, qword ptr [rip + .LC52]
+	push rax
+	pop rdi
+	lea rax, [rbp-8]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else93
+	call _print_node
+	jmp .call.end93
+.call.else93:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end93:
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+.Lfor.loop9:
+	lea rax, [rbp-116]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-240]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	setl al
+	movzx rax, al
+	push rax
+	cmp rax, 0
+	je .Lfor.end9
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-240]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	lea rax, [rbp-116]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else94
+	call _analyse
+	jmp .call.end94
+.call.else94:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end94:
+	push rax
+.Lfor.inc9:
+	lea rax, [rbp-116]
+	push rax
+	lea rax, [rbp-116]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	jmp .Lfor.loop9
+.Lfor.end9:
+	jmp .Lswitch2.end
+.Lswitch2.case19
+	lea rax, [rbp-8]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-260]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-268]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else95
+	call _strncpy
+	jmp .call.end95
+.call.else95:
+	push rsi
+	call _strncpy
+	pop rsi
+.call.end95:
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-268]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	lea rax, qword ptr [rip + .LC53]
+	push rax
+	pop rbx
+	pop rax
+	mov BYTE PTR [rax], bl
+	lea rax, qword ptr [rip + .LC54]
+	push rax
+	pop rdi
+	lea rax, [rbp-8]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else96
+	call _print_node
+	jmp .call.end96
+.call.else96:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end96:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else97
+	call _analyse
+	jmp .call.end97
+.call.else97:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end97:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case20
+	jmp .Lswitch2.end
+.Lswitch2.case21
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then13
+	jmp .Lif.else13
+.Lif.then13:
+	lea rax, [rbp-128]
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-48]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else98
+	call _new_node_num
+	jmp .call.end98
+.call.else98:
+	push rsi
+	call _new_node_num
+	pop rsi
+.call.end98:
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else99
+	call _new_binary_node
+	jmp .call.end99
+.call.else99:
+	push rsi
+	call _new_binary_node
+	pop rsi
+.call.end99:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	push 0
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	push 1
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	jmp .Lif.end13
+.Lif.else13:
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then14
+	jmp .Lif.end14
+.Lif.then14:
+	lea rax, [rbp-120]
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-48]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else100
+	call _new_node_num
+	jmp .call.end100
+.call.else100:
+	push rsi
+	call _new_node_num
+	pop rsi
+.call.end100:
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else101
+	call _new_binary_node
+	jmp .call.end101
+.call.else101:
+	push rsi
+	call _new_binary_node
+	pop rsi
+.call.end101:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	push 0
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	push 1
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+.Lif.end14:
+	jmp .Lif.end13
+.Lif.end13:
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then15
+	jmp .Lif.end15
+.Lif.then15:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, qword ptr [rip + .LC55]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else102
+	call _print_node
+	jmp .call.end102
+.call.else102:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end102:
+	push rax
+	jmp .Lswitch2.end
+.Lif.end15:
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then16
+	jmp .Lif.end16
+.Lif.then16:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else103
+	call _analyse
+	jmp .call.end103
+.call.else103:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end103:
+	push rax
+	jmp .Lswitch2.end
+.Lif.end16:
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	lea rax, [rbp-128]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then17
+	jmp .Lif.end17
+.Lif.then17:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-120]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else104
+	call _analyse
+	jmp .call.end104
+.call.else104:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end104:
+	push rax
+	jmp .Lswitch2.end
+.Lif.end17:
+	lea rax, qword ptr [rip + .LC56]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else105
+	call _print_node
+	jmp .call.end105
+.call.else105:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end105:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else106
+	call _analyse
+	jmp .call.end106
+.call.else106:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end106:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else107
+	call _analyse
+	jmp .call.end107
+.call.else107:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end107:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case22
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-136]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	lea rax, [rbp-136]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then18
+	jmp .Lif.else18
+.Lif.then18:
+	lea rax, [rbp-144]
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-144]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	lea rax, [rbp-136]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-48]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else108
+	call _new_node_num
+	jmp .call.end108
+.call.else108:
+	push rsi
+	call _new_node_num
+	pop rsi
+.call.end108:
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else109
+	call _new_binary_node
+	jmp .call.end109
+.call.else109:
+	push rsi
+	call _new_binary_node
+	pop rsi
+.call.end109:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-144]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	lea rax, [rbp-136]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	push 0
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	lea rax, [rbp-136]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	push 1
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	lea rax, [rbp-144]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	jmp .Lif.end18
+.Lif.else18:
+	lea rax, [rbp-144]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	lea rax, [rbp-144]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then19
+	jmp .Lif.end19
+.Lif.then19:
+	lea rax, [rbp-136]
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-136]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	lea rax, [rbp-144]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-48]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else110
+	call _new_node_num
+	jmp .call.end110
+.call.else110:
+	push rsi
+	call _new_node_num
+	pop rsi
+.call.end110:
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else111
+	call _new_binary_node
+	jmp .call.end111
+.call.else111:
+	push rsi
+	call _new_binary_node
+	pop rsi
+.call.end111:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-136]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	lea rax, [rbp-144]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	push 0
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	lea rax, [rbp-136]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	push 1
+	push 8
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	lea rax, [rbp-144]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+.Lif.end19:
+	jmp .Lif.end18
+.Lif.end18:
+	lea rax, [rbp-136]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	lea rax, [rbp-144]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then20
+	jmp .Lif.end20
+.Lif.then20:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	lea rax, [rbp-136]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	lea rax, [rbp-136]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-144]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	sub rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, qword ptr [rip + .LC57]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else112
+	call _print_node
+	jmp .call.end112
+.call.else112:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end112:
+	push rax
+	jmp .Lswitch2.end
+.Lif.end20:
+	lea rax, qword ptr [rip + .LC58]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else113
+	call _print_node
+	jmp .call.end113
+.call.else113:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end113:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else114
+	call _analyse
+	jmp .call.end114
+.call.else114:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end114:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else115
+	call _analyse
+	jmp .call.end115
+.call.else115:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end115:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case23
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-152]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	lea rax, [rbp-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then21
+	jmp .Lif.end21
+.Lif.then21:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	lea rax, [rbp-152]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	lea rax, [rbp-152]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mul rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, qword ptr [rip + .LC59]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rsi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else116
+	call _print_type
+	jmp .call.end116
+.call.else116:
+	push rsi
+	call _print_type
+	pop rsi
+.call.end116:
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else117
+	call _print_node
+	jmp .call.end117
+.call.else117:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end117:
+	push rax
+	jmp .Lswitch2.end
+.Lif.end21:
+	lea rax, qword ptr [rip + .LC60]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else118
+	call _print_node
+	jmp .call.end118
+.call.else118:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end118:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else119
+	call _analyse
+	jmp .call.end119
+.call.else119:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end119:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else120
+	call _analyse
+	jmp .call.end120
+.call.else120:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end120:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case24
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-168]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	lea rax, [rbp-176]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then22
+	jmp .Lif.end22
+.Lif.then22:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	lea rax, [rbp-168]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	lea rax, [rbp-168]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-176]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	xor rdx, rdx
+	div rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, qword ptr [rip + .LC61]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else121
+	call _print_node
+	jmp .call.end121
+.call.else121:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end121:
+	push rax
+	jmp .Lswitch2.end
+.Lif.end22:
+	lea rax, qword ptr [rip + .LC62]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else122
+	call _print_node
+	jmp .call.end122
+.call.else122:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end122:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else123
+	call _analyse
+	jmp .call.end123
+.call.else123:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end123:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else124
+	call _analyse
+	jmp .call.end124
+.call.else124:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end124:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case25
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-184]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	lea rax, [rbp-192]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then23
+	jmp .Lif.end23
+.Lif.then23:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	lea rax, [rbp-68]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	lea rax, [rbp-184]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	lea rax, [rbp-184]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-192]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	xor rdx, rdx
+	div rbx
+	mov rax, rdx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, qword ptr [rip + .LC63]
+	push rax
+	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-248]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else125
+	call _print_node
+	jmp .call.end125
+.call.else125:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end125:
+	push rax
+	jmp .Lswitch2.end
+.Lif.end23:
+	lea rax, qword ptr [rip + .LC64]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else126
+	call _print_node
+	jmp .call.end126
+.call.else126:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end126:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else127
+	call _analyse
+	jmp .call.end127
+.call.else127:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end127:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else128
+	call _analyse
+	jmp .call.end128
+.call.else128:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end128:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case26
+	lea rax, qword ptr [rip + .LC65]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else129
+	call _print_node
+	jmp .call.end129
+.call.else129:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end129:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else130
+	call _analyse
+	jmp .call.end130
+.call.else130:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end130:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else131
+	call _analyse
+	jmp .call.end131
+.call.else131:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end131:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case27
+	lea rax, qword ptr [rip + .LC66]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else132
+	call _print_node
+	jmp .call.end132
+.call.else132:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end132:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else133
+	call _analyse
+	jmp .call.end133
+.call.else133:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end133:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else134
+	call _analyse
+	jmp .call.end134
+.call.else134:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end134:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case28
+	lea rax, qword ptr [rip + .LC67]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else135
+	call _print_node
+	jmp .call.end135
+.call.else135:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end135:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else136
+	call _analyse
+	jmp .call.end136
+.call.else136:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end136:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else137
+	call _analyse
+	jmp .call.end137
+.call.else137:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end137:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case29
+	lea rax, qword ptr [rip + .LC68]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else138
+	call _print_node
+	jmp .call.end138
+.call.else138:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end138:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else139
+	call _analyse
+	jmp .call.end139
+.call.else139:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end139:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else140
+	call _analyse
+	jmp .call.end140
+.call.else140:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end140:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case30
+	lea rax, qword ptr [rip + .LC69]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else141
+	call _print_node
+	jmp .call.end141
+.call.else141:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end141:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else142
+	call _analyse
+	jmp .call.end142
+.call.else142:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end142:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else143
+	call _analyse
+	jmp .call.end143
+.call.else143:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end143:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case31
+	lea rax, qword ptr [rip + .LC70]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else144
+	call _print_node
+	jmp .call.end144
+.call.else144:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end144:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else145
+	call _analyse
+	jmp .call.end145
+.call.else145:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end145:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else146
+	call _analyse
+	jmp .call.end146
+.call.else146:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end146:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case32
+	lea rax, qword ptr [rip + .LC71]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else147
+	call _print_node
+	jmp .call.end147
+.call.else147:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end147:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else148
+	call _analyse
+	jmp .call.end148
+.call.else148:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end148:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else149
+	call _analyse
+	jmp .call.end149
+.call.else149:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end149:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case33
+	lea rax, qword ptr [rip + .LC72]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else150
+	call _print_node
+	jmp .call.end150
+.call.else150:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end150:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else151
+	call _analyse
+	jmp .call.end151
+.call.else151:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end151:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else152
+	call _analyse
+	jmp .call.end152
+.call.else152:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end152:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case34
+	lea rax, qword ptr [rip + .LC73]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else153
+	call _print_node
+	jmp .call.end153
+.call.else153:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end153:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else154
+	call _analyse
+	jmp .call.end154
+.call.else154:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end154:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else155
+	call _analyse
+	jmp .call.end155
+.call.else155:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end155:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.case35
+	lea rax, qword ptr [rip + .LC74]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else156
+	call _print_node
+	jmp .call.end156
+.call.else156:
+	push rsi
+	call _print_node
+	pop rsi
+.call.end156:
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-160]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	add rax, rbx
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else157
+	call _analyse
+	jmp .call.end157
+.call.else157:
+	push rsi
+	call _analyse
+	pop rsi
+.call.end157:
+	push rax
+	jmp .Lswitch2.end
+.Lswitch2.default
+	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC75]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else158
+	call _fprintf
+	jmp .call.end158
+.call.else158:
+	push rsi
+	call _fprintf
+	pop rsi
+.call.end158:
+	push rax
+.Lswitch2.end
+	lea rax, DWORD PTR [rip + tab@GOTPCREL]
+	push rax
+	lea rax, DWORD PTR [rip + tab@GOTPCREL]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	push 1
+	pop rbx
+	pop rax
+	sub rax, rbx
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+.Lif.end12:
+.LC0:
+	.string ""
+.LC1:
+	.string ""
+.LC2:
+	.string "  "
+.LC3:
+	.string "\n"
+.LC4:
+	.string ""
+.LC5:
+	.string ""
+.LC6:
+	.string ""
+.LC7:
+	.string "*%s"
+.LC8:
+	.string "%s[%d]"
+.LC9:
+	.string "void%s"
+.LC10:
+	.string "int%s"
+.LC11:
+	.string "char%s"
+.LC12:
+	.string "[]%s"
+.LC13:
+	.string "(*)%s"
+.LC14:
+	.string "struct%s %s"
+.LC15:
+	.string "enum%s %s"
+.LC16:
+	.string "%s(%d)"
+.LC17:
+	.string "\t"
+.LC18:
+	.string "%s+%d %s\n"
+.LC19:
+	.string "%s %s\n"
+.LC20:
+	.string "\t"
+.LC21:
+	.string "%s %s = %d\n"
+.LC22:
+	.string "\t"
+.LC23:
+	.string "%s\n"
+.LC24:
+	.string "func\n"
+.LC25:
+	.string "----print_all----\n"
+.LC26:
+	.string "NUM %d"
+.LC27:
+	.string "STRING %s"
+.LC28:
+	.string "ENUM"
+.LC29:
+	.string "DOT"
+.LC30:
+	.string "LVAR %s %s"
+.LC31:
+	.string "VARDECL %s %s"
+.LC32:
+	.string "ADDR %s"
+.LC33:
+	.string "DEREF"
+.LC34:
+	.string "ASSIGN"
+.LC35:
+	.string "LHS"
+.LC36:
+	.string "RHS"
+.LC37:
+	.string "INIT"
+.LC38:
+	.string "RETRUN"
+.LC39:
+	.string "IF"
+.LC40:
+	.string "COND"
+.LC41:
+	.string "THEN"
+.LC42:
+	.string "ELSE"
+.LC43:
+	.string "WHILE"
+.LC44:
+	.string "COND"
+.LC45:
+	.string "LOOP"
+.LC46:
+	.string "FOR"
+.LC47:
+	.string "COND"
+.LC48:
+	.string "LOOP"
+.LC49:
+	.string "BREAK"
+.LC50:
+	.string "CONTINUE"
+.LC51:
+	.string "\0"
+.LC52:
+	.string "CALL %s"
+.LC53:
+	.string "\0"
+.LC54:
+	.string "DEF %s"
+.LC55:
+	.string "NUM %d"
+.LC56:
+	.string "ADD"
+.LC57:
+	.string "NUM %d"
+.LC58:
+	.string "SUB"
+.LC59:
+	.string "NUM %d %s"
+.LC60:
+	.string "MUL"
+.LC61:
+	.string "NUM %d"
+.LC62:
+	.string "DIV"
+.LC63:
+	.string "NUM %d"
+.LC64:
+	.string "MOD"
+.LC65:
+	.string "SAL"
+.LC66:
+	.string "SAR"
+.LC67:
+	.string "LT"
+.LC68:
+	.string "LE"
+.LC69:
+	.string "EQ"
+.LC70:
+	.string "NE"
+.LC71:
+	.string "AND"
+.LC72:
+	.string "XOR"
+.LC73:
+	.string "OR"
+.LC74:
+	.string "NOT"
+.LC75:
+	.string "I don't know this nodekind\n"

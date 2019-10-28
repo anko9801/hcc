@@ -123,7 +123,10 @@ Node *new_node0(int type) {
 Node *new_node(int type, Node *lhs) {
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = type;
-	node->type = lhs->type;
+	if (lhs)
+		node->type = lhs->type;
+	else
+		node->type = NULL;
 	node->side[0] = lhs;
 	return node;
 }
@@ -181,6 +184,8 @@ Node *new_node_s(int kind, Token *tok, Type *type) {
 	if (tok) {
 		node->name = tok->str;
 		node->len = tok->len;
+	}else{
+		node->len = 0;
 	}
 	node->type = type;
 	return node;
@@ -223,7 +228,11 @@ bool add_var(Node *scope, LVar *var) {
 		if (hash->vars) {
 			var->next = hash->vars;
 			var->scope = scope;
-			var->offset = hash->vars->offset + hash->vars->type->type_size;
+			// 可変長引数...
+			if (hash->vars->type)
+				var->offset = hash->vars->offset + hash->vars->type->type_size;
+			else
+				var->offset = hash->vars->offset;
 			hash->vars = var;
 		}else{
 			var->scope = scope;
@@ -399,10 +408,6 @@ void add_code(Node *node) {
 	code[pos++] = node;
 }
 
-void add_cur_scope_code(Node *node) {
-	push_back(cur_nodes, node);
-}
-
 /*
  * 出力系
  */
@@ -419,6 +424,7 @@ void cu() {
 		}
 		tok = tok->next;
 		if (i == 100) break;
+		if (!tok->next) break;
 	}
 	fprintf(stderr, "\n");
 }
@@ -434,19 +440,22 @@ void print_variable_scope(Hashs *hash, int tab) {
 	for (LVar *lvar = hash->vars; lvar; lvar = lvar->next) {
 		for (int i = 0;i < tab+1;i++)
 			fprintf(stderr, "\t");
-		fprintf(stderr, "%s %s\n", print_type(lvar->type), get_name(lvar->name, lvar->len));
-		if (lvar->type->ptr_to) {
-			for (int i = 0;i < tab+2;i++)
-				fprintf(stderr, "\t");
-			fprintf(stderr, "%s %s\n", print_type(lvar->type->ptr_to), get_name(lvar->name, lvar->len), lvar->scope);
-			if (lvar->type->ptr_to->ptr_to) {
-				for (int i = 0;i < tab+3;i++)
+		if (lvar->type) {
+			fprintf(stderr, "%s %s\n", print_type(lvar->type), get_name(lvar->name, lvar->len));
+			if (lvar->type->ptr_to) {
+				for (int i = 0;i < tab+2;i++)
 					fprintf(stderr, "\t");
-				fprintf(stderr, "%s %s\n", print_type(lvar->type->ptr_to->ptr_to), get_name(lvar->name, lvar->len), lvar->scope);
+				fprintf(stderr, "%s %s\n", print_type(lvar->type->ptr_to), get_name(lvar->name, lvar->len), lvar->scope);
+				if (lvar->type->ptr_to->ptr_to) {
+					for (int i = 0;i < tab+3;i++)
+						fprintf(stderr, "\t");
+					fprintf(stderr, "%s %s\n", print_type(lvar->type->ptr_to->ptr_to), get_name(lvar->name, lvar->len), lvar->scope);
+				}
 			}
+		}else{
+			fprintf(stderr, "...\n");
 		}
 	}
-
 	Hashs *hash_next;
 	for (int i = 0;i < hash->child->len;i++) {
 		hash_next = (Hashs *)hash->child->data[i];
@@ -601,7 +610,6 @@ Node *term() {
 	if (consume("(")) {
 		node = expr();
 		expect(")");
-		cu();
 		return node;
 	}
 
@@ -615,12 +623,19 @@ Node *term() {
 	Token *tok;
 	if (consume("\"")) {
 		tok = consume_ident();
-		if (tok) {
+
+		if (tok && tok->kind == TK_STRING) {
 			node = new_node_s(ND_STRING, tok, wrap_pointer(char_type()));
 			node->type->array_size = node->len;
 			push_back(strings, (void *)tok);
+			expect("\"");
+		}else if (consume("\"")) {
+			node = new_node_s(ND_STRING, tok, wrap_pointer(char_type()));
+			node->type->array_size = node->len;
+			push_back(strings, (void *)tok);
+		}else{
+			return NULL;
 		}
-		expect("\"");
 		return node;
 	}
 
@@ -1011,9 +1026,7 @@ Node *lvalue() {
 	Token *tok = consume_ident();
 	if (tok) {
 		LVar *lvar = find_lvar(tok);
-		cu();
 		if (lvar) {
-			cu();
 			node = new_node_s(ND_LVAR, tok, lvar->type);
 			node->var = lvar;
 			node->type = lvar->type;
@@ -1085,7 +1098,6 @@ Node *expr() {
 	Node *node = NULL;
 	Token *backup = token;
 	Node *lval = lvalue();
-	cu();
 
 	if (lval) {
 		Node *rval;
@@ -1151,42 +1163,37 @@ Node *expr() {
 //         | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 
 Node *switch_case() {
-	Node *node_k;
+	Node *node_k = NULL;
 	Node *case_default;
-	Vec *nodes_stmt;
+	Vec *nodes_stmt = new_vector();
 
 	if (consume("case")) {
 		case_default = rvalue();
 		expect(":");
-
-		while(!check("case") && !check("}")) {
-			node_k = stmt();
-			if (node_k)
-				push_back(nodes_stmt, (void *)node_k);
-			else break;
-		}
-
-		node_k = new_node(ND_CASE, case_default);
-		node_k->nodes = nodes_stmt;
-
-		return node_k;
-
 	}else if (consume("default")) {
 		case_default = NULL;
 		expect(":");
-		while(!check("case") && !check("}")) {
-			node_k = stmt();
-			push_back(nodes_stmt, (void *)node_k);
-		}
-		node_k = new_node(ND_CASE, case_default);
-		node_k->nodes = nodes_stmt;
-		return node_k;
+	}else{
+		return NULL;
 	}
-	return NULL;
+
+	while (!check("case") && !check("}")) {
+		node_k = stmts();
+		if (node_k) {
+			push_back(nodes_stmt, (void *)node_k);
+		}else{
+			break;
+		}
+	}
+
+	node_k = new_node(ND_CASE, case_default);
+	node_k->nodes = nodes_stmt;
+
+	return node_k;
 }
 
 Node *stmt() {
-	Node *node, *Loop;
+	Node *node = NULL, *Loop;
 
 	if (consume("return")) {
 		node = expr();
@@ -1209,27 +1216,25 @@ Node *stmt() {
 
 		node = new_node_if(ND_IF, Cond, Then, Else);
 
-	// }else if (consume("switch")) {
-	// 	Node *Cond;
-	// 	Vec *cases;
-	// 	Node *case_def;
+	}else if (consume("switch")) {
+		Node *Cond;
+		Vec *cases = new_vector();
+		Node *case_def;
 
-	// 	expect("(");
-	// 	Cond = expr();
-	// 	expect(")");
-	// 	expect("{");
-	// 	cu();
-	// 	case_def = switch_case();
-	// 	fprintf(stderr, "uuuu\n");
-	// 	while (case_def) {
-	// 		push_back(cases, case_def);
-	// 		fprintf(stderr, "test\n");
-	// 		case_def = switch_case();
-	// 	}
-	// 	expect("}");
+		expect("(");
+		Cond = expr();
+		expect(")");
+		expect("{");
 
-	// 	node = new_nodev(ND_SWITCH, 1, Cond);
-	// 	node->nodes = cases;
+		case_def = switch_case();
+		while (case_def) {
+			push_back(cases, case_def);
+			case_def = switch_case();
+		}
+		expect("}");
+
+		node = new_node(ND_SWITCH, Cond);
+		node->nodes = cases;
 
 	}else if (consume("while")) {
 		Node *Cond;
@@ -1260,6 +1265,7 @@ Node *stmt() {
 		if (node)
 			expect(";");
 	}
+
 	return node;
 }
 
@@ -1271,8 +1277,12 @@ Node *stmts() {
 		Vec *kari = cur_nodes;
 		cur_nodes = nodes;
 		for(;;) {
-			cu();
-			push_back(nodes, stmt());
+			//cu();
+			Node *statement = stmt();
+			if (!statement && strncmp("}", token->str, token->len)) {
+				error("unknown statement\n");
+			}
+			push_back(nodes, statement);
 			if (consume("}"))
 				break;
 		}
@@ -1330,11 +1340,10 @@ Node *variable_decl(int glocal) {
 				}
 
 				LVar *lvar;
-
 				lvar = make_lvar(tok, each_type);
 				add_var(cur_scope, lvar);
 
-				if (codegen) {
+				if (!glocal || codegen) {
 					node = new_node_s(ND_VARDECL, tok, each_type);
 					node->var = lvar;
 
@@ -1349,7 +1358,7 @@ Node *variable_decl(int glocal) {
 
 				if (!consume(",")) break;
 				else {
-					add_cur_scope_code(node);
+					push_back(cur_nodes, node);
 				}
 			}else{
 				token = backup;
@@ -1391,7 +1400,7 @@ Node *func_decl_or_def() {
 				Token *arg;
 				LVar *args = init_variable_list();
 				LVar *arg_first = args;
-				Type *arg_type;
+				Type *arg_type = NULL;
 				LVar *lvar;
 				node = new_node_s(ND_DECL, tok, ident_type);
 				add_node(cur_scope, node);
@@ -1400,8 +1409,8 @@ Node *func_decl_or_def() {
 				while (!consume(")")) {
 					arg_type = type_spec();
 					if (!arg_type) {
+						arg = token;
 						if (consume("...")) {
-							arg_type = lvar->type;
 							lvar = new_arg(args, arg, arg_type);
 							args->next = lvar;
 							args = lvar;
@@ -1720,7 +1729,6 @@ void program() {
 	strings = new_vector();
 	globals = init_variable_list();
 	Node *node;
-	print_token(token);
 	while (!at_eof()) {
 		//cu();
 		node = global();

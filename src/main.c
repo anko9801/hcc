@@ -35,8 +35,7 @@ void compile(char *src, char *file) {
 	token = tokenize(src);
 	fprintf(stderr, "complete tokenize of %s\n", file);
 	token = preprocessor(token);
-	fprintf(stderr, "プリプロセッサやったよ！\n");
-	print_token(token);
+	fprintf(stderr, "complete preprocessor of %s\n", file);
 	program();
 	fprintf(stderr, "complete parsing of %s\n", file);
 	analyse_pre(code);

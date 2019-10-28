@@ -189,7 +189,7 @@ extern Vec *strings;
 extern Vec *typedef_list;
 extern Vec *aggr_list;
 
-//void error(char *fmt, ...);
+void error(char *fmt, ...);
 void error_at(char *loc, char *fmt, ...);
 
 /*
@@ -206,8 +206,12 @@ typedef struct FILE {
 	int unused;
 } FILE;
 extern FILE *stderr;
-int fprintf(FILE *stream, char *format);
 typedef char* va_list;
+int sprintf(char *str, char *format, ...);
+int snprintf(char *str, int size, char *format, ...);
+int fprintf(FILE *stream, char *format);
+int vfprintf(FILE *stream, char *format, va_list ap);
+void exit(int status);
 
 #define __va_argsiz(t)	\
 	(((sizeof(t) + sizeof(int) - 1) / sizeof(int)) * sizeof(int))

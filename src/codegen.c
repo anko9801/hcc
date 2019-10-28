@@ -162,10 +162,12 @@ void gen_strings() {
 	for (int i = 0;strings->data[i];i++) {
 		Token *tok = (Token *)strings->data[i];
 		printf(".LC%d:\n", i);
-		if (!strncmp(tok->str, "\\'", tok->len)) {
+
+		if (tok->len != 0 && !strncmp(tok->str, "\\'", tok->len)) {
 			tok->str++;
 			tok->len--;
 		}
+
 		gen_global_string(get_name(tok->str, tok->len));
 	}
 }
@@ -315,7 +317,7 @@ char *gen_cond(Node *node) {
 		}else{
 			gen(node);
 			gen_pop(regs64[RAX]);
-			printf("	cmp rax, 0\n");
+			printf("	test rax, rax\n");
 			return "je";
 		}
 
@@ -546,6 +548,76 @@ void gen(Node *node) {
 		return;
 	}
 
+	/*
+		 * switch(Cond) {
+		 * case x:
+		 *   XX
+		 * case y:
+		 *   XX
+		 * default:
+		 *   XX
+		 * }
+		 *
+		 * cmp Cond, x
+		 * je .switch_case_x
+		 * cmp Cond, y
+		 * je .switch_case_y
+		 * jmp .switch_default
+		 * jmp .switch_end
+		 * .switch_case_x:
+		 * XX
+		 * jmp .switch_end
+		 * .switch_case_y:
+		 * XX
+		 * jmp .switch_end
+		 * .switch_default:
+		 * XX
+		 * jmp
+		 */
+	case ND_SWITCH:
+		switch_cnt += 1;
+		Node *node_case;
+		loop_info pre_loop = cur_loop;
+		cur_loop.which = 3;
+		cur_loop.nth = switch_cnt;
+
+		for (int i = 0;i < node->nodes->len;i++) {
+			node_case = (Node *)node->nodes->data[i];
+			if (node_case->side[0]) {
+				gen(node->side[0]);
+				gen(node_case->side[0]);
+				gen_pop(regs64[RBX]);
+				gen_pop(regs64[RAX]);
+				printf("	cmp rax, rbx\n");
+				printf("	je .Lswitch%d.case%d\n", switch_cnt, i);
+			}else{
+				printf("	jmp .Lswitch%d.default\n", switch_cnt);
+			}
+		}
+		printf("	jmp .Lswitch%d.end\n", switch_cnt);
+
+		for (int i = 0;i < node->nodes->len;i++) {
+			node_case = (Node *)node->nodes->data[i];
+			if (node_case->side[0]) {
+				printf(".Lswitch%d.case%d\n", switch_cnt, i);
+			}else{
+				printf(".Lswitch%d.default\n", switch_cnt);
+			}
+
+			for (int j = 0;j < node_case->nodes->len;j++) {
+				gen((Node*)node_case->nodes->data[j]);
+			}
+		}
+		printf(".Lswitch%d.end\n", switch_cnt);
+		cur_loop = pre_loop;
+
+		return;
+
+	case ND_CASE:
+		fprintf(stderr, "called switch-case is out of a switch\n");
+		return;
+
+
 	// break -> end
 	// continue -> side[3] -> loop
 	case ND_BREAK:
@@ -553,6 +625,8 @@ void gen(Node *node) {
 			printf("	jmp .Lwhile.end%d\n", cur_loop.nth);
 		}else if (cur_loop.which == 2) {
 			printf("	jmp .Lfor.end%d\n", cur_loop.nth);
+		}else if (cur_loop.which == 3) {
+			printf("	jmp .Lswitch%d.end\n", cur_loop.nth);
 		}
 		return;
 
@@ -582,14 +656,14 @@ void gen(Node *node) {
 		printf("	mov rax, %d\n", node->nodes->len);
 
 		printf("	test rsp, 15\n");
-		printf("	jne call.else%d\n", call_cnt);
+		printf("	jne .call.else%d\n", call_cnt);
 		printf("	call _%s\n", get_name(node->name, node->len));
-		printf("	jmp call.end%d\n", call_cnt);
-		printf("call.else%d:\n", call_cnt);
+		printf("	jmp .call.end%d\n", call_cnt);
+		printf(".call.else%d:\n", call_cnt);
 		printf("	push rsi\n");
 		printf("	call _%s\n", get_name(node->name, node->len));
 		printf("	pop rsi\n");
-		printf("call.end%d:\n", call_cnt);
+		printf(".call.end%d:\n", call_cnt);
 
 		gen_push(regs64[RAX]);
 		call_cnt++;
@@ -691,7 +765,7 @@ void gen(Node *node) {
 		break;
 
 	default:
-		printf("test");
+		{}
 		//error("I don't know this nodekind\n");
 	}
 
