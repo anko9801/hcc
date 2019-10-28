@@ -26,7 +26,7 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int line) {
 }
 
 bool is_reserved(char **p, Token **cur, char *str) {
-	if (strncmp(*p, str, strlen(str)) == 0 && !is_alnum((*p)[strlen(str)])) {
+	if (!strncmp(*p, str, strlen(str)) && !is_alnum((*p)[strlen(str)])) {
 		*cur = new_token(TK_RESERVED, *cur, *p, line);
 		//fprintf(stderr, "(%s)", str);
 		(*cur)->len = strlen(str);
@@ -37,7 +37,7 @@ bool is_reserved(char **p, Token **cur, char *str) {
 }
 
 bool is_reserved_sign(char **p, Token **cur, char *str) {
-	if (strncmp(*p, str, strlen(str)) == 0) {
+	if (!strncmp(*p, str, strlen(str))) {
 		*cur = new_token(TK_RESERVED, *cur, *p, line);
 		//fprintf(stderr, "(%s)", str);
 		(*cur)->len = strlen(str);
@@ -56,31 +56,6 @@ Token *tokenize(char *p) {
 	int string = 0;
 
 	while (*p) {
-		if (commented == 1 && *p == '\n') {
-			commented = 0;
-			p++;
-			continue;
-		}
-		if (commented == 2 && strncmp(p, "*/", 2) == 0) {
-			commented = 0;
-			p += 2;
-			continue;
-		}
-		if (commented > 0) {
-			p++;
-			continue;
-		}
-		if (strncmp(p, "//", 2) == 0) {
-			commented = 1;
-			p += 2;
-			continue;
-		}
-		if (strncmp(p, "/*", 2) == 0) {
-			commented = 2;
-			p += 2;
-			continue;
-		}
-
 		if (string == 1) {
 			int len = 0;
 			while (*p != '\'') {
@@ -120,6 +95,31 @@ Token *tokenize(char *p) {
 			continue;
 		}
 
+		if (commented == 1 && *p == '\n') {
+			commented = 0;
+			p++;
+			continue;
+		}
+		if (commented == 2 && !strncmp(p, "*/", 2)) {
+			commented = 0;
+			p += 2;
+			continue;
+		}
+		if (commented > 0) {
+			p++;
+			continue;
+		}
+		if (!strncmp(p, "//", 2)) {
+			commented = 1;
+			p += 2;
+			continue;
+		}
+		if (!strncmp(p, "/*", 2)) {
+			commented = 2;
+			p += 2;
+			continue;
+		}
+
 		// 空白文字をスキップ
 		if (isspace(*p)) {
 			p++;
@@ -150,6 +150,7 @@ Token *tokenize(char *p) {
 			is_reserved(&p, &cur, "int") ||
 			is_reserved(&p, &cur, "char") ||
 			is_reserved(&p, &cur, "bool") ||
+			is_reserved(&p, &cur, "long") ||
 			is_reserved(&p, &cur, "struct") ||
 			is_reserved(&p, &cur, "enum") ||
 			is_reserved(&p, &cur, "return") ||
@@ -166,7 +167,6 @@ Token *tokenize(char *p) {
 			is_reserved(&p, &cur, "extern") ||
 			is_reserved(&p, &cur, "include") ||
 			is_reserved(&p, &cur, "typedef") ||
-			is_reserved(&p, &cur, "__LINE__") ||
 			is_reserved_sign(&p, &cur, "...") ||
 			is_reserved_sign(&p, &cur, "->") ||
 			is_reserved_sign(&p, &cur, "||") ||

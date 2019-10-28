@@ -1,5 +1,5 @@
 .intel_syntax noprefix
-.extern _make_lvar, _call_func, _variable, _dot, _variable_decl, _initializer, _rvalue, _stmts, _stmt, _expr, _print_variable_scope, _cu, _vfprintf, _fprintf, _sprintf, _printf, _memcmp, _strlen, _strncpy, _strncmp, _calloc, _error_at, _error, _print_token, _preprocessor, _gen_funcs, _gen_extern, _search_hash, _new_hash, _new_node_num, _new_node_s, _consume_ident, _is_reserved, _new_token, _new_binary_node, _aggregate_decl, _print_all, _compile_at, _read_file, _print_lvar, _print_type, _get_name, _analyse, _analyse_pre, _gen_pre, _runtest, _push_back, _new_vector, _gen, _program, _tokenize, _expect
+.extern _make_lvar, _call_func, _variable, _dot, _variable_decl, _initializer, _rvalue, _stmts, _stmt, _expr, _print_variable_scope, _cu, _exit, _strerror, _vfprintf, _fprintf, _snprintf, _sprintf, _ftell, _fclose, _fread, _fseek, _fopen, _printf, _memcmp, _strlen, _strncpy, _strncmp, _realloc, _malloc, _calloc, _error_at, _error, _print_token, _preprocessor, _gen_funcs, _gen_extern, _search_hash, _new_hash, _new_node_num, _new_node_s, _consume_ident, _is_reserved, _new_token, _new_binary_node, _aggregate_decl, _print_all, _compile_at, _read_file, _print_lvar, _print_type, _get_name, _analyse, _analyse_pre, _gen_pre, _runtest, _push_back, _new_vector, _gen, _program, _tokenize, _expect
 .global _program, _global, _include_file, _typedef_decl, _aggregate_decl, _enum_decl, _struct_decl, _move_type, _func_decl_or_def, _init_variable_list, _variable_decl, _stmts, _stmt, _switch_case, _expr, _initializer, _lvalue, _dot, _rvalue, _bit_and, _bit_xor, _bit_or, _equality, _relational, _sht_expr, _add_expr, _mul_expr, _unary, _postfix, _term, _variable, _call_func, _type_spec, _prim_type_spec, _add_code, _find_typedef, _find_aggr_elem, _find_aggr, _find_func, _search_enum_lvar, _find_lvar, _new_func, _new_arg, _new_lvar, _make_lvar, _add_node, _new_hash, _add_var, _search_hash, _new_node_num, _new_node_s, _new_node_for, _new_node_if, _new_binary_node, _new_node, _new_node0, _at_eof, _consume_number, _consume_ident, _consume, _check, _enum_type, _struct_type, _array_type, _wrap_pointer, _char_type, _int_type, _void_type
 token:
 	.zero 8
@@ -47,14 +47,14 @@ _void_type:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else0
+	jne .call.else0
 	call _calloc
-	jmp call.end0
-call.else0:
+	jmp .call.end0
+.call.else0:
 	push rsi
 	call _calloc
 	pop rsi
-call.end0:
+.call.end0:
 	push rax
 	pop rbx
 	pop rax
@@ -128,14 +128,14 @@ _int_type:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else1
+	jne .call.else1
 	call _calloc
-	jmp call.end1
-call.else1:
+	jmp .call.end1
+.call.else1:
 	push rsi
 	call _calloc
 	pop rsi
-call.end1:
+.call.end1:
 	push rax
 	pop rbx
 	pop rax
@@ -209,14 +209,14 @@ _char_type:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else2
+	jne .call.else2
 	call _calloc
-	jmp call.end2
-call.else2:
+	jmp .call.end2
+.call.else2:
 	push rsi
 	call _calloc
 	pop rsi
-call.end2:
+.call.end2:
 	push rax
 	pop rbx
 	pop rax
@@ -291,14 +291,14 @@ _wrap_pointer:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else3
+	jne .call.else3
 	call _calloc
-	jmp call.end3
-call.else3:
+	jmp .call.end3
+.call.else3:
 	push rsi
 	call _calloc
 	pop rsi
-call.end3:
+.call.end3:
 	push rax
 	pop rbx
 	pop rax
@@ -378,14 +378,14 @@ _array_type:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else4
+	jne .call.else4
 	call _calloc
-	jmp call.end4
-call.else4:
+	jmp .call.end4
+.call.else4:
 	push rsi
 	call _calloc
 	pop rsi
-call.end4:
+.call.end4:
 	push rax
 	pop rbx
 	pop rax
@@ -488,14 +488,14 @@ _struct_type:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else5
+	jne .call.else5
 	call _calloc
-	jmp call.end5
-call.else5:
+	jmp .call.end5
+.call.else5:
 	push rsi
 	call _calloc
 	pop rsi
-call.end5:
+.call.end5:
 	push rax
 	pop rbx
 	pop rax
@@ -579,14 +579,14 @@ _enum_type:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else6
+	jne .call.else6
 	call _calloc
-	jmp call.end6
-call.else6:
+	jmp .call.end6
+.call.else6:
 	push rsi
 	call _calloc
 	pop rsi
-call.end6:
+.call.end6:
 	push rax
 	pop rbx
 	pop rax
@@ -693,14 +693,14 @@ _check:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else7
+	jne .call.else7
 	call _strlen
-	jmp call.end7
-call.else7:
+	jmp .call.end7
+.call.else7:
 	push rsi
 	call _strlen
 	pop rsi
-call.end7:
+.call.end7:
 	push rax
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
@@ -751,14 +751,14 @@ call.end7:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else8
+	jne .call.else8
 	call _memcmp
-	jmp call.end8
-call.else8:
+	jmp .call.end8
+.call.else8:
 	push rsi
 	call _memcmp
 	pop rsi
-call.end8:
+.call.end8:
 	push rax
 	pop rbx
 	pop rax
@@ -812,14 +812,14 @@ _consume:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else9
+	jne .call.else9
 	call _strlen
-	jmp call.end9
-call.else9:
+	jmp .call.end9
+.call.else9:
 	push rsi
 	call _strlen
 	pop rsi
-call.end9:
+.call.end9:
 	push rax
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
@@ -870,14 +870,14 @@ call.end9:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else10
+	jne .call.else10
 	call _memcmp
-	jmp call.end10
-call.else10:
+	jmp .call.end10
+.call.else10:
 	push rsi
 	call _memcmp
 	pop rsi
-call.end10:
+.call.end10:
 	push rax
 	pop rbx
 	pop rax
@@ -1106,14 +1106,14 @@ _new_node0:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else11
+	jne .call.else11
 	call _calloc
-	jmp call.end11
-call.else11:
+	jmp .call.end11
+.call.else11:
 	push rsi
 	call _calloc
 	pop rsi
-call.end11:
+.call.end11:
 	push rax
 	pop rbx
 	pop rax
@@ -1153,14 +1153,14 @@ _new_node:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else12
+	jne .call.else12
 	call _calloc
-	jmp call.end12
-call.else12:
+	jmp .call.end12
+.call.else12:
 	push rsi
 	call _calloc
 	pop rsi
-call.end12:
+.call.end12:
 	push rax
 	pop rbx
 	pop rax
@@ -1181,6 +1181,16 @@ call.end12:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then5
+	jmp .Lif.else5
+.Lif.then5:
 	lea rax, [rbp-12]
 	push rax
 	pop rax
@@ -1203,6 +1213,22 @@ call.end12:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
+	jmp .Lif.end5
+.Lif.else5:
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	jmp .Lif.end5
+.Lif.end5:
 	lea rax, [rbp-12]
 	push rax
 	pop rax
@@ -1249,14 +1275,14 @@ _new_binary_node:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else13
+	jne .call.else13
 	call _calloc
-	jmp call.end13
-call.else13:
+	jmp .call.end13
+.call.else13:
 	push rsi
 	call _calloc
 	pop rsi
-call.end13:
+.call.end13:
 	push rax
 	pop rbx
 	pop rax
@@ -1372,14 +1398,14 @@ _new_node_if:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else14
+	jne .call.else14
 	call _calloc
-	jmp call.end14
-call.else14:
+	jmp .call.end14
+.call.else14:
 	push rsi
 	call _calloc
 	pop rsi
-call.end14:
+.call.end14:
 	push rax
 	pop rbx
 	pop rax
@@ -1512,14 +1538,14 @@ _new_node_for:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else15
+	jne .call.else15
 	call _calloc
-	jmp call.end15
-call.else15:
+	jmp .call.end15
+.call.else15:
 	push rsi
 	call _calloc
 	pop rsi
-call.end15:
+.call.end15:
 	push rax
 	pop rbx
 	pop rax
@@ -1676,14 +1702,14 @@ _new_node_s:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else16
+	jne .call.else16
 	call _calloc
-	jmp call.end16
-call.else16:
+	jmp .call.end16
+.call.else16:
 	push rsi
 	call _calloc
 	pop rsi
-call.end16:
+.call.end16:
 	push rax
 	pop rbx
 	pop rax
@@ -1710,10 +1736,10 @@ call.end16:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then5
-	jmp .Lif.end5
-.Lif.then5:
+	test rax, rax
+	je .Lif.then6
+	jmp .Lif.else6
+.Lif.then6:
 	lea rax, [rbp-20]
 	push rax
 	pop rax
@@ -1758,7 +1784,22 @@ call.end16:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-.Lif.end5:
+	jmp .Lif.end6
+.Lif.else6:
+	lea rax, [rbp-20]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-268]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	jmp .Lif.end6
+.Lif.end6:
 	lea rax, [rbp-20]
 	push rax
 	pop rax
@@ -1793,14 +1834,14 @@ _new_node_num:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else17
+	jne .call.else17
 	call _calloc
-	jmp call.end17
-call.else17:
+	jmp .call.end17
+.call.else17:
 	push rsi
 	call _calloc
 	pop rsi
-call.end17:
+.call.end17:
 	push rax
 	pop rbx
 	pop rax
@@ -1847,14 +1888,14 @@ call.end17:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else18
+	jne .call.else18
 	call _int_type
-	jmp call.end18
-call.else18:
+	jmp .call.end18
+.call.else18:
 	push rsi
 	call _int_type
 	pop rsi
-call.end18:
+.call.end18:
 	push rax
 	pop rbx
 	pop rax
@@ -1881,14 +1922,14 @@ _search_hash:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then6
-	jmp .Lif.end6
-.Lif.then6:
+	test rax, rax
+	je .Lif.then7
+	jmp .Lif.end7
+.Lif.then7:
 	push 0
 	pop rbp
 	ret
-.Lif.end6:
+.Lif.end7:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -1908,9 +1949,9 @@ _search_hash:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then7
-	jmp .Lif.end7
-.Lif.then7:
+	je .Lif.then8
+	jmp .Lif.end8
+.Lif.then8:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -1918,7 +1959,7 @@ _search_hash:
 	push rax
 	pop rbp
 	ret
-.Lif.end7:
+.Lif.end8:
 	push 0
 	pop rbx
 	pop rax
@@ -2004,14 +2045,14 @@ _search_hash:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else19
+	jne .call.else19
 	call _search_hash
-	jmp call.end19
-call.else19:
+	jmp .call.end19
+.call.else19:
 	push rsi
 	call _search_hash
 	pop rsi
-call.end19:
+.call.end19:
 	push rax
 	pop rbx
 	pop rax
@@ -2022,10 +2063,10 @@ call.end19:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then8
-	jmp .Lif.end8
-.Lif.then8:
+	test rax, rax
+	je .Lif.then9
+	jmp .Lif.end9
+.Lif.then9:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -2033,7 +2074,7 @@ call.end19:
 	push rax
 	pop rbp
 	ret
-.Lif.end8:
+.Lif.end9:
 .Lfor.inc1:
 	lea rax, [rbp-24]
 	push rax
@@ -2075,14 +2116,14 @@ _add_var:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else20
+	jne .call.else20
 	call _search_hash
-	jmp call.end20
-call.else20:
+	jmp .call.end20
+.call.else20:
 	push rsi
 	call _search_hash
 	pop rsi
-call.end20:
+.call.end20:
 	push rax
 	pop rbx
 	pop rax
@@ -2093,10 +2134,10 @@ call.end20:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then9
-	jmp .Lif.end9
-.Lif.then9:
+	test rax, rax
+	je .Lif.then10
+	jmp .Lif.end10
+.Lif.then10:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -2108,9 +2149,9 @@ call.end20:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then10
-	jmp .Lif.else10
-.Lif.then10:
+	je .Lif.then11
+	jmp .Lif.else11
+.Lif.then11:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -2166,9 +2207,9 @@ call.end20:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then11
-	jmp .Lif.else11
-.Lif.then11:
+	je .Lif.then12
+	jmp .Lif.else12
+.Lif.then12:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -2224,8 +2265,8 @@ call.end20:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-	jmp .Lif.end11
-.Lif.else11:
+	jmp .Lif.end12
+.Lif.else12:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -2254,8 +2295,8 @@ call.end20:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-	jmp .Lif.end11
-.Lif.end11:
+	jmp .Lif.end12
+.Lif.end12:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -2272,8 +2313,8 @@ call.end20:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end10
-.Lif.else10:
+	jmp .Lif.end11
+.Lif.else11:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -2324,12 +2365,12 @@ call.end20:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-	jmp .Lif.end10
-.Lif.end10:
+	jmp .Lif.end11
+.Lif.end11:
 	push 1
 	pop rbp
 	ret
-.Lif.end9:
+.Lif.end10:
 	push 0
 	pop rbp
 	ret
@@ -2343,14 +2384,14 @@ _new_hash:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else21
+	jne .call.else21
 	call _calloc
-	jmp call.end21
-call.else21:
+	jmp .call.end21
+.call.else21:
 	push rsi
 	call _calloc
 	pop rsi
-call.end21:
+.call.end21:
 	push rax
 	pop rbx
 	pop rax
@@ -2365,14 +2406,14 @@ call.end21:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else22
+	jne .call.else22
 	call _new_vector
-	jmp call.end22
-call.else22:
+	jmp .call.end22
+.call.else22:
 	push rsi
 	call _new_vector
 	pop rsi
-call.end22:
+.call.end22:
 	push rax
 	pop rbx
 	pop rax
@@ -2428,14 +2469,14 @@ _add_node:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else23
+	jne .call.else23
 	call _search_hash
-	jmp call.end23
-call.else23:
+	jmp .call.end23
+.call.else23:
 	push rsi
 	call _search_hash
 	pop rsi
-call.end23:
+.call.end23:
 	push rax
 	pop rbx
 	pop rax
@@ -2446,24 +2487,24 @@ call.end23:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then12
-	jmp .Lif.else12
-.Lif.then12:
+	test rax, rax
+	je .Lif.then13
+	jmp .Lif.else13
+.Lif.then13:
 	push 1
 	pop rdi
 	push 32
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else24
+	jne .call.else24
 	call _calloc
-	jmp call.end24
-call.else24:
+	jmp .call.end24
+.call.else24:
 	push rsi
 	call _calloc
 	pop rsi
-call.end24:
+.call.end24:
 	push rax
 	pop rbx
 	pop rax
@@ -2478,14 +2519,14 @@ call.end24:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else25
+	jne .call.else25
 	call _new_vector
-	jmp call.end25
-call.else25:
+	jmp .call.end25
+.call.else25:
 	push rsi
 	call _new_vector
 	pop rsi
-call.end25:
+.call.end25:
 	push rax
 	pop rbx
 	pop rax
@@ -2542,25 +2583,25 @@ call.end25:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else26
+	jne .call.else26
 	call _push_back
-	jmp call.end26
-call.else26:
+	jmp .call.end26
+.call.else26:
 	push rsi
 	call _push_back
 	pop rsi
-call.end26:
+.call.end26:
 	push rax
 	push 1
 	pop rbp
 	ret
-	jmp .Lif.end12
-.Lif.else12:
+	jmp .Lif.end13
+.Lif.else13:
 	push 0
 	pop rbp
 	ret
-	jmp .Lif.end12
-.Lif.end12:
+	jmp .Lif.end13
+.Lif.end13:
 _make_lvar:
 	push rbp
 	mov rbp, rsp
@@ -2573,14 +2614,14 @@ _make_lvar:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else27
+	jne .call.else27
 	call _calloc
-	jmp call.end27
-call.else27:
+	jmp .call.end27
+.call.else27:
 	push rsi
 	call _calloc
 	pop rsi
-call.end27:
+.call.end27:
 	push rax
 	pop rbx
 	pop rax
@@ -2665,14 +2706,14 @@ _new_lvar:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else28
+	jne .call.else28
 	call _calloc
-	jmp call.end28
-call.else28:
+	jmp .call.end28
+.call.else28:
 	push rsi
 	call _calloc
 	pop rsi
-call.end28:
+.call.end28:
 	push rax
 	pop rbx
 	pop rax
@@ -2828,14 +2869,14 @@ _new_arg:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else29
+	jne .call.else29
 	call _calloc
-	jmp call.end29
-call.else29:
+	jmp .call.end29
+.call.else29:
 	push rsi
 	call _calloc
 	pop rsi
-call.end29:
+.call.end29:
 	push rax
 	pop rbx
 	pop rax
@@ -2964,14 +3005,14 @@ _new_func:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else30
+	jne .call.else30
 	call _calloc
-	jmp call.end30
-call.else30:
+	jmp .call.end30
+.call.else30:
 	push rsi
 	call _calloc
 	pop rsi
-call.end30:
+.call.end30:
 	push rax
 	pop rbx
 	pop rax
@@ -3110,14 +3151,14 @@ _find_lvar:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else31
+	jne .call.else31
 	call _search_hash
-	jmp call.end31
-call.else31:
+	jmp .call.end31
+.call.else31:
 	push rsi
 	call _search_hash
 	pop rsi
-call.end31:
+.call.end31:
 	push rax
 	pop rbx
 	pop rax
@@ -3218,14 +3259,14 @@ call.end31:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else32
+	jne .call.else32
 	call _memcmp
-	jmp call.end32
-call.else32:
+	jmp .call.end32
+.call.else32:
 	push rsi
 	call _memcmp
 	pop rsi
-call.end32:
+.call.end32:
 	push rax
 	pop rax
 	not eax
@@ -3233,9 +3274,9 @@ call.end32:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then13
-	jmp .Lif.end13
-.Lif.then13:
+	je .Lif.then14
+	jmp .Lif.end14
+.Lif.then14:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -3243,7 +3284,7 @@ call.end32:
 	push rax
 	pop rbp
 	ret
-.Lif.end13:
+.Lif.end14:
 .Lfor.inc3:
 	lea rax, [rbp-16]
 	push rax
@@ -3300,14 +3341,14 @@ _search_enum_lvar:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then14
-	jmp .Lif.end14
-.Lif.then14:
+	test rax, rax
+	je .Lif.then15
+	jmp .Lif.end15
+.Lif.then15:
 	push 0
 	pop rbp
 	ret
-.Lif.end14:
+.Lif.end15:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -3356,9 +3397,9 @@ _search_enum_lvar:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then15
-	jmp .Lif.end15
-.Lif.then15:
+	je .Lif.then16
+	jmp .Lif.end16
+.Lif.then16:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -3447,14 +3488,14 @@ _search_enum_lvar:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else33
+	jne .call.else33
 	call _memcmp
-	jmp call.end33
-call.else33:
+	jmp .call.end33
+.call.else33:
 	push rsi
 	call _memcmp
 	pop rsi
-call.end33:
+.call.end33:
 	push rax
 	pop rax
 	not eax
@@ -3462,9 +3503,9 @@ call.end33:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then16
-	jmp .Lif.end16
-.Lif.then16:
+	je .Lif.then17
+	jmp .Lif.end17
+.Lif.then17:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -3472,7 +3513,7 @@ call.end33:
 	push rax
 	pop rbp
 	ret
-.Lif.end16:
+.Lif.end17:
 .Lfor.inc4:
 	lea rax, [rbp-16]
 	push rax
@@ -3492,7 +3533,7 @@ call.end33:
 	mov QWORD PTR [rax], rbx
 	jmp .Lfor.loop4
 .Lfor.end4:
-.Lif.end15:
+.Lif.end16:
 	push 0
 	pop rbx
 	pop rax
@@ -3578,14 +3619,14 @@ call.end33:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else34
+	jne .call.else34
 	call _search_enum_lvar
-	jmp call.end34
-call.else34:
+	jmp .call.end34
+.call.else34:
 	push rsi
 	call _search_enum_lvar
 	pop rsi
-call.end34:
+.call.end34:
 	push rax
 	pop rbx
 	pop rax
@@ -3596,10 +3637,10 @@ call.end34:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then17
-	jmp .Lif.end17
-.Lif.then17:
+	test rax, rax
+	je .Lif.then18
+	jmp .Lif.end18
+.Lif.then18:
 	lea rax, [rbp-24]
 	push rax
 	pop rax
@@ -3607,7 +3648,7 @@ call.end34:
 	push rax
 	pop rbp
 	ret
-.Lif.end17:
+.Lif.end18:
 .Lfor.inc5:
 	lea rax, [rbp-32]
 	push rax
@@ -3716,14 +3757,14 @@ _find_func:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else35
+	jne .call.else35
 	call _memcmp
-	jmp call.end35
-call.else35:
+	jmp .call.end35
+.call.else35:
 	push rsi
 	call _memcmp
 	pop rsi
-call.end35:
+.call.end35:
 	push rax
 	pop rax
 	not eax
@@ -3731,9 +3772,9 @@ call.end35:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then18
-	jmp .Lif.end18
-.Lif.then18:
+	je .Lif.then19
+	jmp .Lif.end19
+.Lif.then19:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -3741,7 +3782,7 @@ call.end35:
 	push rax
 	pop rbp
 	ret
-.Lif.end18:
+.Lif.end19:
 .Lfor.inc6:
 	lea rax, [rbp-8]
 	push rax
@@ -3843,14 +3884,14 @@ call.end35:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else36
+	jne .call.else36
 	call _memcmp
-	jmp call.end36
-call.else36:
+	jmp .call.end36
+.call.else36:
 	push rsi
 	call _memcmp
 	pop rsi
-call.end36:
+.call.end36:
 	push rax
 	pop rax
 	not eax
@@ -3858,9 +3899,9 @@ call.end36:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then19
-	jmp .Lif.end19
-.Lif.then19:
+	je .Lif.then20
+	jmp .Lif.end20
+.Lif.then20:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -3868,7 +3909,7 @@ call.end36:
 	push rax
 	pop rbp
 	ret
-.Lif.end19:
+.Lif.end20:
 .Lfor.inc7:
 	lea rax, [rbp-16]
 	push rax
@@ -3905,14 +3946,14 @@ _find_aggr:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then20
-	jmp .Lif.end20
-.Lif.then20:
+	test rax, rax
+	je .Lif.then21
+	jmp .Lif.end21
+.Lif.then21:
 	push 0
 	pop rbp
 	ret
-.Lif.end20:
+.Lif.end21:
 	push 0
 	pop rbx
 	pop rax
@@ -4018,14 +4059,14 @@ _find_aggr:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else37
+	jne .call.else37
 	call _strncmp
-	jmp call.end37
-call.else37:
+	jmp .call.end37
+.call.else37:
 	push rsi
 	call _strncmp
 	pop rsi
-call.end37:
+.call.end37:
 	push rax
 	push 0
 	pop rbx
@@ -4065,9 +4106,9 @@ call.end37:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then21
-	jmp .Lif.end21
-.Lif.then21:
+	je .Lif.then22
+	jmp .Lif.end22
+.Lif.then22:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -4075,7 +4116,7 @@ call.end37:
 	push rax
 	pop rbp
 	ret
-.Lif.end21:
+.Lif.end22:
 .Lfor.inc8:
 	lea rax, [rbp-16]
 	push rax
@@ -4245,14 +4286,14 @@ _find_aggr_elem:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else38
+	jne .call.else38
 	call _strncmp
-	jmp call.end38
-call.else38:
+	jmp .call.end38
+.call.else38:
 	push rsi
 	call _strncmp
 	pop rsi
-call.end38:
+.call.end38:
 	push rax
 	push 0
 	pop rbx
@@ -4286,9 +4327,9 @@ call.end38:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then22
-	jmp .Lif.end22
-.Lif.then22:
+	je .Lif.then23
+	jmp .Lif.end23
+.Lif.then23:
 	lea rax, [rbp-28]
 	push rax
 	pop rax
@@ -4306,10 +4347,10 @@ call.end38:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then23
-	jmp .Lif.end23
-.Lif.then23:
-.Lif.end23:
+	je .Lif.then24
+	jmp .Lif.end24
+.Lif.then24:
+.Lif.end24:
 	lea rax, [rbp-28]
 	push rax
 	pop rax
@@ -4317,7 +4358,7 @@ call.end38:
 	push rax
 	pop rbp
 	ret
-.Lif.end22:
+.Lif.end23:
 .Lfor.inc9:
 	lea rax, [rbp-36]
 	push rax
@@ -4448,14 +4489,14 @@ _find_typedef:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else39
+	jne .call.else39
 	call _strncmp
-	jmp call.end39
-call.else39:
+	jmp .call.end39
+.call.else39:
 	push rsi
 	call _strncmp
 	pop rsi
-call.end39:
+.call.end39:
 	push rax
 	push 0
 	pop rbx
@@ -4489,9 +4530,9 @@ call.end39:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then24
-	jmp .Lif.end24
-.Lif.then24:
+	je .Lif.then25
+	jmp .Lif.end25
+.Lif.then25:
 	lea rax, [rbp-12]
 	push rax
 	pop rax
@@ -4499,7 +4540,7 @@ call.end39:
 	push rax
 	pop rbp
 	ret
-.Lif.end24:
+.Lif.end25:
 .Lfor.inc10:
 	lea rax, [rbp-20]
 	push rax
@@ -4599,14 +4640,14 @@ _prim_type_spec:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else40
+	jne .call.else40
 	call _find_typedef
-	jmp call.end40
-call.else40:
+	jmp .call.end40
+.call.else40:
 	push rsi
 	call _find_typedef
 	pop rsi
-call.end40:
+.call.end40:
 	push rax
 	pop rbx
 	pop rax
@@ -4617,10 +4658,10 @@ call.end40:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then25
-	jmp .Lif.else25
-.Lif.then25:
+	test rax, rax
+	je .Lif.then26
+	jmp .Lif.else26
+.Lif.then26:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
@@ -4653,61 +4694,24 @@ call.end40:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end25
-.Lif.else25:
+	jmp .Lif.end26
+.Lif.else26:
 	lea rax, qword ptr [rip + .LC0]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else41
+	jne .call.else41
 	call _consume
-	jmp call.end41
-call.else41:
+	jmp .call.end41
+.call.else41:
 	push rsi
 	call _consume
 	pop rsi
-call.end41:
+.call.end41:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then26
-	jmp .Lif.else26
-.Lif.then26:
-	lea rax, [rbp-0]
-	push rax
-	mov rax, 0
-	test rsp, 15
-	jne call.else42
-	call _void_type
-	jmp call.end42
-call.else42:
-	push rsi
-	call _void_type
-	pop rsi
-call.end42:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-	jmp .Lif.end26
-.Lif.else26:
-	lea rax, qword ptr [rip + .LC1]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else43
-	call _consume
-	jmp call.end43
-call.else43:
-	push rsi
-	call _consume
-	pop rsi
-call.end43:
-	push rax
-	pop rax
-	cmp rax, 0
+	test rax, rax
 	je .Lif.then27
 	jmp .Lif.else27
 .Lif.then27:
@@ -4715,36 +4719,36 @@ call.end43:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else44
-	call _char_type
-	jmp call.end44
-call.else44:
+	jne .call.else42
+	call _void_type
+	jmp .call.end42
+.call.else42:
 	push rsi
-	call _char_type
+	call _void_type
 	pop rsi
-call.end44:
+.call.end42:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
 	jmp .Lif.end27
 .Lif.else27:
-	lea rax, qword ptr [rip + .LC2]
+	lea rax, qword ptr [rip + .LC1]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else45
+	jne .call.else43
 	call _consume
-	jmp call.end45
-call.else45:
+	jmp .call.end43
+.call.else43:
 	push rsi
 	call _consume
 	pop rsi
-call.end45:
+.call.end43:
 	push rax
 	pop rax
-	cmp rax, 0
+	test rax, rax
 	je .Lif.then28
 	jmp .Lif.else28
 .Lif.then28:
@@ -4752,36 +4756,36 @@ call.end45:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else46
+	jne .call.else44
 	call _char_type
-	jmp call.end46
-call.else46:
+	jmp .call.end44
+.call.else44:
 	push rsi
 	call _char_type
 	pop rsi
-call.end46:
+.call.end44:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
 	jmp .Lif.end28
 .Lif.else28:
-	lea rax, qword ptr [rip + .LC3]
+	lea rax, qword ptr [rip + .LC2]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else47
+	jne .call.else45
 	call _consume
-	jmp call.end47
-call.else47:
+	jmp .call.end45
+.call.else45:
 	push rsi
 	call _consume
 	pop rsi
-call.end47:
+.call.end45:
 	push rax
 	pop rax
-	cmp rax, 0
+	test rax, rax
 	je .Lif.then29
 	jmp .Lif.else29
 .Lif.then29:
@@ -4789,36 +4793,36 @@ call.end47:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else48
-	call _int_type
-	jmp call.end48
-call.else48:
+	jne .call.else46
+	call _char_type
+	jmp .call.end46
+.call.else46:
 	push rsi
-	call _int_type
+	call _char_type
 	pop rsi
-call.end48:
+.call.end46:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
 	jmp .Lif.end29
 .Lif.else29:
-	lea rax, qword ptr [rip + .LC4]
+	lea rax, qword ptr [rip + .LC3]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else49
+	jne .call.else47
 	call _consume
-	jmp call.end49
-call.else49:
+	jmp .call.end47
+.call.else47:
 	push rsi
 	call _consume
 	pop rsi
-call.end49:
+.call.end47:
 	push rax
 	pop rax
-	cmp rax, 0
+	test rax, rax
 	je .Lif.then30
 	jmp .Lif.else30
 .Lif.then30:
@@ -4826,36 +4830,36 @@ call.end49:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else50
+	jne .call.else48
 	call _int_type
-	jmp call.end50
-call.else50:
+	jmp .call.end48
+.call.else48:
 	push rsi
 	call _int_type
 	pop rsi
-call.end50:
+.call.end48:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
 	jmp .Lif.end30
 .Lif.else30:
-	lea rax, qword ptr [rip + .LC5]
+	lea rax, qword ptr [rip + .LC4]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else51
+	jne .call.else49
 	call _consume
-	jmp call.end51
-call.else51:
+	jmp .call.end49
+.call.else49:
 	push rsi
 	call _consume
 	pop rsi
-call.end51:
+.call.end49:
 	push rax
 	pop rax
-	cmp rax, 0
+	test rax, rax
 	je .Lif.then31
 	jmp .Lif.else31
 .Lif.then31:
@@ -4863,73 +4867,107 @@ call.end51:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else52
+	jne .call.else50
 	call _int_type
-	jmp call.end52
-call.else52:
+	jmp .call.end50
+.call.else50:
 	push rsi
 	call _int_type
 	pop rsi
-call.end52:
+.call.end50:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
 	jmp .Lif.end31
 .Lif.else31:
+	lea rax, qword ptr [rip + .LC5]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else51
+	call _consume
+	jmp .call.end51
+.call.else51:
+	push rsi
+	call _consume
+	pop rsi
+.call.end51:
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then32
+	jmp .Lif.else32
+.Lif.then32:
 	lea rax, qword ptr [rip + .LC6]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else53
+	jne .call.else52
 	call _consume
-	jmp call.end53
-call.else53:
+	jmp .call.end52
+.call.else52:
 	push rsi
 	call _consume
 	pop rsi
-call.end53:
+.call.end52:
+	push rax
+	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then32
-	jmp .Lif.else32
-.Lif.then32:
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC7]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else53
+	call _fprintf
+	jmp .call.end53
+.call.else53:
+	push rsi
+	call _fprintf
+	pop rsi
+.call.end53:
+	push rax
 	lea rax, [rbp-0]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else54
+	jne .call.else54
 	call _int_type
-	jmp call.end54
-call.else54:
+	jmp .call.end54
+.call.else54:
 	push rsi
 	call _int_type
 	pop rsi
-call.end54:
+.call.end54:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
 	jmp .Lif.end32
 .Lif.else32:
-	lea rax, qword ptr [rip + .LC7]
+	lea rax, qword ptr [rip + .LC8]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else55
+	jne .call.else55
 	call _consume
-	jmp call.end55
-call.else55:
+	jmp .call.end55
+.call.else55:
 	push rsi
 	call _consume
 	pop rsi
-call.end55:
+.call.end55:
 	push rax
 	pop rax
-	cmp rax, 0
+	test rax, rax
 	je .Lif.then33
 	jmp .Lif.else33
 .Lif.then33:
@@ -4937,36 +4975,36 @@ call.end55:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else56
+	jne .call.else56
 	call _int_type
-	jmp call.end56
-call.else56:
+	jmp .call.end56
+.call.else56:
 	push rsi
 	call _int_type
 	pop rsi
-call.end56:
+.call.end56:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
 	jmp .Lif.end33
 .Lif.else33:
-	lea rax, qword ptr [rip + .LC8]
+	lea rax, qword ptr [rip + .LC9]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else57
+	jne .call.else57
 	call _consume
-	jmp call.end57
-call.else57:
+	jmp .call.end57
+.call.else57:
 	push rsi
 	call _consume
 	pop rsi
-call.end57:
+.call.end57:
 	push rax
 	pop rax
-	cmp rax, 0
+	test rax, rax
 	je .Lif.then34
 	jmp .Lif.else34
 .Lif.then34:
@@ -4974,30 +5012,67 @@ call.end57:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else58
+	jne .call.else58
 	call _int_type
-	jmp call.end58
-call.else58:
+	jmp .call.end58
+.call.else58:
 	push rsi
 	call _int_type
 	pop rsi
-call.end58:
+.call.end58:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
 	jmp .Lif.end34
 .Lif.else34:
+	lea rax, qword ptr [rip + .LC10]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else59
+	call _consume
+	jmp .call.end59
+.call.else59:
+	push rsi
+	call _consume
+	pop rsi
+.call.end59:
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then35
+	jmp .Lif.else35
+.Lif.then35:
+	lea rax, [rbp-0]
+	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else59
+	jne .call.else60
+	call _int_type
+	jmp .call.end60
+.call.else60:
+	push rsi
+	call _int_type
+	pop rsi
+.call.end60:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	jmp .Lif.end35
+.Lif.else35:
+	mov rax, 0
+	test rsp, 15
+	jne .call.else61
 	call _aggregate_decl
-	jmp call.end59
-call.else59:
+	jmp .call.end61
+.call.else61:
 	push rsi
 	call _aggregate_decl
 	pop rsi
-call.end59:
+.call.end61:
 	push rax
 	pop rbx
 	pop rax
@@ -5011,29 +5086,29 @@ call.end59:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then35
-	jmp .Lif.end35
-.Lif.then35:
-	lea rax, qword ptr [rip + .LC9]
+	test rax, rax
+	je .Lif.then36
+	jmp .Lif.end36
+.Lif.then36:
+	lea rax, qword ptr [rip + .LC11]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else60
+	jne .call.else62
 	call _consume
-	jmp call.end60
-call.else60:
+	jmp .call.end62
+.call.else62:
 	push rsi
 	call _consume
 	pop rsi
-call.end60:
+.call.end62:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then36
-	jmp .Lif.end36
-.Lif.then36:
+	test rax, rax
+	je .Lif.then37
+	jmp .Lif.end37
+.Lif.then37:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	pop rax
@@ -5042,14 +5117,14 @@ call.end60:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else61
+	jne .call.else63
 	call _find_aggr
-	jmp call.end61
-call.else61:
+	jmp .call.end63
+.call.else63:
 	push rsi
 	call _find_aggr
 	pop rsi
-call.end61:
+.call.end63:
 	push rax
 	pop rbx
 	pop rax
@@ -5063,14 +5138,14 @@ call.end61:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then37
-	jmp .Lif.end37
-.Lif.then37:
+	test rax, rax
+	je .Lif.then38
+	jmp .Lif.end38
+.Lif.then38:
 	push 0
 	pop rbp
 	ret
-.Lif.end37:
+.Lif.end38:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-24]
@@ -5093,23 +5168,23 @@ call.end61:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else62
+	jne .call.else64
 	call _struct_type
-	jmp call.end62
-call.else62:
+	jmp .call.end64
+.call.else64:
 	push rsi
 	call _struct_type
 	pop rsi
-call.end62:
+.call.end64:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lif.end36:
+.Lif.end37:
 	push 0
 	pop rbp
 	ret
-.Lif.end35:
+.Lif.end36:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-16]
@@ -5126,6 +5201,8 @@ call.end62:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
+	jmp .Lif.end35
+.Lif.end35:
 	jmp .Lif.end34
 .Lif.end34:
 	jmp .Lif.end33
@@ -5144,8 +5221,6 @@ call.end62:
 .Lif.end27:
 	jmp .Lif.end26
 .Lif.end26:
-	jmp .Lif.end25
-.Lif.end25:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -5159,32 +5234,32 @@ _type_spec:
 	sub rsp, 8
 	mov rax, 0
 	test rsp, 15
-	jne call.else63
+	jne .call.else65
 	call _prim_type_spec
-	jmp call.end63
-call.else63:
+	jmp .call.end65
+.call.else65:
 	push rsi
 	call _prim_type_spec
 	pop rsi
-call.end63:
+.call.end65:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
 .Lwhile.loop0:
-	lea rax, qword ptr [rip + .LC10]
+	lea rax, qword ptr [rip + .LC12]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else64
+	jne .call.else66
 	call _consume
-	jmp call.end64
-call.else64:
+	jmp .call.end66
+.call.else66:
 	push rsi
 	call _consume
 	pop rsi
-call.end64:
+.call.end66:
 	push rax
 	cmp rax, 0
 	je .Lwhile.end0
@@ -5198,14 +5273,14 @@ call.end64:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else65
+	jne .call.else67
 	call _wrap_pointer
-	jmp call.end65
-call.else65:
+	jmp .call.end67
+.call.else67:
 	push rsi
 	call _wrap_pointer
 	pop rsi
-call.end65:
+.call.end67:
 	push rax
 	pop rbx
 	pop rax
@@ -5237,14 +5312,14 @@ _call_func:
 	mov DWORD PTR [rax], ebx
 	mov rax, 0
 	test rsp, 15
-	jne call.else66
+	jne .call.else68
 	call _consume_ident
-	jmp call.end66
-call.else66:
+	jmp .call.end68
+.call.else68:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end66:
+.call.end68:
 	push rax
 	pop rbx
 	pop rax
@@ -5255,29 +5330,29 @@ call.end66:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then38
-	jmp .Lif.end38
-.Lif.then38:
-	lea rax, qword ptr [rip + .LC11]
+	test rax, rax
+	je .Lif.then39
+	jmp .Lif.end39
+.Lif.then39:
+	lea rax, qword ptr [rip + .LC13]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else67
+	jne .call.else69
 	call _consume
-	jmp call.end67
-call.else67:
+	jmp .call.end69
+.call.else69:
 	push rsi
 	call _consume
 	pop rsi
-call.end67:
+.call.end69:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then39
-	jmp .Lif.end39
-.Lif.then39:
+	test rax, rax
+	je .Lif.then40
+	jmp .Lif.end40
+.Lif.then40:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -5286,14 +5361,14 @@ call.end67:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else68
+	jne .call.else70
 	call _find_func
-	jmp call.end68
-call.else68:
+	jmp .call.end70
+.call.else70:
 	push rsi
 	call _find_func
 	pop rsi
-call.end68:
+.call.end70:
 	push rax
 	pop rbx
 	pop rax
@@ -5307,10 +5382,10 @@ call.end68:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then40
-	jmp .Lif.end40
-.Lif.then40:
+	test rax, rax
+	je .Lif.then41
+	jmp .Lif.end41
+.Lif.then41:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	pop rax
@@ -5323,21 +5398,21 @@ call.end68:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC12]
+	lea rax, qword ptr [rip + .LC14]
 	push rax
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else69
+	jne .call.else71
 	call _error_at
-	jmp call.end69
-call.else69:
+	jmp .call.end71
+.call.else71:
 	push rsi
 	call _error_at
 	pop rsi
-call.end69:
+.call.end71:
 	push rax
-.Lif.end40:
+.Lif.end41:
 	lea rax, [rbp-8]
 	push rax
 	lea rax, [rbp-128]
@@ -5366,46 +5441,46 @@ call.end69:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else70
+	jne .call.else72
 	call _new_node_s
-	jmp call.end70
-call.else70:
+	jmp .call.end72
+.call.else72:
 	push rsi
 	call _new_node_s
 	pop rsi
-call.end70:
+.call.end72:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
 	mov rax, 0
 	test rsp, 15
-	jne call.else71
+	jne .call.else73
 	call _new_vector
-	jmp call.end71
-call.else71:
+	jmp .call.end73
+.call.else73:
 	push rsi
 	call _new_vector
 	pop rsi
-call.end71:
+.call.end73:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
 .Lwhile.loop1:
-	lea rax, qword ptr [rip + .LC13]
+	lea rax, qword ptr [rip + .LC15]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else72
+	jne .call.else74
 	call _consume
-	jmp call.end72
-call.else72:
+	jmp .call.end74
+.call.else74:
 	push rsi
 	call _consume
 	pop rsi
-call.end72:
+.call.end74:
 	push rax
 	pop rax
 	not eax
@@ -5416,14 +5491,14 @@ call.end72:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else73
+	jne .call.else75
 	call _expr
-	jmp call.end73
-call.else73:
+	jmp .call.end75
+.call.else75:
 	push rsi
 	call _expr
 	pop rsi
-call.end73:
+.call.end75:
 	push rax
 	pop rbx
 	pop rax
@@ -5437,10 +5512,10 @@ call.end73:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then41
-	jmp .Lif.end41
-.Lif.then41:
+	test rax, rax
+	je .Lif.then42
+	jmp .Lif.end42
+.Lif.then42:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	pop rax
@@ -5453,22 +5528,22 @@ call.end73:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC14]
+	lea rax, qword ptr [rip + .LC16]
 	push rax
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else74
+	jne .call.else76
 	call _error_at
-	jmp call.end74
-call.else74:
+	jmp .call.end76
+.call.else76:
 	push rsi
 	call _error_at
 	pop rsi
-call.end74:
+.call.end76:
 	push rax
 	jmp .Lwhile.end1
-.Lif.end41:
+.Lif.end42:
 	lea rax, [rbp-40]
 	push rax
 	pop rax
@@ -5483,53 +5558,53 @@ call.end74:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else75
+	jne .call.else77
 	call _push_back
-	jmp call.end75
-call.else75:
+	jmp .call.end77
+.call.else77:
 	push rsi
 	call _push_back
 	pop rsi
-call.end75:
+.call.end77:
 	push rax
-	lea rax, qword ptr [rip + .LC15]
+	lea rax, qword ptr [rip + .LC17]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else76
+	jne .call.else78
 	call _consume
-	jmp call.end76
-call.else76:
+	jmp .call.end78
+.call.else78:
 	push rsi
 	call _consume
 	pop rsi
-call.end76:
+.call.end78:
 	push rax
 	pop rax
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then42
-	jmp .Lif.end42
-.Lif.then42:
-	lea rax, qword ptr [rip + .LC16]
+	test rax, rax
+	je .Lif.then43
+	jmp .Lif.end43
+.Lif.then43:
+	lea rax, qword ptr [rip + .LC18]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else77
+	jne .call.else79
 	call _expect
-	jmp call.end77
-call.else77:
+	jmp .call.end79
+.call.else79:
 	push rsi
 	call _expect
 	pop rsi
-call.end77:
+.call.end79:
 	push rax
 	jmp .Lwhile.end1
-.Lif.end42:
+.Lif.end43:
 	jmp .Lwhile.loop1
 .Lwhile.end1:
 	lea rax, [rbp-8]
@@ -5554,10 +5629,10 @@ call.end77:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then43
-	jmp .Lif.end43
-.Lif.then43:
+	test rax, rax
+	je .Lif.then44
+	jmp .Lif.end44
+.Lif.then44:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -5580,7 +5655,7 @@ call.end77:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lif.end43:
+.Lif.end44:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -5588,8 +5663,8 @@ call.end77:
 	push rax
 	pop rbp
 	ret
+.Lif.end40:
 .Lif.end39:
-.Lif.end38:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	lea rax, [rbp-0]
@@ -5617,14 +5692,14 @@ _variable:
 	mov QWORD PTR [rax], rbx
 	mov rax, 0
 	test rsp, 15
-	jne call.else78
+	jne .call.else80
 	call _consume_ident
-	jmp call.end78
-call.else78:
+	jmp .call.end80
+.call.else80:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end78:
+.call.end80:
 	push rax
 	pop rbx
 	pop rax
@@ -5635,10 +5710,10 @@ call.end78:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then44
-	jmp .Lif.end44
-.Lif.then44:
+	test rax, rax
+	je .Lif.then45
+	jmp .Lif.end45
+.Lif.then45:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -5647,14 +5722,14 @@ call.end78:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else79
+	jne .call.else81
 	call _find_lvar
-	jmp call.end79
-call.else79:
+	jmp .call.end81
+.call.else81:
 	push rsi
 	call _find_lvar
 	pop rsi
-call.end79:
+.call.end81:
 	push rax
 	pop rbx
 	pop rax
@@ -5668,10 +5743,10 @@ call.end79:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then45
-	jmp .Lif.end45
-.Lif.then45:
+	test rax, rax
+	je .Lif.then46
+	jmp .Lif.end46
+.Lif.then46:
 	lea rax, [rbp-24]
 	push rax
 	lea rax, QWORD PTR [rip + hashs@GOTPCREL]
@@ -5688,29 +5763,29 @@ call.end79:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else80
+	jne .call.else82
 	call _search_enum_lvar
-	jmp call.end80
-call.else80:
+	jmp .call.end82
+.call.else82:
 	push rsi
 	call _search_enum_lvar
 	pop rsi
-call.end80:
+.call.end82:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lif.end45:
+.Lif.end46:
 	lea rax, [rbp-24]
 	push rax
 	pop rax
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then46
-	jmp .Lif.else46
-.Lif.then46:
+	test rax, rax
+	je .Lif.then47
+	jmp .Lif.else47
+.Lif.then47:
 	lea rax, [rbp-8]
 	push rax
 	lea rax, [rbp-64]
@@ -5739,14 +5814,14 @@ call.end80:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else81
+	jne .call.else83
 	call _new_node_s
-	jmp call.end81
-call.else81:
+	jmp .call.end83
+.call.else83:
 	push rsi
 	call _new_node_s
 	pop rsi
-call.end81:
+.call.end83:
 	push rax
 	pop rbx
 	pop rax
@@ -5809,9 +5884,9 @@ call.end81:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then47
-	jmp .Lif.end47
-.Lif.then47:
+	je .Lif.then48
+	jmp .Lif.end48
+.Lif.then48:
 	lea rax, [rbp-8]
 	push rax
 	lea rax, [rbp-144]
@@ -5828,14 +5903,14 @@ call.end81:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else82
+	jne .call.else84
 	call _new_node
-	jmp call.end82
-call.else82:
+	jmp .call.end84
+.call.else84:
 	push rsi
 	call _new_node
 	pop rsi
-call.end82:
+.call.end84:
 	push rax
 	pop rbx
 	pop rax
@@ -5879,19 +5954,19 @@ call.end82:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else83
+	jne .call.else85
 	call _wrap_pointer
-	jmp call.end83
-call.else83:
+	jmp .call.end85
+.call.else85:
 	push rsi
 	call _wrap_pointer
 	pop rsi
-call.end83:
+.call.end85:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lif.end47:
+.Lif.end48:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -5899,132 +5974,8 @@ call.end83:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end46
-.Lif.else46:
-	lea rax, [rbp-16]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-36]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rdi
-	lea rax, qword ptr [rip + .LC17]
-	push rax
-	pop rsi
-	lea rax, [rbp-16]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-44]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rdx
-	mov rax, 3
-	test rsp, 15
-	jne call.else84
-	call _strncmp
-	jmp call.end84
-call.else84:
-	push rsi
-	call _strncmp
-	pop rsi
-call.end84:
-	push rax
-	pop rax
-	not eax
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then48
-	jmp .Lif.end48
-.Lif.then48:
-	push 0
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else85
-	call _new_node_num
-	jmp call.end85
-call.else85:
-	push rsi
-	call _new_node_num
-	pop rsi
-call.end85:
-	push rax
-	pop rbp
-	ret
-.Lif.end48:
-	lea rax, [rbp-16]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-36]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rdi
-	lea rax, qword ptr [rip + .LC18]
-	push rax
-	pop rsi
-	lea rax, [rbp-16]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-44]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rdx
-	mov rax, 3
-	test rsp, 15
-	jne call.else86
-	call _strncmp
-	jmp call.end86
-call.else86:
-	push rsi
-	call _strncmp
-	pop rsi
-call.end86:
-	push rax
-	pop rax
-	not eax
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then49
-	jmp .Lif.end49
-.Lif.then49:
-	push 0
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else87
-	call _new_node_num
-	jmp call.end87
-call.else87:
-	push rsi
-	call _new_node_num
-	pop rsi
-call.end87:
-	push rax
-	pop rbp
-	ret
-.Lif.end49:
+	jmp .Lif.end47
+.Lif.else47:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -6054,42 +6005,40 @@ call.end87:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else88
+	jne .call.else86
 	call _strncmp
-	jmp call.end88
-call.else88:
+	jmp .call.end86
+.call.else86:
 	push rsi
 	call _strncmp
 	pop rsi
-call.end88:
+.call.end86:
 	push rax
 	pop rax
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then50
-	jmp .Lif.end50
-.Lif.then50:
-	push 1
+	test rax, rax
+	je .Lif.then49
+	jmp .Lif.end49
+.Lif.then49:
+	push 0
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else89
+	jne .call.else87
 	call _new_node_num
-	jmp call.end89
-call.else89:
+	jmp .call.end87
+.call.else87:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end89:
+.call.end87:
 	push rax
 	pop rbp
 	ret
-.Lif.end50:
-	jmp .Lif.end46
-.Lif.end46:
-	lea rax, QWORD PTR [rip + token@GOTPCREL]
+.Lif.end49:
+	lea rax, [rbp-16]
 	push rax
 	pop rax
 	mov rax, QWORD PTR [rax]
@@ -6104,18 +6053,144 @@ call.end89:
 	lea rax, qword ptr [rip + .LC20]
 	push rax
 	pop rsi
+	lea rax, [rbp-16]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-44]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else88
+	call _strncmp
+	jmp .call.end88
+.call.else88:
+	push rsi
+	call _strncmp
+	pop rsi
+.call.end88:
+	push rax
+	pop rax
+	not eax
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then50
+	jmp .Lif.end50
+.Lif.then50:
+	push 0
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else89
+	call _new_node_num
+	jmp .call.end89
+.call.else89:
+	push rsi
+	call _new_node_num
+	pop rsi
+.call.end89:
+	push rax
+	pop rbp
+	ret
+.Lif.end50:
+	lea rax, [rbp-16]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-36]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC21]
+	push rax
+	pop rsi
+	lea rax, [rbp-16]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-44]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else90
+	call _strncmp
+	jmp .call.end90
+.call.else90:
+	push rsi
+	call _strncmp
+	pop rsi
+.call.end90:
+	push rax
+	pop rax
+	not eax
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then51
+	jmp .Lif.end51
+.Lif.then51:
+	push 1
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else91
+	call _new_node_num
+	jmp .call.end91
+.call.else91:
+	push rsi
+	call _new_node_num
+	pop rsi
+.call.end91:
+	push rax
+	pop rbp
+	ret
+.Lif.end51:
+	jmp .Lif.end47
+.Lif.end47:
+	lea rax, QWORD PTR [rip + token@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-36]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, qword ptr [rip + .LC22]
+	push rax
+	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else90
+	jne .call.else92
 	call _error_at
-	jmp call.end90
-call.else90:
+	jmp .call.end92
+.call.else92:
 	push rsi
 	call _error_at
 	pop rsi
-call.end90:
+.call.end92:
 	push rax
-.Lif.end44:
+.Lif.end45:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	lea rax, [rbp-0]
@@ -6133,91 +6208,55 @@ _term:
 	push rbp
 	mov rbp, rsp
 	sub rsp, 24
-	lea rax, qword ptr [rip + .LC21]
+	lea rax, qword ptr [rip + .LC23]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else91
+	jne .call.else93
 	call _consume
-	jmp call.end91
-call.else91:
+	jmp .call.end93
+.call.else93:
 	push rsi
 	call _consume
 	pop rsi
-call.end91:
+.call.end93:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then51
-	jmp .Lif.end51
-.Lif.then51:
+	test rax, rax
+	je .Lif.then52
+	jmp .Lif.end52
+.Lif.then52:
 	lea rax, [rbp-0]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else92
+	jne .call.else94
 	call _expr
-	jmp call.end92
-call.else92:
+	jmp .call.end94
+.call.else94:
 	push rsi
 	call _expr
 	pop rsi
-call.end92:
+.call.end94:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC22]
+	lea rax, qword ptr [rip + .LC24]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else93
+	jne .call.else95
 	call _expect
-	jmp call.end93
-call.else93:
+	jmp .call.end95
+.call.else95:
 	push rsi
 	call _expect
 	pop rsi
-call.end93:
+.call.end95:
 	push rax
-	lea rax, [rbp-0]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rbp
-	ret
-.Lif.end51:
-	lea rax, [rbp-0]
-	push rax
-	push 0
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else94
-	call _variable_decl
-	jmp call.end94
-call.else94:
-	push rsi
-	call _variable_decl
-	pop rsi
-call.end94:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-	lea rax, [rbp-0]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then52
-	jmp .Lif.end52
-.Lif.then52:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -6228,16 +6267,18 @@ call.end94:
 .Lif.end52:
 	lea rax, [rbp-0]
 	push rax
-	mov rax, 0
+	push 0
+	pop rdi
+	mov rax, 1
 	test rsp, 15
-	jne call.else95
-	call _call_func
-	jmp call.end95
-call.else95:
+	jne .call.else96
+	call _variable_decl
+	jmp .call.end96
+.call.else96:
 	push rsi
-	call _call_func
+	call _variable_decl
 	pop rsi
-call.end95:
+.call.end96:
 	push rax
 	pop rbx
 	pop rax
@@ -6248,7 +6289,7 @@ call.end95:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
+	test rax, rax
 	je .Lif.then53
 	jmp .Lif.end53
 .Lif.then53:
@@ -6264,14 +6305,14 @@ call.end95:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else96
-	call _variable
-	jmp call.end96
-call.else96:
+	jne .call.else97
+	call _call_func
+	jmp .call.end97
+.call.else97:
 	push rsi
-	call _variable
+	call _call_func
 	pop rsi
-call.end96:
+.call.end97:
 	push rax
 	pop rbx
 	pop rax
@@ -6282,7 +6323,7 @@ call.end96:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
+	test rax, rax
 	je .Lif.then54
 	jmp .Lif.end54
 .Lif.then54:
@@ -6294,37 +6335,71 @@ call.end96:
 	pop rbp
 	ret
 .Lif.end54:
-	lea rax, qword ptr [rip + .LC23]
+	lea rax, [rbp-0]
+	push rax
+	mov rax, 0
+	test rsp, 15
+	jne .call.else98
+	call _variable
+	jmp .call.end98
+.call.else98:
+	push rsi
+	call _variable
+	pop rsi
+.call.end98:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then55
+	jmp .Lif.end55
+.Lif.then55:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbp
+	ret
+.Lif.end55:
+	lea rax, qword ptr [rip + .LC25]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else97
+	jne .call.else99
 	call _consume
-	jmp call.end97
-call.else97:
+	jmp .call.end99
+.call.else99:
 	push rsi
 	call _consume
 	pop rsi
-call.end97:
+.call.end99:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then55
-	jmp .Lif.end55
-.Lif.then55:
+	test rax, rax
+	je .Lif.then56
+	jmp .Lif.end56
+.Lif.then56:
 	lea rax, [rbp-8]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else98
+	jne .call.else100
 	call _consume_ident
-	jmp call.end98
-call.else98:
+	jmp .call.end100
+.call.else100:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end98:
+.call.end100:
 	push rax
 	pop rbx
 	pop rax
@@ -6334,11 +6409,34 @@ call.end98:
 	pop rax
 	mov rax, QWORD PTR [rax]
 	push rax
+	lea rax, [rbp-8]
+	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then56
-	jmp .Lif.end56
-.Lif.then56:
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then57
+	jmp .Lif.else57
+.Lif.then57:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-72]
@@ -6355,38 +6453,38 @@ call.end98:
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else99
+	jne .call.else101
 	call _char_type
-	jmp call.end99
-call.else99:
+	jmp .call.end101
+.call.else101:
 	push rsi
 	call _char_type
 	pop rsi
-call.end99:
+.call.end101:
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else100
+	jne .call.else102
 	call _wrap_pointer
-	jmp call.end100
-call.else100:
+	jmp .call.end102
+.call.else102:
 	push rsi
 	call _wrap_pointer
 	pop rsi
-call.end100:
+.call.end102:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else101
+	jne .call.else103
 	call _new_node_s
-	jmp call.end101
-call.else101:
+	jmp .call.end103
+.call.else103:
 	push rsi
 	call _new_node_s
 	pop rsi
-call.end101:
+.call.end103:
 	push rax
 	pop rbx
 	pop rax
@@ -6433,82 +6531,49 @@ call.end101:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else102
+	jne .call.else104
 	call _push_back
-	jmp call.end102
-call.else102:
+	jmp .call.end104
+.call.else104:
 	push rsi
 	call _push_back
 	pop rsi
-call.end102:
+.call.end104:
 	push rax
-.Lif.end56:
-	lea rax, qword ptr [rip + .LC24]
+	lea rax, qword ptr [rip + .LC26]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else103
+	jne .call.else105
 	call _expect
-	jmp call.end103
-call.else103:
+	jmp .call.end105
+.call.else105:
 	push rsi
 	call _expect
 	pop rsi
-call.end103:
+.call.end105:
 	push rax
-	lea rax, [rbp-0]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rbp
-	ret
-.Lif.end55:
-	lea rax, qword ptr [rip + .LC25]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else104
-	call _consume
-	jmp call.end104
-call.else104:
-	push rsi
-	call _consume
-	pop rsi
-call.end104:
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then57
 	jmp .Lif.end57
-.Lif.then57:
-	lea rax, [rbp-8]
+.Lif.else57:
+	lea rax, qword ptr [rip + .LC27]
 	push rax
-	mov rax, 0
+	pop rdi
+	mov rax, 1
 	test rsp, 15
-	jne call.else105
-	call _consume_ident
-	jmp call.end105
-call.else105:
+	jne .call.else106
+	call _consume
+	jmp .call.end106
+.call.else106:
 	push rsi
-	call _consume_ident
+	call _consume
 	pop rsi
-call.end105:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-	lea rax, [rbp-8]
+.call.end106:
 	push rax
 	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	cmp rax, 0
+	test rax, rax
 	je .Lif.then58
-	jmp .Lif.end58
+	jmp .Lif.else58
 .Lif.then58:
 	lea rax, [rbp-0]
 	push rax
@@ -6526,26 +6591,38 @@ call.end105:
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else106
+	jne .call.else107
 	call _char_type
-	jmp call.end106
-call.else106:
+	jmp .call.end107
+.call.else107:
 	push rsi
 	call _char_type
 	pop rsi
-call.end106:
+.call.end107:
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else108
+	call _wrap_pointer
+	jmp .call.end108
+.call.else108:
+	push rsi
+	call _wrap_pointer
+	pop rsi
+.call.end108:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else107
+	jne .call.else109
 	call _new_node_s
-	jmp call.end107
-call.else107:
+	jmp .call.end109
+.call.else109:
 	push rsi
 	call _new_node_s
 	pop rsi
-call.end107:
+.call.end109:
 	push rax
 	pop rbx
 	pop rax
@@ -6592,29 +6669,182 @@ call.end107:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else108
+	jne .call.else110
 	call _push_back
-	jmp call.end108
-call.else108:
+	jmp .call.end110
+.call.else110:
 	push rsi
 	call _push_back
 	pop rsi
-call.end108:
+.call.end110:
 	push rax
+	jmp .Lif.end58
+.Lif.else58:
+	push 0
+	pop rbp
+	ret
+	jmp .Lif.end58
 .Lif.end58:
-	lea rax, qword ptr [rip + .LC26]
+	jmp .Lif.end57
+.Lif.end57:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbp
+	ret
+.Lif.end56:
+	lea rax, qword ptr [rip + .LC28]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else109
+	jne .call.else111
+	call _consume
+	jmp .call.end111
+.call.else111:
+	push rsi
+	call _consume
+	pop rsi
+.call.end111:
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then59
+	jmp .Lif.end59
+.Lif.then59:
+	lea rax, [rbp-8]
+	push rax
+	mov rax, 0
+	test rsp, 15
+	jne .call.else112
+	call _consume_ident
+	jmp .call.end112
+.call.else112:
+	push rsi
+	call _consume_ident
+	pop rsi
+.call.end112:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then60
+	jmp .Lif.end60
+.Lif.then60:
+	lea rax, [rbp-0]
+	push rax
+	lea rax, [rbp-72]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 0
+	test rsp, 15
+	jne .call.else113
+	call _char_type
+	jmp .call.end113
+.call.else113:
+	push rsi
+	call _char_type
+	pop rsi
+.call.end113:
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else114
+	call _new_node_s
+	jmp .call.end114
+.call.else114:
+	push rsi
+	call _new_node_s
+	pop rsi
+.call.end114:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-52]
+	push rax
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-268]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, QWORD PTR [rip + strings@GOTPCREL]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else115
+	call _push_back
+	jmp .call.end115
+.call.else115:
+	push rsi
+	call _push_back
+	pop rsi
+.call.end115:
+	push rax
+.Lif.end60:
+	lea rax, qword ptr [rip + .LC29]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else116
 	call _expect
-	jmp call.end109
-call.else109:
+	jmp .call.end116
+.call.else116:
 	push rsi
 	call _expect
 	pop rsi
-call.end109:
+.call.end116:
 	push rax
 	lea rax, [rbp-0]
 	push rax
@@ -6623,26 +6853,26 @@ call.end109:
 	push rax
 	pop rbp
 	ret
-.Lif.end57:
-	lea rax, qword ptr [rip + .LC27]
+.Lif.end59:
+	lea rax, qword ptr [rip + .LC30]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else110
+	jne .call.else117
 	call _consume
-	jmp call.end110
-call.else110:
+	jmp .call.end117
+.call.else117:
 	push rsi
 	call _consume
 	pop rsi
-call.end110:
+.call.end117:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then59
-	jmp .Lif.end59
-.Lif.then59:
+	test rax, rax
+	je .Lif.then61
+	jmp .Lif.end61
+.Lif.then61:
 	lea rax, [rbp-116]
 	push rax
 	pop rax
@@ -6651,37 +6881,37 @@ call.end110:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else111
+	jne .call.else118
 	call _new_node0
-	jmp call.end111
-call.else111:
+	jmp .call.end118
+.call.else118:
 	push rsi
 	call _new_node0
 	pop rsi
-call.end111:
+.call.end118:
 	push rax
 	pop rbp
 	ret
-.Lif.end59:
-	lea rax, qword ptr [rip + .LC28]
+.Lif.end61:
+	lea rax, qword ptr [rip + .LC31]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else112
+	jne .call.else119
 	call _consume
-	jmp call.end112
-call.else112:
+	jmp .call.end119
+.call.else119:
 	push rsi
 	call _consume
 	pop rsi
-call.end112:
+.call.end119:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then60
-	jmp .Lif.end60
-.Lif.then60:
+	test rax, rax
+	je .Lif.then62
+	jmp .Lif.end62
+.Lif.then62:
 	lea rax, [rbp-120]
 	push rax
 	pop rax
@@ -6690,28 +6920,28 @@ call.end112:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else113
+	jne .call.else120
 	call _new_node0
-	jmp call.end113
-call.else113:
+	jmp .call.end120
+.call.else120:
 	push rsi
 	call _new_node0
 	pop rsi
-call.end113:
+.call.end120:
 	push rax
 	pop rbp
 	ret
-.Lif.end60:
+.Lif.end62:
 	mov rax, 0
 	test rsp, 15
-	jne call.else114
+	jne .call.else121
 	call _consume_number
-	jmp call.end114
-call.else114:
+	jmp .call.end121
+.call.else121:
 	push rsi
 	call _consume_number
 	pop rsi
-call.end114:
+.call.end121:
 	push rax
 	pop rbx
 	pop rax
@@ -6725,9 +6955,9 @@ call.end114:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	jne .Lif.then61
-	jmp .Lif.end61
-.Lif.then61:
+	jne .Lif.then63
+	jmp .Lif.end63
+.Lif.then63:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -6736,18 +6966,18 @@ call.end114:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else115
+	jne .call.else122
 	call _new_node_num
-	jmp call.end115
-call.else115:
+	jmp .call.end122
+.call.else122:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end115:
+.call.end122:
 	push rax
 	pop rbp
 	ret
-.Lif.end61:
+.Lif.end63:
 	push 0
 	pop rbp
 	ret
@@ -6757,14 +6987,14 @@ _postfix:
 	sub rsp, 64
 	mov rax, 0
 	test rsp, 15
-	jne call.else116
+	jne .call.else123
 	call _term
-	jmp call.end116
-call.else116:
+	jmp .call.end123
+.call.else123:
 	push rsi
 	call _term
 	pop rsi
-call.end116:
+.call.end123:
 	push rax
 	pop rbx
 	pop rax
@@ -6786,10 +7016,10 @@ call.end116:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then62
-	jmp .Lif.end62
-.Lif.then62:
+	test rax, rax
+	je .Lif.then64
+	jmp .Lif.end64
+.Lif.then64:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -6797,7 +7027,7 @@ call.end116:
 	push rax
 	pop rbp
 	ret
-.Lif.end62:
+.Lif.end64:
 .Lfor.loop11:
 	cmp rax, 0
 	je .Lfor.end11
@@ -6811,25 +7041,25 @@ call.end116:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC29]
+	lea rax, qword ptr [rip + .LC32]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else117
+	jne .call.else124
 	call _consume
-	jmp call.end117
-call.else117:
+	jmp .call.end124
+.call.else124:
 	push rsi
 	call _consume
 	pop rsi
-call.end117:
+.call.end124:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then63
-	jmp .Lif.else63
-.Lif.then63:
+	test rax, rax
+	je .Lif.then65
+	jmp .Lif.else65
+.Lif.then65:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -6855,21 +7085,21 @@ call.end117:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then64
-	jmp .Lif.else64
-.Lif.then64:
+	je .Lif.then66
+	jmp .Lif.else66
+.Lif.then66:
 	lea rax, [rbp-16]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else118
+	jne .call.else125
 	call _consume_ident
-	jmp call.end118
-call.else118:
+	jmp .call.end125
+.call.else125:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end118:
+.call.end125:
 	push rax
 	pop rbx
 	pop rax
@@ -6906,14 +7136,14 @@ call.end118:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else119
+	jne .call.else126
 	call _find_aggr_elem
-	jmp call.end119
-call.else119:
+	jmp .call.end126
+.call.else126:
 	push rsi
 	call _find_aggr_elem
 	pop rsi
-call.end119:
+.call.end126:
 	push rax
 	pop rbx
 	pop rax
@@ -6924,10 +7154,10 @@ call.end119:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then65
-	jmp .Lif.else65
-.Lif.then65:
+	test rax, rax
+	je .Lif.then67
+	jmp .Lif.else67
+.Lif.then67:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-84]
@@ -6950,20 +7180,20 @@ call.end119:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else120
+	jne .call.else127
 	call _new_binary_node
-	jmp call.end120
-call.else120:
+	jmp .call.end127
+.call.else127:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end120:
+.call.end127:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end65
-.Lif.else65:
+	jmp .Lif.end67
+.Lif.else67:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	pop rax
@@ -6976,24 +7206,24 @@ call.end120:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC30]
+	lea rax, qword ptr [rip + .LC33]
 	push rax
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else121
+	jne .call.else128
 	call _error_at
-	jmp call.end121
-call.else121:
+	jmp .call.end128
+.call.else128:
 	push rsi
 	call _error_at
 	pop rsi
-call.end121:
+.call.end128:
 	push rax
-	jmp .Lif.end65
-.Lif.end65:
-	jmp .Lif.end64
-.Lif.else64:
+	jmp .Lif.end67
+.Lif.end67:
+	jmp .Lif.end66
+.Lif.else66:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	lea rax, [rbp-24]
@@ -7004,29 +7234,29 @@ call.end121:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end64
-.Lif.end64:
-	jmp .Lif.end63
-.Lif.else63:
-	lea rax, qword ptr [rip + .LC31]
+	jmp .Lif.end66
+.Lif.end66:
+	jmp .Lif.end65
+.Lif.else65:
+	lea rax, qword ptr [rip + .LC34]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else122
+	jne .call.else129
 	call _consume
-	jmp call.end122
-call.else122:
+	jmp .call.end129
+.call.else129:
 	push rsi
 	call _consume
 	pop rsi
-call.end122:
+.call.end129:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then66
-	jmp .Lif.else66
-.Lif.then66:
+	test rax, rax
+	je .Lif.then68
+	jmp .Lif.else68
+.Lif.then68:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -7092,21 +7322,21 @@ call.end122:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then67
-	jmp .Lif.else67
-.Lif.then67:
+	je .Lif.then69
+	jmp .Lif.else69
+.Lif.then69:
 	lea rax, [rbp-16]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else123
+	jne .call.else130
 	call _consume_ident
-	jmp call.end123
-call.else123:
+	jmp .call.end130
+.call.else130:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end123:
+.call.end130:
 	push rax
 	pop rbx
 	pop rax
@@ -7143,14 +7373,14 @@ call.end123:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else124
+	jne .call.else131
 	call _find_aggr_elem
-	jmp call.end124
-call.else124:
+	jmp .call.end131
+.call.else131:
 	push rsi
 	call _find_aggr_elem
 	pop rsi
-call.end124:
+.call.end131:
 	push rax
 	pop rbx
 	pop rax
@@ -7161,10 +7391,10 @@ call.end124:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then68
-	jmp .Lif.else68
-.Lif.then68:
+	test rax, rax
+	je .Lif.then70
+	jmp .Lif.else70
+.Lif.then70:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -7201,14 +7431,14 @@ call.end124:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else125
+	jne .call.else132
 	call _new_node
-	jmp call.end125
-call.else125:
+	jmp .call.end132
+.call.else132:
 	push rsi
 	call _new_node
 	pop rsi
-call.end125:
+.call.end132:
 	push rax
 	pop rbx
 	pop rax
@@ -7251,14 +7481,14 @@ call.end125:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else126
+	jne .call.else133
 	call _new_binary_node
-	jmp call.end126
-call.else126:
+	jmp .call.end133
+.call.else133:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end126:
+.call.end133:
 	push rax
 	pop rbx
 	pop rax
@@ -7285,8 +7515,8 @@ call.end126:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end68
-.Lif.else68:
+	jmp .Lif.end70
+.Lif.else70:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	pop rax
@@ -7299,24 +7529,24 @@ call.end126:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC32]
+	lea rax, qword ptr [rip + .LC35]
 	push rax
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else127
+	jne .call.else134
 	call _error_at
-	jmp call.end127
-call.else127:
+	jmp .call.end134
+.call.else134:
 	push rsi
 	call _error_at
 	pop rsi
-call.end127:
+.call.end134:
 	push rax
-	jmp .Lif.end68
-.Lif.end68:
-	jmp .Lif.end67
-.Lif.else67:
+	jmp .Lif.end70
+.Lif.end70:
+	jmp .Lif.end69
+.Lif.else69:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	lea rax, [rbp-24]
@@ -7327,58 +7557,58 @@ call.end127:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end67
-.Lif.end67:
-	jmp .Lif.end66
-.Lif.else66:
-	lea rax, qword ptr [rip + .LC33]
+	jmp .Lif.end69
+.Lif.end69:
+	jmp .Lif.end68
+.Lif.else68:
+	lea rax, qword ptr [rip + .LC36]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else128
+	jne .call.else135
 	call _consume
-	jmp call.end128
-call.else128:
+	jmp .call.end135
+.call.else135:
 	push rsi
 	call _consume
 	pop rsi
-call.end128:
+.call.end135:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then69
-	jmp .Lif.else69
-.Lif.then69:
+	test rax, rax
+	je .Lif.then71
+	jmp .Lif.else71
+.Lif.then71:
 	lea rax, [rbp-8]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else129
+	jne .call.else136
 	call _rvalue
-	jmp call.end129
-call.else129:
+	jmp .call.end136
+.call.else136:
 	push rsi
 	call _rvalue
 	pop rsi
-call.end129:
+.call.end136:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC34]
+	lea rax, qword ptr [rip + .LC37]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else130
+	jne .call.else137
 	call _expect
-	jmp call.end130
-call.else130:
+	jmp .call.end137
+.call.else137:
 	push rsi
 	call _expect
 	pop rsi
-call.end130:
+.call.end137:
 	push rax
 	lea rax, [rbp-0]
 	push rax
@@ -7428,9 +7658,9 @@ call.end130:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then70
-	jmp .Lif.else70
-.Lif.then70:
+	je .Lif.then72
+	jmp .Lif.else72
+.Lif.then72:
 	lea rax, [rbp-8]
 	push rax
 	lea rax, [rbp-8]
@@ -7471,26 +7701,26 @@ call.end130:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else131
+	jne .call.else138
 	call _new_node_num
-	jmp call.end131
-call.else131:
+	jmp .call.end138
+.call.else138:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end131:
+.call.end138:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else132
+	jne .call.else139
 	call _new_binary_node
-	jmp call.end132
-call.else132:
+	jmp .call.end139
+.call.else139:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end132:
+.call.end139:
 	push rax
 	pop rbx
 	pop rax
@@ -7517,8 +7747,8 @@ call.end132:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end70
-.Lif.else70:
+	jmp .Lif.end72
+.Lif.else72:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -7567,9 +7797,9 @@ call.end132:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then71
-	jmp .Lif.end71
-.Lif.then71:
+	je .Lif.then73
+	jmp .Lif.end73
+.Lif.then73:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-8]
@@ -7610,26 +7840,26 @@ call.end132:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else133
+	jne .call.else140
 	call _new_node_num
-	jmp call.end133
-call.else133:
+	jmp .call.end140
+.call.else140:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end133:
+.call.end140:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else134
+	jne .call.else141
 	call _new_binary_node
-	jmp call.end134
-call.else134:
+	jmp .call.end141
+.call.else141:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end134:
+.call.end141:
 	push rax
 	pop rbx
 	pop rax
@@ -7656,9 +7886,9 @@ call.end134:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lif.end71:
-	jmp .Lif.end70
-.Lif.end70:
+.Lif.end73:
+	jmp .Lif.end72
+.Lif.end72:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -7701,14 +7931,14 @@ call.end134:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else135
+	jne .call.else142
 	call _new_binary_node
-	jmp call.end135
-call.else135:
+	jmp .call.end142
+.call.else142:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end135:
+.call.end142:
 	push rax
 	pop rbx
 	pop rax
@@ -7729,14 +7959,14 @@ call.end135:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else136
+	jne .call.else143
 	call _new_node
-	jmp call.end136
-call.else136:
+	jmp .call.end143
+.call.else143:
 	push rsi
 	call _new_node
 	pop rsi
-call.end136:
+.call.end143:
 	push rax
 	pop rbx
 	pop rax
@@ -7757,37 +7987,37 @@ call.end136:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end69
-.Lif.else69:
+	jmp .Lif.end71
+.Lif.else71:
 	jmp .Lfor.end11
-	jmp .Lif.end69
-.Lif.end69:
-	jmp .Lif.end66
-.Lif.end66:
-	jmp .Lif.end63
-.Lif.end63:
+	jmp .Lif.end71
+.Lif.end71:
+	jmp .Lif.end68
+.Lif.end68:
+	jmp .Lif.end65
+.Lif.end65:
 .Lfor.inc11:
 	jmp .Lfor.loop11
 .Lfor.end11:
-	lea rax, qword ptr [rip + .LC35]
+	lea rax, qword ptr [rip + .LC38]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else137
+	jne .call.else144
 	call _consume
-	jmp call.end137
-call.else137:
+	jmp .call.end144
+.call.else144:
 	push rsi
 	call _consume
 	pop rsi
-call.end137:
+.call.end144:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then72
-	jmp .Lif.end72
-.Lif.then72:
+	test rax, rax
+	je .Lif.then74
+	jmp .Lif.end74
+.Lif.then74:
 	lea rax, [rbp-8]
 	push rax
 	lea rax, [rbp-0]
@@ -7806,26 +8036,26 @@ call.end137:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else138
+	jne .call.else145
 	call _new_node_num
-	jmp call.end138
-call.else138:
+	jmp .call.end145
+.call.else145:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end138:
+.call.end145:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else139
+	jne .call.else146
 	call _new_binary_node
-	jmp call.end139
-call.else139:
+	jmp .call.end146
+.call.else146:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end139:
+.call.end146:
 	push rax
 	pop rbx
 	pop rax
@@ -7850,37 +8080,37 @@ call.end139:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else140
+	jne .call.else147
 	call _new_binary_node
-	jmp call.end140
-call.else140:
+	jmp .call.end147
+.call.else147:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end140:
+.call.end147:
 	push rax
 	pop rbp
 	ret
-.Lif.end72:
-	lea rax, qword ptr [rip + .LC36]
+.Lif.end74:
+	lea rax, qword ptr [rip + .LC39]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else141
+	jne .call.else148
 	call _consume
-	jmp call.end141
-call.else141:
+	jmp .call.end148
+.call.else148:
 	push rsi
 	call _consume
 	pop rsi
-call.end141:
+.call.end148:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then73
-	jmp .Lif.end73
-.Lif.then73:
+	test rax, rax
+	je .Lif.then75
+	jmp .Lif.end75
+.Lif.then75:
 	lea rax, [rbp-8]
 	push rax
 	lea rax, [rbp-4]
@@ -7899,26 +8129,26 @@ call.end141:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else142
+	jne .call.else149
 	call _new_node_num
-	jmp call.end142
-call.else142:
+	jmp .call.end149
+.call.else149:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end142:
+.call.end149:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else143
+	jne .call.else150
 	call _new_binary_node
-	jmp call.end143
-call.else143:
+	jmp .call.end150
+.call.else150:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end143:
+.call.end150:
 	push rax
 	pop rbx
 	pop rax
@@ -7943,18 +8173,18 @@ call.end143:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else144
+	jne .call.else151
 	call _new_binary_node
-	jmp call.end144
-call.else144:
+	jmp .call.end151
+.call.else151:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end144:
+.call.end151:
 	push rax
 	pop rbp
 	ret
-.Lif.end73:
+.Lif.end75:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -7974,25 +8204,25 @@ _unary:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC37]
+	lea rax, qword ptr [rip + .LC40]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else145
+	jne .call.else152
 	call _consume
-	jmp call.end145
-call.else145:
+	jmp .call.end152
+.call.else152:
 	push rsi
 	call _consume
 	pop rsi
-call.end145:
+.call.end152:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then74
-	jmp .Lif.end74
-.Lif.then74:
+	test rax, rax
+	je .Lif.then76
+	jmp .Lif.end76
+.Lif.then76:
 	lea rax, [rbp-8]
 	push rax
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
@@ -8003,35 +8233,35 @@ call.end145:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC38]
+	lea rax, qword ptr [rip + .LC41]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else146
+	jne .call.else153
 	call _consume
-	jmp call.end146
-call.else146:
+	jmp .call.end153
+.call.else153:
 	push rsi
 	call _consume
 	pop rsi
-call.end146:
+.call.end153:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then75
-	jmp .Lif.end75
-.Lif.then75:
+	test rax, rax
+	je .Lif.then77
+	jmp .Lif.end77
+.Lif.then77:
 	mov rax, 0
 	test rsp, 15
-	jne call.else147
+	jne .call.else154
 	call _type_spec
-	jmp call.end147
-call.else147:
+	jmp .call.end154
+.call.else154:
 	push rsi
 	call _type_spec
 	pop rsi
-call.end147:
+.call.end154:
 	push rax
 	pop rbx
 	pop rax
@@ -8042,23 +8272,23 @@ call.end147:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then76
-	jmp .Lif.else76
-.Lif.then76:
-	lea rax, qword ptr [rip + .LC39]
+	test rax, rax
+	je .Lif.then78
+	jmp .Lif.else78
+.Lif.then78:
+	lea rax, qword ptr [rip + .LC42]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else148
+	jne .call.else155
 	call _expect
-	jmp call.end148
-call.else148:
+	jmp .call.end155
+.call.else155:
 	push rsi
 	call _expect
 	pop rsi
-call.end148:
+.call.end155:
 	push rax
 	lea rax, [rbp-16]
 	push rax
@@ -8089,19 +8319,19 @@ call.end148:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else149
+	jne .call.else156
 	call _new_node_num
-	jmp call.end149
-call.else149:
+	jmp .call.end156
+.call.else156:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end149:
+.call.end156:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end76
-.Lif.else76:
+	jmp .Lif.end78
+.Lif.else78:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	lea rax, [rbp-8]
@@ -8112,21 +8342,21 @@ call.end149:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end76
-.Lif.end76:
-.Lif.end75:
+	jmp .Lif.end78
+.Lif.end78:
+.Lif.end77:
 	lea rax, [rbp-0]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else150
+	jne .call.else157
 	call _unary
-	jmp call.end150
-call.else150:
+	jmp .call.end157
+.call.else157:
 	push rsi
 	call _unary
 	pop rsi
-call.end150:
+.call.end157:
 	push rax
 	pop rbx
 	pop rax
@@ -8137,10 +8367,10 @@ call.end150:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then77
-	jmp .Lif.else77
-.Lif.then77:
+	test rax, rax
+	je .Lif.then79
+	jmp .Lif.else79
+.Lif.then79:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -8152,9 +8382,9 @@ call.end150:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then78
-	jmp .Lif.else78
-.Lif.then78:
+	je .Lif.then80
+	jmp .Lif.else80
+.Lif.then80:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -8196,73 +8426,73 @@ call.end150:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else151
+	jne .call.else158
 	call _new_node_num
-	jmp call.end151
-call.else151:
+	jmp .call.end158
+.call.else158:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end151:
+.call.end158:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end78
-.Lif.else78:
+	jmp .Lif.end80
+.Lif.else80:
 	push 0
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else152
+	jne .call.else159
 	call _new_node_num
-	jmp call.end152
-call.else152:
+	jmp .call.end159
+.call.else159:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end152:
+.call.end159:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end78
-.Lif.end78:
-	jmp .Lif.end77
-.Lif.else77:
+	jmp .Lif.end80
+.Lif.end80:
+	jmp .Lif.end79
+.Lif.else79:
 	push 0
 	pop rbp
 	ret
-	jmp .Lif.end77
-.Lif.end77:
-.Lif.end74:
-	lea rax, qword ptr [rip + .LC40]
+	jmp .Lif.end79
+.Lif.end79:
+.Lif.end76:
+	lea rax, qword ptr [rip + .LC43]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else153
+	jne .call.else160
 	call _consume
-	jmp call.end153
-call.else153:
+	jmp .call.end160
+.call.else160:
 	push rsi
 	call _consume
 	pop rsi
-call.end153:
+.call.end160:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then79
-	jmp .Lif.end79
-.Lif.then79:
+	test rax, rax
+	je .Lif.then81
+	jmp .Lif.end81
+.Lif.then81:
 	mov rax, 0
 	test rsp, 15
-	jne call.else154
+	jne .call.else161
 	call _type_spec
-	jmp call.end154
-call.else154:
+	jmp .call.end161
+.call.else161:
 	push rsi
 	call _type_spec
 	pop rsi
-call.end154:
+.call.end161:
 	push rax
 	pop rbx
 	pop rax
@@ -8273,34 +8503,34 @@ call.end154:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then80
-	jmp .Lif.else80
-.Lif.then80:
-	lea rax, qword ptr [rip + .LC41]
+	test rax, rax
+	je .Lif.then82
+	jmp .Lif.else82
+.Lif.then82:
+	lea rax, qword ptr [rip + .LC44]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else155
+	jne .call.else162
 	call _expect
-	jmp call.end155
-call.else155:
+	jmp .call.end162
+.call.else162:
 	push rsi
 	call _expect
 	pop rsi
-call.end155:
+.call.end162:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else156
+	jne .call.else163
 	call _postfix
-	jmp call.end156
-call.else156:
+	jmp .call.end163
+.call.else163:
 	push rsi
 	call _postfix
 	pop rsi
-call.end156:
+.call.end163:
 	push rax
 	pop rbx
 	pop rax
@@ -8314,10 +8544,10 @@ call.end156:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then81
-	jmp .Lif.end81
-.Lif.then81:
+	test rax, rax
+	je .Lif.then83
+	jmp .Lif.end83
+.Lif.then83:
 	lea rax, [rbp-32]
 	push rax
 	pop rax
@@ -8325,7 +8555,7 @@ call.end156:
 	push rax
 	pop rbp
 	ret
-.Lif.end81:
+.Lif.end83:
 	lea rax, [rbp-32]
 	push rax
 	pop rax
@@ -8349,8 +8579,8 @@ call.end156:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end80
-.Lif.else80:
+	jmp .Lif.end82
+.Lif.else82:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	lea rax, [rbp-8]
@@ -8361,61 +8591,61 @@ call.end156:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end80
-.Lif.end80:
-.Lif.end79:
-	lea rax, qword ptr [rip + .LC42]
+	jmp .Lif.end82
+.Lif.end82:
+.Lif.end81:
+	lea rax, qword ptr [rip + .LC45]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else157
+	jne .call.else164
 	call _consume
-	jmp call.end157
-call.else157:
+	jmp .call.end164
+.call.else164:
 	push rsi
 	call _consume
 	pop rsi
-call.end157:
+.call.end164:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then82
-	jmp .Lif.end82
-.Lif.then82:
+	test rax, rax
+	je .Lif.then84
+	jmp .Lif.end84
+.Lif.then84:
 	mov rax, 0
 	test rsp, 15
-	jne call.else158
+	jne .call.else165
 	call _postfix
-	jmp call.end158
-call.else158:
+	jmp .call.end165
+.call.else165:
 	push rsi
 	call _postfix
 	pop rsi
-call.end158:
+.call.end165:
 	push rax
 	pop rbp
 	ret
-.Lif.end82:
-	lea rax, qword ptr [rip + .LC43]
+.Lif.end84:
+	lea rax, qword ptr [rip + .LC46]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else159
+	jne .call.else166
 	call _consume
-	jmp call.end159
-call.else159:
+	jmp .call.end166
+.call.else166:
 	push rsi
 	call _consume
 	pop rsi
-call.end159:
+.call.end166:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then83
-	jmp .Lif.end83
-.Lif.then83:
+	test rax, rax
+	je .Lif.then85
+	jmp .Lif.end85
+.Lif.then85:
 	lea rax, [rbp-4]
 	push rax
 	pop rax
@@ -8426,61 +8656,61 @@ call.end159:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else160
+	jne .call.else167
 	call _new_node_num
-	jmp call.end160
-call.else160:
+	jmp .call.end167
+.call.else167:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end160:
+.call.end167:
 	push rax
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else161
+	jne .call.else168
 	call _postfix
-	jmp call.end161
-call.else161:
+	jmp .call.end168
+.call.else168:
 	push rsi
 	call _postfix
 	pop rsi
-call.end161:
+.call.end168:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else162
+	jne .call.else169
 	call _new_binary_node
-	jmp call.end162
-call.else162:
+	jmp .call.end169
+.call.else169:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end162:
+.call.end169:
 	push rax
 	pop rbp
 	ret
-.Lif.end83:
-	lea rax, qword ptr [rip + .LC44]
+.Lif.end85:
+	lea rax, qword ptr [rip + .LC47]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else163
+	jne .call.else170
 	call _consume
-	jmp call.end163
-call.else163:
+	jmp .call.end170
+.call.else170:
 	push rsi
 	call _consume
 	pop rsi
-call.end163:
+.call.end170:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then84
-	jmp .Lif.end84
-.Lif.then84:
+	test rax, rax
+	je .Lif.then86
+	jmp .Lif.end86
+.Lif.then86:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -8489,63 +8719,63 @@ call.end163:
 	pop rdi
 	mov rax, 0
 	test rsp, 15
-	jne call.else164
+	jne .call.else171
 	call _unary
-	jmp call.end164
-call.else164:
+	jmp .call.end171
+.call.else171:
 	push rsi
 	call _unary
 	pop rsi
-call.end164:
+.call.end171:
 	push rax
 	pop rsi
 	push 1
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else165
+	jne .call.else172
 	call _new_node_num
-	jmp call.end165
-call.else165:
+	jmp .call.end172
+.call.else172:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end165:
+.call.end172:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else166
+	jne .call.else173
 	call _new_binary_node
-	jmp call.end166
-call.else166:
+	jmp .call.end173
+.call.else173:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end166:
+.call.end173:
 	push rax
 	pop rbp
 	ret
-.Lif.end84:
-	lea rax, qword ptr [rip + .LC45]
+.Lif.end86:
+	lea rax, qword ptr [rip + .LC48]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else167
+	jne .call.else174
 	call _consume
-	jmp call.end167
-call.else167:
+	jmp .call.end174
+.call.else174:
 	push rsi
 	call _consume
 	pop rsi
-call.end167:
+.call.end174:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then85
-	jmp .Lif.end85
-.Lif.then85:
+	test rax, rax
+	je .Lif.then87
+	jmp .Lif.end87
+.Lif.then87:
 	lea rax, [rbp-4]
 	push rax
 	pop rax
@@ -8554,177 +8784,177 @@ call.end167:
 	pop rdi
 	mov rax, 0
 	test rsp, 15
-	jne call.else168
+	jne .call.else175
 	call _unary
-	jmp call.end168
-call.else168:
+	jmp .call.end175
+.call.else175:
 	push rsi
 	call _unary
 	pop rsi
-call.end168:
+.call.end175:
 	push rax
 	pop rsi
 	push 1
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else169
+	jne .call.else176
 	call _new_node_num
-	jmp call.end169
-call.else169:
+	jmp .call.end176
+.call.else176:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end169:
+.call.end176:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else170
+	jne .call.else177
 	call _new_binary_node
-	jmp call.end170
-call.else170:
+	jmp .call.end177
+.call.else177:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end170:
-	push rax
-	pop rbp
-	ret
-.Lif.end85:
-	lea rax, qword ptr [rip + .LC46]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else171
-	call _consume
-	jmp call.end171
-call.else171:
-	push rsi
-	call _consume
-	pop rsi
-call.end171:
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then86
-	jmp .Lif.end86
-.Lif.then86:
-	lea rax, [rbp-44]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rdi
-	mov rax, 0
-	test rsp, 15
-	jne call.else172
-	call _unary
-	jmp call.end172
-call.else172:
-	push rsi
-	call _unary
-	pop rsi
-call.end172:
-	push rax
-	pop rsi
-	mov rax, 2
-	test rsp, 15
-	jne call.else173
-	call _new_node
-	jmp call.end173
-call.else173:
-	push rsi
-	call _new_node
-	pop rsi
-call.end173:
-	push rax
-	pop rbp
-	ret
-.Lif.end86:
-	lea rax, qword ptr [rip + .LC47]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else174
-	call _consume
-	jmp call.end174
-call.else174:
-	push rsi
-	call _consume
-	pop rsi
-call.end174:
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then87
-	jmp .Lif.end87
-.Lif.then87:
-	lea rax, [rbp-44]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rdi
-	mov rax, 0
-	test rsp, 15
-	jne call.else175
-	call _unary
-	jmp call.end175
-call.else175:
-	push rsi
-	call _unary
-	pop rsi
-call.end175:
-	push rax
-	pop rsi
-	mov rax, 2
-	test rsp, 15
-	jne call.else176
-	call _new_node
-	jmp call.end176
-call.else176:
-	push rsi
-	call _new_node
-	pop rsi
-call.end176:
+.call.end177:
 	push rax
 	pop rbp
 	ret
 .Lif.end87:
-	lea rax, qword ptr [rip + .LC48]
+	lea rax, qword ptr [rip + .LC49]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else177
+	jne .call.else178
 	call _consume
-	jmp call.end177
-call.else177:
+	jmp .call.end178
+.call.else178:
 	push rsi
 	call _consume
 	pop rsi
-call.end177:
+.call.end178:
 	push rax
 	pop rax
-	cmp rax, 0
+	test rax, rax
 	je .Lif.then88
 	jmp .Lif.end88
 .Lif.then88:
+	lea rax, [rbp-44]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 0
+	test rsp, 15
+	jne .call.else179
+	call _unary
+	jmp .call.end179
+.call.else179:
+	push rsi
+	call _unary
+	pop rsi
+.call.end179:
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else180
+	call _new_node
+	jmp .call.end180
+.call.else180:
+	push rsi
+	call _new_node
+	pop rsi
+.call.end180:
+	push rax
+	pop rbp
+	ret
+.Lif.end88:
+	lea rax, qword ptr [rip + .LC50]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else181
+	call _consume
+	jmp .call.end181
+.call.else181:
+	push rsi
+	call _consume
+	pop rsi
+.call.end181:
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then89
+	jmp .Lif.end89
+.Lif.then89:
+	lea rax, [rbp-44]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 0
+	test rsp, 15
+	jne .call.else182
+	call _unary
+	jmp .call.end182
+.call.else182:
+	push rsi
+	call _unary
+	pop rsi
+.call.end182:
+	push rax
+	pop rsi
+	mov rax, 2
+	test rsp, 15
+	jne .call.else183
+	call _new_node
+	jmp .call.end183
+.call.else183:
+	push rsi
+	call _new_node
+	pop rsi
+.call.end183:
+	push rax
+	pop rbp
+	ret
+.Lif.end89:
+	lea rax, qword ptr [rip + .LC51]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else184
+	call _consume
+	jmp .call.end184
+.call.else184:
+	push rsi
+	call _consume
+	pop rsi
+.call.end184:
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then90
+	jmp .Lif.end90
+.Lif.then90:
 	lea rax, [rbp-0]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else178
+	jne .call.else185
 	call _unary
-	jmp call.end178
-call.else178:
+	jmp .call.end185
+.call.else185:
 	push rsi
 	call _unary
 	pop rsi
-call.end178:
+.call.end185:
 	push rax
 	pop rbx
 	pop rax
@@ -8738,10 +8968,10 @@ call.end178:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then89
-	jmp .Lif.end89
-.Lif.then89:
+	test rax, rax
+	je .Lif.then91
+	jmp .Lif.end91
+.Lif.then91:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -8749,7 +8979,7 @@ call.end178:
 	push rax
 	pop rbp
 	ret
-.Lif.end89:
+.Lif.end91:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -8792,9 +9022,9 @@ call.end178:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then90
-	jmp .Lif.else90
-.Lif.then90:
+	je .Lif.then92
+	jmp .Lif.else92
+.Lif.then92:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-148]
@@ -8811,14 +9041,14 @@ call.end178:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else179
+	jne .call.else186
 	call _new_node
-	jmp call.end179
-call.else179:
+	jmp .call.end186
+.call.else186:
 	push rsi
 	call _new_node
 	pop rsi
-call.end179:
+.call.end186:
 	push rax
 	pop rbx
 	pop rax
@@ -8887,9 +9117,9 @@ call.end179:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then91
-	jmp .Lif.else91
-.Lif.then91:
+	je .Lif.then93
+	jmp .Lif.else93
+.Lif.then93:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -8929,8 +9159,8 @@ call.end179:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end91
-.Lif.else91:
+	jmp .Lif.end93
+.Lif.else93:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	pop rax
@@ -8943,24 +9173,24 @@ call.end179:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC49]
+	lea rax, qword ptr [rip + .LC52]
 	push rax
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else180
+	jne .call.else187
 	call _error_at
-	jmp call.end180
-call.else180:
+	jmp .call.end187
+.call.else187:
 	push rsi
 	call _error_at
 	pop rsi
-call.end180:
+.call.end187:
 	push rax
-	jmp .Lif.end91
-.Lif.end91:
-	jmp .Lif.end90
-.Lif.else90:
+	jmp .Lif.end93
+.Lif.end93:
+	jmp .Lif.end92
+.Lif.else92:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	pop rax
@@ -8973,22 +9203,22 @@ call.end180:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC50]
+	lea rax, qword ptr [rip + .LC53]
 	push rax
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else181
+	jne .call.else188
 	call _error_at
-	jmp call.end181
-call.else181:
+	jmp .call.end188
+.call.else188:
 	push rsi
 	call _error_at
 	pop rsi
-call.end181:
+.call.end188:
 	push rax
-	jmp .Lif.end90
-.Lif.end90:
+	jmp .Lif.end92
+.Lif.end92:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -8996,38 +9226,38 @@ call.end181:
 	push rax
 	pop rbp
 	ret
-.Lif.end88:
-	lea rax, qword ptr [rip + .LC51]
+.Lif.end90:
+	lea rax, qword ptr [rip + .LC54]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else182
+	jne .call.else189
 	call _consume
-	jmp call.end182
-call.else182:
+	jmp .call.end189
+.call.else189:
 	push rsi
 	call _consume
 	pop rsi
-call.end182:
+.call.end189:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then92
-	jmp .Lif.end92
-.Lif.then92:
+	test rax, rax
+	je .Lif.then94
+	jmp .Lif.end94
+.Lif.then94:
 	lea rax, [rbp-0]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else183
+	jne .call.else190
 	call _unary
-	jmp call.end183
-call.else183:
+	jmp .call.end190
+.call.else190:
 	push rsi
 	call _unary
 	pop rsi
-call.end183:
+.call.end190:
 	push rax
 	pop rbx
 	pop rax
@@ -9048,14 +9278,14 @@ call.end183:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else184
+	jne .call.else191
 	call _new_node
-	jmp call.end184
-call.else184:
+	jmp .call.end191
+.call.else191:
 	push rsi
 	call _new_node
 	pop rsi
-call.end184:
+.call.end191:
 	push rax
 	pop rbx
 	pop rax
@@ -9093,14 +9323,14 @@ call.end184:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else185
+	jne .call.else192
 	call _wrap_pointer
-	jmp call.end185
-call.else185:
+	jmp .call.end192
+.call.else192:
 	push rsi
 	call _wrap_pointer
 	pop rsi
-call.end185:
+.call.end192:
 	push rax
 	pop rbx
 	pop rax
@@ -9112,19 +9342,19 @@ call.end185:
 	push rax
 	pop rbp
 	ret
-.Lif.end92:
+.Lif.end94:
 	lea rax, [rbp-0]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else186
+	jne .call.else193
 	call _postfix
-	jmp call.end186
-call.else186:
+	jmp .call.end193
+.call.else193:
 	push rsi
 	call _postfix
 	pop rsi
-call.end186:
+.call.end193:
 	push rax
 	pop rbx
 	pop rax
@@ -9142,14 +9372,14 @@ _mul_expr:
 	sub rsp, 8
 	mov rax, 0
 	test rsp, 15
-	jne call.else187
+	jne .call.else194
 	call _unary
-	jmp call.end187
-call.else187:
+	jmp .call.end194
+.call.else194:
 	push rsi
 	call _unary
 	pop rsi
-call.end187:
+.call.end194:
 	push rax
 	pop rbx
 	pop rax
@@ -9163,10 +9393,10 @@ call.end187:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then93
-	jmp .Lif.end93
-.Lif.then93:
+	test rax, rax
+	je .Lif.then95
+	jmp .Lif.end95
+.Lif.then95:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -9174,29 +9404,29 @@ call.end187:
 	push rax
 	pop rbp
 	ret
-.Lif.end93:
+.Lif.end95:
 .Lfor.loop12:
 	cmp rax, 0
 	je .Lfor.end12
-	lea rax, qword ptr [rip + .LC52]
+	lea rax, qword ptr [rip + .LC55]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else188
+	jne .call.else195
 	call _consume
-	jmp call.end188
-call.else188:
+	jmp .call.end195
+.call.else195:
 	push rsi
 	call _consume
 	pop rsi
-call.end188:
+.call.end195:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then94
-	jmp .Lif.else94
-.Lif.then94:
+	test rax, rax
+	je .Lif.then96
+	jmp .Lif.else96
+.Lif.then96:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-8]
@@ -9213,51 +9443,51 @@ call.end188:
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else189
+	jne .call.else196
 	call _unary
-	jmp call.end189
-call.else189:
+	jmp .call.end196
+.call.else196:
 	push rsi
 	call _unary
 	pop rsi
-call.end189:
+.call.end196:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else190
+	jne .call.else197
 	call _new_binary_node
-	jmp call.end190
-call.else190:
+	jmp .call.end197
+.call.else197:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end190:
+.call.end197:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end94
-.Lif.else94:
-	lea rax, qword ptr [rip + .LC53]
+	jmp .Lif.end96
+.Lif.else96:
+	lea rax, qword ptr [rip + .LC56]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else191
+	jne .call.else198
 	call _consume
-	jmp call.end191
-call.else191:
+	jmp .call.end198
+.call.else198:
 	push rsi
 	call _consume
 	pop rsi
-call.end191:
+.call.end198:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then95
-	jmp .Lif.else95
-.Lif.then95:
+	test rax, rax
+	je .Lif.then97
+	jmp .Lif.else97
+.Lif.then97:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-12]
@@ -9274,51 +9504,51 @@ call.end191:
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else192
+	jne .call.else199
 	call _unary
-	jmp call.end192
-call.else192:
+	jmp .call.end199
+.call.else199:
 	push rsi
 	call _unary
 	pop rsi
-call.end192:
+.call.end199:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else193
+	jne .call.else200
 	call _new_binary_node
-	jmp call.end193
-call.else193:
+	jmp .call.end200
+.call.else200:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end193:
+.call.end200:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end95
-.Lif.else95:
-	lea rax, qword ptr [rip + .LC54]
+	jmp .Lif.end97
+.Lif.else97:
+	lea rax, qword ptr [rip + .LC57]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else194
+	jne .call.else201
 	call _consume
-	jmp call.end194
-call.else194:
+	jmp .call.end201
+.call.else201:
 	push rsi
 	call _consume
 	pop rsi
-call.end194:
+.call.end201:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then96
-	jmp .Lif.else96
-.Lif.then96:
+	test rax, rax
+	je .Lif.then98
+	jmp .Lif.else98
+.Lif.then98:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-16]
@@ -9335,32 +9565,32 @@ call.end194:
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else195
+	jne .call.else202
 	call _unary
-	jmp call.end195
-call.else195:
+	jmp .call.end202
+.call.else202:
 	push rsi
 	call _unary
 	pop rsi
-call.end195:
+.call.end202:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else196
+	jne .call.else203
 	call _new_binary_node
-	jmp call.end196
-call.else196:
+	jmp .call.end203
+.call.else203:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end196:
+.call.end203:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end96
-.Lif.else96:
+	jmp .Lif.end98
+.Lif.else98:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -9368,12 +9598,12 @@ call.end196:
 	push rax
 	pop rbp
 	ret
+	jmp .Lif.end98
+.Lif.end98:
+	jmp .Lif.end97
+.Lif.end97:
 	jmp .Lif.end96
 .Lif.end96:
-	jmp .Lif.end95
-.Lif.end95:
-	jmp .Lif.end94
-.Lif.end94:
 .Lfor.inc12:
 	jmp .Lfor.loop12
 .Lfor.end12:
@@ -9390,14 +9620,14 @@ _add_expr:
 	sub rsp, 16
 	mov rax, 0
 	test rsp, 15
-	jne call.else197
+	jne .call.else204
 	call _mul_expr
-	jmp call.end197
-call.else197:
+	jmp .call.end204
+.call.else204:
 	push rsi
 	call _mul_expr
 	pop rsi
-call.end197:
+.call.end204:
 	push rax
 	pop rbx
 	pop rax
@@ -9411,10 +9641,10 @@ call.end197:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then97
-	jmp .Lif.end97
-.Lif.then97:
+	test rax, rax
+	je .Lif.then99
+	jmp .Lif.end99
+.Lif.then99:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -9422,41 +9652,41 @@ call.end197:
 	push rax
 	pop rbp
 	ret
-.Lif.end97:
+.Lif.end99:
 .Lfor.loop13:
 	cmp rax, 0
 	je .Lfor.end13
-	lea rax, qword ptr [rip + .LC55]
+	lea rax, qword ptr [rip + .LC58]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else198
+	jne .call.else205
 	call _consume
-	jmp call.end198
-call.else198:
+	jmp .call.end205
+.call.else205:
 	push rsi
 	call _consume
 	pop rsi
-call.end198:
+.call.end205:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then98
-	jmp .Lif.else98
-.Lif.then98:
+	test rax, rax
+	je .Lif.then100
+	jmp .Lif.else100
+.Lif.then100:
 	lea rax, [rbp-8]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else199
+	jne .call.else206
 	call _mul_expr
-	jmp call.end199
-call.else199:
+	jmp .call.end206
+.call.else206:
 	push rsi
 	call _mul_expr
 	pop rsi
-call.end199:
+.call.end206:
 	push rax
 	pop rbx
 	pop rax
@@ -9483,51 +9713,51 @@ call.end199:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else200
+	jne .call.else207
 	call _new_binary_node
-	jmp call.end200
-call.else200:
+	jmp .call.end207
+.call.else207:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end200:
+.call.end207:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end98
-.Lif.else98:
-	lea rax, qword ptr [rip + .LC56]
+	jmp .Lif.end100
+.Lif.else100:
+	lea rax, qword ptr [rip + .LC59]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else201
+	jne .call.else208
 	call _consume
-	jmp call.end201
-call.else201:
+	jmp .call.end208
+.call.else208:
 	push rsi
 	call _consume
 	pop rsi
-call.end201:
+.call.end208:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then99
-	jmp .Lif.else99
-.Lif.then99:
+	test rax, rax
+	je .Lif.then101
+	jmp .Lif.else101
+.Lif.then101:
 	lea rax, [rbp-8]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else202
+	jne .call.else209
 	call _mul_expr
-	jmp call.end202
-call.else202:
+	jmp .call.end209
+.call.else209:
 	push rsi
 	call _mul_expr
 	pop rsi
-call.end202:
+.call.end209:
 	push rax
 	pop rbx
 	pop rax
@@ -9554,20 +9784,20 @@ call.end202:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else203
+	jne .call.else210
 	call _new_binary_node
-	jmp call.end203
-call.else203:
+	jmp .call.end210
+.call.else210:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end203:
+.call.end210:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end99
-.Lif.else99:
+	jmp .Lif.end101
+.Lif.else101:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -9575,10 +9805,10 @@ call.end203:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end99
-.Lif.end99:
-	jmp .Lif.end98
-.Lif.end98:
+	jmp .Lif.end101
+.Lif.end101:
+	jmp .Lif.end100
+.Lif.end100:
 .Lfor.inc13:
 	jmp .Lfor.loop13
 .Lfor.end13:
@@ -9588,14 +9818,14 @@ _sht_expr:
 	sub rsp, 8
 	mov rax, 0
 	test rsp, 15
-	jne call.else204
+	jne .call.else211
 	call _add_expr
-	jmp call.end204
-call.else204:
+	jmp .call.end211
+.call.else211:
 	push rsi
 	call _add_expr
 	pop rsi
-call.end204:
+.call.end211:
 	push rax
 	pop rbx
 	pop rax
@@ -9609,10 +9839,10 @@ call.end204:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then100
-	jmp .Lif.end100
-.Lif.then100:
+	test rax, rax
+	je .Lif.then102
+	jmp .Lif.end102
+.Lif.then102:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -9620,29 +9850,29 @@ call.end204:
 	push rax
 	pop rbp
 	ret
-.Lif.end100:
+.Lif.end102:
 .Lfor.loop14:
 	cmp rax, 0
 	je .Lfor.end14
-	lea rax, qword ptr [rip + .LC57]
+	lea rax, qword ptr [rip + .LC60]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else205
+	jne .call.else212
 	call _consume
-	jmp call.end205
-call.else205:
+	jmp .call.end212
+.call.else212:
 	push rsi
 	call _consume
 	pop rsi
-call.end205:
+.call.end212:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then101
-	jmp .Lif.else101
-.Lif.then101:
+	test rax, rax
+	je .Lif.then103
+	jmp .Lif.else103
+.Lif.then103:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-20]
@@ -9659,51 +9889,51 @@ call.end205:
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else206
+	jne .call.else213
 	call _sht_expr
-	jmp call.end206
-call.else206:
+	jmp .call.end213
+.call.else213:
 	push rsi
 	call _sht_expr
 	pop rsi
-call.end206:
+.call.end213:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else207
+	jne .call.else214
 	call _new_binary_node
-	jmp call.end207
-call.else207:
+	jmp .call.end214
+.call.else214:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end207:
+.call.end214:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end101
-.Lif.else101:
-	lea rax, qword ptr [rip + .LC58]
+	jmp .Lif.end103
+.Lif.else103:
+	lea rax, qword ptr [rip + .LC61]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else208
+	jne .call.else215
 	call _consume
-	jmp call.end208
-call.else208:
+	jmp .call.end215
+.call.else215:
 	push rsi
 	call _consume
 	pop rsi
-call.end208:
+.call.end215:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then102
-	jmp .Lif.else102
-.Lif.then102:
+	test rax, rax
+	je .Lif.then104
+	jmp .Lif.else104
+.Lif.then104:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-24]
@@ -9720,32 +9950,32 @@ call.end208:
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else209
+	jne .call.else216
 	call _sht_expr
-	jmp call.end209
-call.else209:
+	jmp .call.end216
+.call.else216:
 	push rsi
 	call _sht_expr
 	pop rsi
-call.end209:
+.call.end216:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else210
+	jne .call.else217
 	call _new_binary_node
-	jmp call.end210
-call.else210:
+	jmp .call.end217
+.call.else217:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end210:
+.call.end217:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end102
-.Lif.else102:
+	jmp .Lif.end104
+.Lif.else104:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -9753,10 +9983,10 @@ call.end210:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end102
-.Lif.end102:
-	jmp .Lif.end101
-.Lif.end101:
+	jmp .Lif.end104
+.Lif.end104:
+	jmp .Lif.end103
+.Lif.end103:
 .Lfor.inc14:
 	jmp .Lfor.loop14
 .Lfor.end14:
@@ -9766,14 +9996,14 @@ _relational:
 	sub rsp, 8
 	mov rax, 0
 	test rsp, 15
-	jne call.else211
+	jne .call.else218
 	call _sht_expr
-	jmp call.end211
-call.else211:
+	jmp .call.end218
+.call.else218:
 	push rsi
 	call _sht_expr
 	pop rsi
-call.end211:
+.call.end218:
 	push rax
 	pop rbx
 	pop rax
@@ -9787,10 +10017,10 @@ call.end211:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then103
-	jmp .Lif.end103
-.Lif.then103:
+	test rax, rax
+	je .Lif.then105
+	jmp .Lif.end105
+.Lif.then105:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -9798,169 +10028,45 @@ call.end211:
 	push rax
 	pop rbp
 	ret
-.Lif.end103:
+.Lif.end105:
 .Lfor.loop15:
 	cmp rax, 0
 	je .Lfor.end15
-	lea rax, qword ptr [rip + .LC59]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else212
-	call _consume
-	jmp call.end212
-call.else212:
-	push rsi
-	call _consume
-	pop rsi
-call.end212:
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then104
-	jmp .Lif.else104
-.Lif.then104:
-	lea rax, qword ptr [rip + .LC60]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else213
-	call _consume
-	jmp call.end213
-call.else213:
-	push rsi
-	call _consume
-	pop rsi
-call.end213:
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then105
-	jmp .Lif.else105
-.Lif.then105:
-	lea rax, [rbp-0]
-	push rax
-	lea rax, [rbp-32]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rdi
-	lea rax, [rbp-0]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rsi
-	mov rax, 0
-	test rsp, 15
-	jne call.else214
-	call _add_expr
-	jmp call.end214
-call.else214:
-	push rsi
-	call _add_expr
-	pop rsi
-call.end214:
-	push rax
-	pop rdx
-	mov rax, 3
-	test rsp, 15
-	jne call.else215
-	call _new_binary_node
-	jmp call.end215
-call.else215:
-	push rsi
-	call _new_binary_node
-	pop rsi
-call.end215:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-	jmp .Lif.end105
-.Lif.else105:
-	lea rax, [rbp-0]
-	push rax
-	lea rax, [rbp-28]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rdi
-	lea rax, [rbp-0]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rsi
-	mov rax, 0
-	test rsp, 15
-	jne call.else216
-	call _add_expr
-	jmp call.end216
-call.else216:
-	push rsi
-	call _add_expr
-	pop rsi
-call.end216:
-	push rax
-	pop rdx
-	mov rax, 3
-	test rsp, 15
-	jne call.else217
-	call _new_binary_node
-	jmp call.end217
-call.else217:
-	push rsi
-	call _new_binary_node
-	pop rsi
-call.end217:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-	jmp .Lif.end105
-.Lif.end105:
-	jmp .Lif.end104
-.Lif.else104:
-	lea rax, qword ptr [rip + .LC61]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else218
-	call _consume
-	jmp call.end218
-call.else218:
-	push rsi
-	call _consume
-	pop rsi
-call.end218:
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then106
-	jmp .Lif.else106
-.Lif.then106:
 	lea rax, qword ptr [rip + .LC62]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else219
+	jne .call.else219
 	call _consume
-	jmp call.end219
-call.else219:
+	jmp .call.end219
+.call.else219:
 	push rsi
 	call _consume
 	pop rsi
-call.end219:
+.call.end219:
 	push rax
 	pop rax
-	cmp rax, 0
+	test rax, rax
+	je .Lif.then106
+	jmp .Lif.else106
+.Lif.then106:
+	lea rax, qword ptr [rip + .LC63]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else220
+	call _consume
+	jmp .call.end220
+.call.else220:
+	push rsi
+	call _consume
+	pop rsi
+.call.end220:
+	push rax
+	pop rax
+	test rax, rax
 	je .Lif.then107
 	jmp .Lif.else107
 .Lif.then107:
@@ -9972,34 +10078,34 @@ call.end219:
 	mov eax, DWORD PTR [rax]
 	push rax
 	pop rdi
-	mov rax, 0
-	test rsp, 15
-	jne call.else220
-	call _add_expr
-	jmp call.end220
-call.else220:
-	push rsi
-	call _add_expr
-	pop rsi
-call.end220:
-	push rax
-	pop rsi
 	lea rax, [rbp-0]
 	push rax
 	pop rax
 	mov rax, QWORD PTR [rax]
 	push rax
+	pop rsi
+	mov rax, 0
+	test rsp, 15
+	jne .call.else221
+	call _add_expr
+	jmp .call.end221
+.call.else221:
+	push rsi
+	call _add_expr
+	pop rsi
+.call.end221:
+	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else221
+	jne .call.else222
 	call _new_binary_node
-	jmp call.end221
-call.else221:
+	jmp .call.end222
+.call.else222:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end221:
+.call.end222:
 	push rax
 	pop rbx
 	pop rax
@@ -10014,16 +10120,98 @@ call.end221:
 	mov eax, DWORD PTR [rax]
 	push rax
 	pop rdi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else222
+	jne .call.else223
 	call _add_expr
-	jmp call.end222
-call.else222:
+	jmp .call.end223
+.call.else223:
 	push rsi
 	call _add_expr
 	pop rsi
-call.end222:
+.call.end223:
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else224
+	call _new_binary_node
+	jmp .call.end224
+.call.else224:
+	push rsi
+	call _new_binary_node
+	pop rsi
+.call.end224:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	jmp .Lif.end107
+.Lif.end107:
+	jmp .Lif.end106
+.Lif.else106:
+	lea rax, qword ptr [rip + .LC64]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else225
+	call _consume
+	jmp .call.end225
+.call.else225:
+	push rsi
+	call _consume
+	pop rsi
+.call.end225:
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then108
+	jmp .Lif.else108
+.Lif.then108:
+	lea rax, qword ptr [rip + .LC65]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else226
+	call _consume
+	jmp .call.end226
+.call.else226:
+	push rsi
+	call _consume
+	pop rsi
+.call.end226:
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then109
+	jmp .Lif.else109
+.Lif.then109:
+	lea rax, [rbp-0]
+	push rax
+	lea rax, [rbp-32]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 0
+	test rsp, 15
+	jne .call.else227
+	call _add_expr
+	jmp .call.end227
+.call.else227:
+	push rsi
+	call _add_expr
+	pop rsi
+.call.end227:
 	push rax
 	pop rsi
 	lea rax, [rbp-0]
@@ -10034,22 +10222,64 @@ call.end222:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else223
+	jne .call.else228
 	call _new_binary_node
-	jmp call.end223
-call.else223:
+	jmp .call.end228
+.call.else228:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end223:
+.call.end228:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end107
-.Lif.end107:
-	jmp .Lif.end106
-.Lif.else106:
+	jmp .Lif.end109
+.Lif.else109:
+	lea rax, [rbp-0]
+	push rax
+	lea rax, [rbp-28]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 0
+	test rsp, 15
+	jne .call.else229
+	call _add_expr
+	jmp .call.end229
+.call.else229:
+	push rsi
+	call _add_expr
+	pop rsi
+.call.end229:
+	push rax
+	pop rsi
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else230
+	call _new_binary_node
+	jmp .call.end230
+.call.else230:
+	push rsi
+	call _new_binary_node
+	pop rsi
+.call.end230:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	jmp .Lif.end109
+.Lif.end109:
+	jmp .Lif.end108
+.Lif.else108:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -10057,10 +10287,10 @@ call.end223:
 	push rax
 	pop rbp
 	ret
+	jmp .Lif.end108
+.Lif.end108:
 	jmp .Lif.end106
 .Lif.end106:
-	jmp .Lif.end104
-.Lif.end104:
 .Lfor.inc15:
 	jmp .Lfor.loop15
 .Lfor.end15:
@@ -10070,14 +10300,14 @@ _equality:
 	sub rsp, 8
 	mov rax, 0
 	test rsp, 15
-	jne call.else224
+	jne .call.else231
 	call _relational
-	jmp call.end224
-call.else224:
+	jmp .call.end231
+.call.else231:
 	push rsi
 	call _relational
 	pop rsi
-call.end224:
+.call.end231:
 	push rax
 	pop rbx
 	pop rax
@@ -10085,25 +10315,25 @@ call.end224:
 .Lfor.loop16:
 	cmp rax, 0
 	je .Lfor.end16
-	lea rax, qword ptr [rip + .LC63]
+	lea rax, qword ptr [rip + .LC66]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else225
+	jne .call.else232
 	call _consume
-	jmp call.end225
-call.else225:
+	jmp .call.end232
+.call.else232:
 	push rsi
 	call _consume
 	pop rsi
-call.end225:
+.call.end232:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then108
-	jmp .Lif.else108
-.Lif.then108:
+	test rax, rax
+	je .Lif.then110
+	jmp .Lif.else110
+.Lif.then110:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-36]
@@ -10120,51 +10350,51 @@ call.end225:
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else226
+	jne .call.else233
 	call _relational
-	jmp call.end226
-call.else226:
+	jmp .call.end233
+.call.else233:
 	push rsi
 	call _relational
 	pop rsi
-call.end226:
+.call.end233:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else227
+	jne .call.else234
 	call _new_binary_node
-	jmp call.end227
-call.else227:
+	jmp .call.end234
+.call.else234:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end227:
+.call.end234:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end108
-.Lif.else108:
-	lea rax, qword ptr [rip + .LC64]
+	jmp .Lif.end110
+.Lif.else110:
+	lea rax, qword ptr [rip + .LC67]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else228
+	jne .call.else235
 	call _consume
-	jmp call.end228
-call.else228:
+	jmp .call.end235
+.call.else235:
 	push rsi
 	call _consume
 	pop rsi
-call.end228:
+.call.end235:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then109
-	jmp .Lif.else109
-.Lif.then109:
+	test rax, rax
+	je .Lif.then111
+	jmp .Lif.else111
+.Lif.then111:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-40]
@@ -10181,32 +10411,32 @@ call.end228:
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else229
+	jne .call.else236
 	call _relational
-	jmp call.end229
-call.else229:
+	jmp .call.end236
+.call.else236:
 	push rsi
 	call _relational
 	pop rsi
-call.end229:
+.call.end236:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else230
+	jne .call.else237
 	call _new_binary_node
-	jmp call.end230
-call.else230:
+	jmp .call.end237
+.call.else237:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end230:
+.call.end237:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end109
-.Lif.else109:
+	jmp .Lif.end111
+.Lif.else111:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -10214,10 +10444,10 @@ call.end230:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end109
-.Lif.end109:
-	jmp .Lif.end108
-.Lif.end108:
+	jmp .Lif.end111
+.Lif.end111:
+	jmp .Lif.end110
+.Lif.end110:
 .Lfor.inc16:
 	jmp .Lfor.loop16
 .Lfor.end16:
@@ -10227,14 +10457,14 @@ _bit_or:
 	sub rsp, 8
 	mov rax, 0
 	test rsp, 15
-	jne call.else231
+	jne .call.else238
 	call _equality
-	jmp call.end231
-call.else231:
+	jmp .call.end238
+.call.else238:
 	push rsi
 	call _equality
 	pop rsi
-call.end231:
+.call.end238:
 	push rax
 	pop rbx
 	pop rax
@@ -10242,25 +10472,25 @@ call.end231:
 .Lfor.loop17:
 	cmp rax, 0
 	je .Lfor.end17
-	lea rax, qword ptr [rip + .LC65]
+	lea rax, qword ptr [rip + .LC68]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else232
+	jne .call.else239
 	call _consume
-	jmp call.end232
-call.else232:
+	jmp .call.end239
+.call.else239:
 	push rsi
 	call _consume
 	pop rsi
-call.end232:
+.call.end239:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then110
-	jmp .Lif.else110
-.Lif.then110:
+	test rax, rax
+	je .Lif.then112
+	jmp .Lif.else112
+.Lif.then112:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-52]
@@ -10277,32 +10507,32 @@ call.end232:
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else233
+	jne .call.else240
 	call _bit_or
-	jmp call.end233
-call.else233:
+	jmp .call.end240
+.call.else240:
 	push rsi
 	call _bit_or
 	pop rsi
-call.end233:
+.call.end240:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else234
+	jne .call.else241
 	call _new_binary_node
-	jmp call.end234
-call.else234:
+	jmp .call.end241
+.call.else241:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end234:
+.call.end241:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end110
-.Lif.else110:
+	jmp .Lif.end112
+.Lif.else112:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -10310,8 +10540,8 @@ call.end234:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end110
-.Lif.end110:
+	jmp .Lif.end112
+.Lif.end112:
 .Lfor.inc17:
 	jmp .Lfor.loop17
 .Lfor.end17:
@@ -10321,14 +10551,14 @@ _bit_xor:
 	sub rsp, 8
 	mov rax, 0
 	test rsp, 15
-	jne call.else235
+	jne .call.else242
 	call _bit_or
-	jmp call.end235
-call.else235:
+	jmp .call.end242
+.call.else242:
 	push rsi
 	call _bit_or
 	pop rsi
-call.end235:
+.call.end242:
 	push rax
 	pop rbx
 	pop rax
@@ -10336,25 +10566,25 @@ call.end235:
 .Lfor.loop18:
 	cmp rax, 0
 	je .Lfor.end18
-	lea rax, qword ptr [rip + .LC66]
+	lea rax, qword ptr [rip + .LC69]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else236
+	jne .call.else243
 	call _consume
-	jmp call.end236
-call.else236:
+	jmp .call.end243
+.call.else243:
 	push rsi
 	call _consume
 	pop rsi
-call.end236:
+.call.end243:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then111
-	jmp .Lif.else111
-.Lif.then111:
+	test rax, rax
+	je .Lif.then113
+	jmp .Lif.else113
+.Lif.then113:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-56]
@@ -10371,32 +10601,32 @@ call.end236:
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else237
+	jne .call.else244
 	call _bit_xor
-	jmp call.end237
-call.else237:
+	jmp .call.end244
+.call.else244:
 	push rsi
 	call _bit_xor
 	pop rsi
-call.end237:
+.call.end244:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else238
+	jne .call.else245
 	call _new_binary_node
-	jmp call.end238
-call.else238:
+	jmp .call.end245
+.call.else245:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end238:
+.call.end245:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end111
-.Lif.else111:
+	jmp .Lif.end113
+.Lif.else113:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -10404,8 +10634,8 @@ call.end238:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end111
-.Lif.end111:
+	jmp .Lif.end113
+.Lif.end113:
 .Lfor.inc18:
 	jmp .Lfor.loop18
 .Lfor.end18:
@@ -10415,14 +10645,14 @@ _bit_and:
 	sub rsp, 8
 	mov rax, 0
 	test rsp, 15
-	jne call.else239
+	jne .call.else246
 	call _bit_xor
-	jmp call.end239
-call.else239:
+	jmp .call.end246
+.call.else246:
 	push rsi
 	call _bit_xor
 	pop rsi
-call.end239:
+.call.end246:
 	push rax
 	pop rbx
 	pop rax
@@ -10430,25 +10660,25 @@ call.end239:
 .Lfor.loop19:
 	cmp rax, 0
 	je .Lfor.end19
-	lea rax, qword ptr [rip + .LC67]
+	lea rax, qword ptr [rip + .LC70]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else240
+	jne .call.else247
 	call _consume
-	jmp call.end240
-call.else240:
+	jmp .call.end247
+.call.else247:
 	push rsi
 	call _consume
 	pop rsi
-call.end240:
+.call.end247:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then112
-	jmp .Lif.else112
-.Lif.then112:
+	test rax, rax
+	je .Lif.then114
+	jmp .Lif.else114
+.Lif.then114:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-48]
@@ -10465,32 +10695,32 @@ call.end240:
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else241
+	jne .call.else248
 	call _bit_and
-	jmp call.end241
-call.else241:
+	jmp .call.end248
+.call.else248:
 	push rsi
 	call _bit_and
 	pop rsi
-call.end241:
+.call.end248:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else242
+	jne .call.else249
 	call _new_binary_node
-	jmp call.end242
-call.else242:
+	jmp .call.end249
+.call.else249:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end242:
+.call.end249:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end112
-.Lif.else112:
+	jmp .Lif.end114
+.Lif.else114:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -10498,8 +10728,8 @@ call.end242:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end112
-.Lif.end112:
+	jmp .Lif.end114
+.Lif.end114:
 .Lfor.inc19:
 	jmp .Lfor.loop19
 .Lfor.end19:
@@ -10509,14 +10739,14 @@ _rvalue:
 	sub rsp, 8
 	mov rax, 0
 	test rsp, 15
-	jne call.else243
+	jne .call.else250
 	call _bit_and
-	jmp call.end243
-call.else243:
+	jmp .call.end250
+.call.else250:
 	push rsi
 	call _bit_and
 	pop rsi
-call.end243:
+.call.end250:
 	push rax
 	pop rbx
 	pop rax
@@ -10524,25 +10754,25 @@ call.end243:
 .Lfor.loop20:
 	cmp rax, 0
 	je .Lfor.end20
-	lea rax, qword ptr [rip + .LC68]
+	lea rax, qword ptr [rip + .LC71]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else244
+	jne .call.else251
 	call _consume
-	jmp call.end244
-call.else244:
+	jmp .call.end251
+.call.else251:
 	push rsi
 	call _consume
 	pop rsi
-call.end244:
+.call.end251:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then113
-	jmp .Lif.else113
-.Lif.then113:
+	test rax, rax
+	je .Lif.then115
+	jmp .Lif.else115
+.Lif.then115:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-48]
@@ -10559,51 +10789,51 @@ call.end244:
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else245
+	jne .call.else252
 	call _rvalue
-	jmp call.end245
-call.else245:
+	jmp .call.end252
+.call.else252:
 	push rsi
 	call _rvalue
 	pop rsi
-call.end245:
+.call.end252:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else246
+	jne .call.else253
 	call _new_binary_node
-	jmp call.end246
-call.else246:
+	jmp .call.end253
+.call.else253:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end246:
+.call.end253:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end113
-.Lif.else113:
-	lea rax, qword ptr [rip + .LC69]
+	jmp .Lif.end115
+.Lif.else115:
+	lea rax, qword ptr [rip + .LC72]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else247
+	jne .call.else254
 	call _consume
-	jmp call.end247
-call.else247:
+	jmp .call.end254
+.call.else254:
 	push rsi
 	call _consume
 	pop rsi
-call.end247:
+.call.end254:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then114
-	jmp .Lif.else114
-.Lif.then114:
+	test rax, rax
+	je .Lif.then116
+	jmp .Lif.else116
+.Lif.then116:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-52]
@@ -10620,32 +10850,32 @@ call.end247:
 	pop rsi
 	mov rax, 0
 	test rsp, 15
-	jne call.else248
+	jne .call.else255
 	call _rvalue
-	jmp call.end248
-call.else248:
+	jmp .call.end255
+.call.else255:
 	push rsi
 	call _rvalue
 	pop rsi
-call.end248:
+.call.end255:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else249
+	jne .call.else256
 	call _new_binary_node
-	jmp call.end249
-call.else249:
+	jmp .call.end256
+.call.else256:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end249:
+.call.end256:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end114
-.Lif.else114:
+	jmp .Lif.end116
+.Lif.else116:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -10653,10 +10883,10 @@ call.end249:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end114
-.Lif.end114:
-	jmp .Lif.end113
-.Lif.end113:
+	jmp .Lif.end116
+.Lif.end116:
+	jmp .Lif.end115
+.Lif.end115:
 .Lfor.inc20:
 	jmp .Lfor.loop20
 .Lfor.end20:
@@ -10668,25 +10898,25 @@ _dot:
 .Lfor.loop21:
 	cmp rax, 0
 	je .Lfor.end21
-	lea rax, qword ptr [rip + .LC70]
+	lea rax, qword ptr [rip + .LC73]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else250
+	jne .call.else257
 	call _consume
-	jmp call.end250
-call.else250:
+	jmp .call.end257
+.call.else257:
 	push rsi
 	call _consume
 	pop rsi
-call.end250:
+.call.end257:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then115
-	jmp .Lif.else115
-.Lif.then115:
+	test rax, rax
+	je .Lif.then117
+	jmp .Lif.else117
+.Lif.then117:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -10712,19 +10942,19 @@ call.end250:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then116
-	jmp .Lif.end116
-.Lif.then116:
+	je .Lif.then118
+	jmp .Lif.end118
+.Lif.then118:
 	mov rax, 0
 	test rsp, 15
-	jne call.else251
+	jne .call.else258
 	call _consume_ident
-	jmp call.end251
-call.else251:
+	jmp .call.end258
+.call.else258:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end251:
+.call.end258:
 	push rax
 	pop rbx
 	pop rax
@@ -10761,14 +10991,14 @@ call.end251:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else252
+	jne .call.else259
 	call _find_aggr_elem
-	jmp call.end252
-call.else252:
+	jmp .call.end259
+.call.else259:
 	push rsi
 	call _find_aggr_elem
 	pop rsi
-call.end252:
+.call.end259:
 	push rax
 	pop rbx
 	pop rax
@@ -10779,10 +11009,10 @@ call.end252:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then117
-	jmp .Lif.else117
-.Lif.then117:
+	test rax, rax
+	je .Lif.then119
+	jmp .Lif.else119
+.Lif.then119:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-84]
@@ -10805,20 +11035,20 @@ call.end252:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else253
+	jne .call.else260
 	call _new_binary_node
-	jmp call.end253
-call.else253:
+	jmp .call.end260
+.call.else260:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end253:
+.call.end260:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end117
-.Lif.else117:
+	jmp .Lif.end119
+.Lif.else119:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	pop rax
@@ -10831,44 +11061,44 @@ call.end253:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC71]
+	lea rax, qword ptr [rip + .LC74]
 	push rax
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else254
+	jne .call.else261
 	call _error_at
-	jmp call.end254
-call.else254:
+	jmp .call.end261
+.call.else261:
 	push rsi
 	call _error_at
 	pop rsi
-call.end254:
+.call.end261:
 	push rax
+	jmp .Lif.end119
+.Lif.end119:
+.Lif.end118:
 	jmp .Lif.end117
-.Lif.end117:
-.Lif.end116:
-	jmp .Lif.end115
-.Lif.else115:
-	lea rax, qword ptr [rip + .LC72]
+.Lif.else117:
+	lea rax, qword ptr [rip + .LC75]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else255
+	jne .call.else262
 	call _consume
-	jmp call.end255
-call.else255:
+	jmp .call.end262
+.call.else262:
 	push rsi
 	call _consume
 	pop rsi
-call.end255:
+.call.end262:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then118
-	jmp .Lif.else118
-.Lif.then118:
+	test rax, rax
+	je .Lif.then120
+	jmp .Lif.else120
+.Lif.then120:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -10934,19 +11164,19 @@ call.end255:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then119
-	jmp .Lif.end119
-.Lif.then119:
+	je .Lif.then121
+	jmp .Lif.end121
+.Lif.then121:
 	mov rax, 0
 	test rsp, 15
-	jne call.else256
+	jne .call.else263
 	call _consume_ident
-	jmp call.end256
-call.else256:
+	jmp .call.end263
+.call.else263:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end256:
+.call.end263:
 	push rax
 	pop rbx
 	pop rax
@@ -10983,14 +11213,14 @@ call.end256:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else257
+	jne .call.else264
 	call _find_aggr_elem
-	jmp call.end257
-call.else257:
+	jmp .call.end264
+.call.else264:
 	push rsi
 	call _find_aggr_elem
 	pop rsi
-call.end257:
+.call.end264:
 	push rax
 	pop rbx
 	pop rax
@@ -11001,10 +11231,10 @@ call.end257:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then120
-	jmp .Lif.else120
-.Lif.then120:
+	test rax, rax
+	je .Lif.then122
+	jmp .Lif.else122
+.Lif.then122:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -11041,14 +11271,14 @@ call.end257:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else258
+	jne .call.else265
 	call _new_node
-	jmp call.end258
-call.else258:
+	jmp .call.end265
+.call.else265:
 	push rsi
 	call _new_node
 	pop rsi
-call.end258:
+.call.end265:
 	push rax
 	pop rbx
 	pop rax
@@ -11091,14 +11321,14 @@ call.end258:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else259
+	jne .call.else266
 	call _new_binary_node
-	jmp call.end259
-call.else259:
+	jmp .call.end266
+.call.else266:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end259:
+.call.end266:
 	push rax
 	pop rbx
 	pop rax
@@ -11125,8 +11355,8 @@ call.end259:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end120
-.Lif.else120:
+	jmp .Lif.end122
+.Lif.else122:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	pop rax
@@ -11139,30 +11369,30 @@ call.end259:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC73]
+	lea rax, qword ptr [rip + .LC76]
 	push rax
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else260
+	jne .call.else267
 	call _error_at
-	jmp call.end260
-call.else260:
+	jmp .call.end267
+.call.else267:
 	push rsi
 	call _error_at
 	pop rsi
-call.end260:
+.call.end267:
 	push rax
+	jmp .Lif.end122
+.Lif.end122:
+.Lif.end121:
+	jmp .Lif.end120
+.Lif.else120:
+	jmp .Lfor.end21
 	jmp .Lif.end120
 .Lif.end120:
-.Lif.end119:
-	jmp .Lif.end118
-.Lif.else118:
-	jmp .Lfor.end21
-	jmp .Lif.end118
-.Lif.end118:
-	jmp .Lif.end115
-.Lif.end115:
+	jmp .Lif.end117
+.Lif.end117:
 .Lfor.inc21:
 	jmp .Lfor.loop21
 .Lfor.end21:
@@ -11189,37 +11419,37 @@ _lvalue:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-	lea rax, qword ptr [rip + .LC74]
+	lea rax, qword ptr [rip + .LC77]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else261
+	jne .call.else268
 	call _consume
-	jmp call.end261
-call.else261:
+	jmp .call.end268
+.call.else268:
 	push rsi
 	call _consume
 	pop rsi
-call.end261:
+.call.end268:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then121
-	jmp .Lif.end121
-.Lif.then121:
+	test rax, rax
+	je .Lif.then123
+	jmp .Lif.end123
+.Lif.then123:
 	lea rax, [rbp-8]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else262
+	jne .call.else269
 	call _rvalue
-	jmp call.end262
-call.else262:
+	jmp .call.end269
+.call.else269:
 	push rsi
 	call _rvalue
 	pop rsi
-call.end262:
+.call.end269:
 	push rax
 	pop rbx
 	pop rax
@@ -11266,9 +11496,9 @@ call.end262:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then122
-	jmp .Lif.end122
-.Lif.then122:
+	je .Lif.then124
+	jmp .Lif.end124
+.Lif.then124:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -11305,14 +11535,14 @@ call.end262:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else263
+	jne .call.else270
 	call _new_node
-	jmp call.end263
-call.else263:
+	jmp .call.end270
+.call.else270:
 	push rsi
 	call _new_node
 	pop rsi
-call.end263:
+.call.end270:
 	push rax
 	pop rbx
 	pop rax
@@ -11340,30 +11570,30 @@ call.end263:
 	push rax
 	pop rbp
 	ret
-.Lif.end122:
+.Lif.end124:
 	push 0
 	pop rbp
 	ret
-.Lif.end121:
-	lea rax, qword ptr [rip + .LC75]
+.Lif.end123:
+	lea rax, qword ptr [rip + .LC78]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else264
+	jne .call.else271
 	call _consume
-	jmp call.end264
-call.else264:
+	jmp .call.end271
+.call.else271:
 	push rsi
 	call _consume
 	pop rsi
-call.end264:
+.call.end271:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then123
-	jmp .Lif.end123
-.Lif.then123:
+	test rax, rax
+	je .Lif.then125
+	jmp .Lif.end125
+.Lif.then125:
 	lea rax, [rbp-144]
 	push rax
 	pop rax
@@ -11372,40 +11602,40 @@ call.end264:
 	pop rdi
 	mov rax, 0
 	test rsp, 15
-	jne call.else265
+	jne .call.else272
 	call _lvalue
-	jmp call.end265
-call.else265:
+	jmp .call.end272
+.call.else272:
 	push rsi
 	call _lvalue
 	pop rsi
-call.end265:
+.call.end272:
 	push rax
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else266
+	jne .call.else273
 	call _new_node
-	jmp call.end266
-call.else266:
+	jmp .call.end273
+.call.else273:
 	push rsi
 	call _new_node
 	pop rsi
-call.end266:
+.call.end273:
 	push rax
 	pop rbp
 	ret
-.Lif.end123:
+.Lif.end125:
 	mov rax, 0
 	test rsp, 15
-	jne call.else267
+	jne .call.else274
 	call _consume_ident
-	jmp call.end267
-call.else267:
+	jmp .call.end274
+.call.else274:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end267:
+.call.end274:
 	push rax
 	pop rbx
 	pop rax
@@ -11416,10 +11646,10 @@ call.end267:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then124
-	jmp .Lif.end124
-.Lif.then124:
+	test rax, rax
+	je .Lif.then126
+	jmp .Lif.end126
+.Lif.then126:
 	lea rax, [rbp-24]
 	push rax
 	pop rax
@@ -11428,14 +11658,14 @@ call.end267:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else268
+	jne .call.else275
 	call _find_lvar
-	jmp call.end268
-call.else268:
+	jmp .call.end275
+.call.else275:
 	push rsi
 	call _find_lvar
 	pop rsi
-call.end268:
+.call.end275:
 	push rax
 	pop rbx
 	pop rax
@@ -11446,10 +11676,10 @@ call.end268:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then125
-	jmp .Lif.else125
-.Lif.then125:
+	test rax, rax
+	je .Lif.then127
+	jmp .Lif.else127
+.Lif.then127:
 	lea rax, [rbp-8]
 	push rax
 	lea rax, [rbp-64]
@@ -11478,14 +11708,14 @@ call.end268:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else269
+	jne .call.else276
 	call _new_node_s
-	jmp call.end269
-call.else269:
+	jmp .call.end276
+.call.else276:
 	push rsi
 	call _new_node_s
 	pop rsi
-call.end269:
+.call.end276:
 	push rax
 	pop rbx
 	pop rax
@@ -11538,14 +11768,14 @@ call.end269:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else270
+	jne .call.else277
 	call _dot
-	jmp call.end270
-call.else270:
+	jmp .call.end277
+.call.else277:
 	push rsi
 	call _dot
 	pop rsi
-call.end270:
+.call.end277:
 	push rax
 	pop rbx
 	pop rax
@@ -11592,9 +11822,9 @@ call.end270:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then126
-	jmp .Lif.end126
-.Lif.then126:
+	je .Lif.then128
+	jmp .Lif.end128
+.Lif.then128:
 	lea rax, [rbp-8]
 	push rax
 	lea rax, [rbp-144]
@@ -11611,14 +11841,14 @@ call.end270:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else271
+	jne .call.else278
 	call _new_node
-	jmp call.end271
-call.else271:
+	jmp .call.end278
+.call.else278:
 	push rsi
 	call _new_node
 	pop rsi
-call.end271:
+.call.end278:
 	push rax
 	pop rbx
 	pop rax
@@ -11662,242 +11892,242 @@ call.end271:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else272
+	jne .call.else279
 	call _wrap_pointer
-	jmp call.end272
-call.else272:
+	jmp .call.end279
+.call.else279:
 	push rsi
 	call _wrap_pointer
 	pop rsi
-call.end272:
+.call.end279:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lif.end126:
-	lea rax, qword ptr [rip + .LC76]
+.Lif.end128:
+	lea rax, qword ptr [rip + .LC79]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else273
+	jne .call.else280
 	call _consume
-	jmp call.end273
-call.else273:
+	jmp .call.end280
+.call.else280:
 	push rsi
 	call _consume
 	pop rsi
-call.end273:
+.call.end280:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then127
-	jmp .Lif.end127
-.Lif.then127:
-	mov rax, 0
-	test rsp, 15
-	jne call.else274
-	call _rvalue
-	jmp call.end274
-call.else274:
-	push rsi
-	call _rvalue
-	pop rsi
-call.end274:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-	lea rax, [rbp-8]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-252]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-0]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	lea rax, [rbp-12]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rbx
-	pop rax
-	cmp rax, rbx
-	sete al
-	movzx rax, al
-	push rax
-	lea rax, [rbp-8]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-252]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-32]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	pop rbx
-	cmp rax, rbx
-	je .Lif.then128
-	jmp .Lif.else128
-.Lif.then128:
-	lea rax, [rbp-40]
-	push rax
-	lea rax, [rbp-8]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rdi
-	lea rax, [rbp-40]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rsi
-	lea rax, [rbp-8]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-252]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-32]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-48]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else275
-	call _new_node_num
-	jmp call.end275
-call.else275:
-	push rsi
-	call _new_node_num
-	pop rsi
-call.end275:
-	push rax
-	pop rdx
-	mov rax, 3
-	test rsp, 15
-	jne call.else276
-	call _new_binary_node
-	jmp call.end276
-call.else276:
-	push rsi
-	call _new_binary_node
-	pop rsi
-call.end276:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-	lea rax, [rbp-40]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-252]
-	push rax
-	lea rax, [rbp-8]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-252]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-	jmp .Lif.end128
-.Lif.else128:
-	lea rax, [rbp-40]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-252]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-0]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	lea rax, [rbp-12]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rbx
-	pop rax
-	cmp rax, rbx
-	sete al
-	movzx rax, al
-	push rax
-	lea rax, [rbp-40]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-252]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-32]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	pop rbx
-	cmp rax, rbx
+	test rax, rax
 	je .Lif.then129
 	jmp .Lif.end129
 .Lif.then129:
+	mov rax, 0
+	test rsp, 15
+	jne .call.else281
+	call _rvalue
+	jmp .call.end281
+.call.else281:
+	push rsi
+	call _rvalue
+	pop rsi
+.call.end281:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then130
+	jmp .Lif.else130
+.Lif.then130:
+	lea rax, [rbp-40]
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-40]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-48]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else282
+	call _new_node_num
+	jmp .call.end282
+.call.else282:
+	push rsi
+	call _new_node_num
+	pop rsi
+.call.end282:
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else283
+	call _new_binary_node
+	jmp .call.end283
+.call.else283:
+	push rsi
+	call _new_binary_node
+	pop rsi
+.call.end283:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-40]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	lea rax, [rbp-8]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	jmp .Lif.end130
+.Lif.else130:
+	lea rax, [rbp-40]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-0]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	lea rax, [rbp-12]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rbx
+	pop rax
+	cmp rax, rbx
+	sete al
+	movzx rax, al
+	push rax
+	lea rax, [rbp-40]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-252]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	lea rax, [rax-32]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	pop rbx
+	cmp rax, rbx
+	je .Lif.then131
+	jmp .Lif.end131
+.Lif.then131:
 	lea rax, [rbp-8]
 	push rax
 	lea rax, [rbp-8]
@@ -11938,26 +12168,26 @@ call.end276:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else277
+	jne .call.else284
 	call _new_node_num
-	jmp call.end277
-call.else277:
+	jmp .call.end284
+.call.else284:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end277:
+.call.end284:
 	push rax
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else278
+	jne .call.else285
 	call _new_binary_node
-	jmp call.end278
-call.else278:
+	jmp .call.end285
+.call.else285:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end278:
+.call.end285:
 	push rax
 	pop rbx
 	pop rax
@@ -11984,9 +12214,9 @@ call.end278:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lif.end129:
-	jmp .Lif.end128
-.Lif.end128:
+.Lif.end131:
+	jmp .Lif.end130
+.Lif.end130:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -12029,14 +12259,14 @@ call.end278:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else279
+	jne .call.else286
 	call _new_binary_node
-	jmp call.end279
-call.else279:
+	jmp .call.end286
+.call.else286:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end279:
+.call.end286:
 	push rax
 	pop rbx
 	pop rax
@@ -12057,14 +12287,14 @@ call.end279:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else280
+	jne .call.else287
 	call _new_node
-	jmp call.end280
-call.else280:
+	jmp .call.end287
+.call.else287:
 	push rsi
 	call _new_node
 	pop rsi
-call.end280:
+.call.end287:
 	push rax
 	pop rbx
 	pop rax
@@ -12085,19 +12315,19 @@ call.end280:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC77]
+	lea rax, qword ptr [rip + .LC80]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else281
+	jne .call.else288
 	call _expect
-	jmp call.end281
-call.else281:
+	jmp .call.end288
+.call.else288:
 	push rsi
 	call _expect
 	pop rsi
-call.end281:
+.call.end288:
 	push rax
 	lea rax, [rbp-8]
 	push rax
@@ -12106,9 +12336,9 @@ call.end281:
 	push rax
 	pop rbp
 	ret
-.Lif.end127:
-	jmp .Lif.end125
-.Lif.else125:
+.Lif.end129:
+	jmp .Lif.end127
+.Lif.else127:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	lea rax, [rbp-0]
@@ -12122,8 +12352,8 @@ call.end281:
 	push 0
 	pop rbp
 	ret
-	jmp .Lif.end125
-.Lif.end125:
+	jmp .Lif.end127
+.Lif.end127:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -12131,7 +12361,7 @@ call.end281:
 	push rax
 	pop rbp
 	ret
-.Lif.end124:
+.Lif.end126:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -12143,35 +12373,35 @@ _initializer:
 	push rbp
 	mov rbp, rsp
 	sub rsp, 16
-	lea rax, qword ptr [rip + .LC78]
+	lea rax, qword ptr [rip + .LC81]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else282
+	jne .call.else289
 	call _consume
-	jmp call.end282
-call.else282:
+	jmp .call.end289
+.call.else289:
 	push rsi
 	call _consume
 	pop rsi
-call.end282:
+.call.end289:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then130
-	jmp .Lif.else130
-.Lif.then130:
+	test rax, rax
+	je .Lif.then132
+	jmp .Lif.else132
+.Lif.then132:
 	mov rax, 0
 	test rsp, 15
-	jne call.else283
+	jne .call.else290
 	call _new_vector
-	jmp call.end283
-call.else283:
+	jmp .call.end290
+.call.else290:
 	push rsi
 	call _new_vector
 	pop rsi
-call.end283:
+.call.end290:
 	push rax
 	pop rbx
 	pop rax
@@ -12187,65 +12417,65 @@ call.end283:
 	pop rdi
 	mov rax, 0
 	test rsp, 15
-	jne call.else284
+	jne .call.else291
 	call _rvalue
-	jmp call.end284
-call.else284:
+	jmp .call.end291
+.call.else291:
 	push rsi
 	call _rvalue
 	pop rsi
-call.end284:
+.call.end291:
 	push rax
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else285
+	jne .call.else292
 	call _push_back
-	jmp call.end285
-call.else285:
+	jmp .call.end292
+.call.else292:
 	push rsi
 	call _push_back
 	pop rsi
-call.end285:
+.call.end292:
 	push rax
-	lea rax, qword ptr [rip + .LC79]
+	lea rax, qword ptr [rip + .LC82]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else286
+	jne .call.else293
 	call _consume
-	jmp call.end286
-call.else286:
+	jmp .call.end293
+.call.else293:
 	push rsi
 	call _consume
 	pop rsi
-call.end286:
+.call.end293:
 	push rax
 	pop rax
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then131
-	jmp .Lif.end131
-.Lif.then131:
-	lea rax, qword ptr [rip + .LC80]
+	test rax, rax
+	je .Lif.then133
+	jmp .Lif.end133
+.Lif.then133:
+	lea rax, qword ptr [rip + .LC83]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else287
+	jne .call.else294
 	call _expect
-	jmp call.end287
-call.else287:
+	jmp .call.end294
+.call.else294:
 	push rsi
 	call _expect
 	pop rsi
-call.end287:
+.call.end294:
 	push rax
 	jmp .Lfor.end22
-.Lif.end131:
+.Lif.end133:
 .Lfor.inc22:
 	jmp .Lfor.loop22
 .Lfor.end22:
@@ -12257,14 +12487,14 @@ call.end287:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else288
+	jne .call.else295
 	call _calloc
-	jmp call.end288
-call.else288:
+	jmp .call.end295
+.call.else295:
 	push rsi
 	call _calloc
 	pop rsi
-call.end288:
+.call.end295:
 	push rax
 	pop rbx
 	pop rax
@@ -12308,26 +12538,26 @@ call.end288:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end130
-.Lif.else130:
+	jmp .Lif.end132
+.Lif.else132:
 	lea rax, [rbp-0]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else289
+	jne .call.else296
 	call _rvalue
-	jmp call.end289
-call.else289:
+	jmp .call.end296
+.call.else296:
 	push rsi
 	call _rvalue
 	pop rsi
-call.end289:
+.call.end296:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end130
-.Lif.end130:
+	jmp .Lif.end132
+.Lif.end132:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -12353,14 +12583,14 @@ _expr:
 	mov QWORD PTR [rax], rbx
 	mov rax, 0
 	test rsp, 15
-	jne call.else290
+	jne .call.else297
 	call _lvalue
-	jmp call.end290
-call.else290:
+	jmp .call.end297
+.call.else297:
 	push rsi
 	call _lvalue
 	pop rsi
-call.end290:
+.call.end297:
 	push rax
 	pop rbx
 	pop rax
@@ -12371,41 +12601,41 @@ call.end290:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then132
-	jmp .Lif.else132
-.Lif.then132:
-	lea rax, qword ptr [rip + .LC81]
+	test rax, rax
+	je .Lif.then134
+	jmp .Lif.else134
+.Lif.then134:
+	lea rax, qword ptr [rip + .LC84]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else291
+	jne .call.else298
 	call _consume
-	jmp call.end291
-call.else291:
+	jmp .call.end298
+.call.else298:
 	push rsi
 	call _consume
 	pop rsi
-call.end291:
+.call.end298:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then133
-	jmp .Lif.else133
-.Lif.then133:
+	test rax, rax
+	je .Lif.then135
+	jmp .Lif.else135
+.Lif.then135:
 	lea rax, [rbp-24]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else292
+	jne .call.else299
 	call _expr
-	jmp call.end292
-call.else292:
+	jmp .call.end299
+.call.else299:
 	push rsi
 	call _expr
 	pop rsi
-call.end292:
+.call.end299:
 	push rax
 	pop rbx
 	pop rax
@@ -12432,14 +12662,14 @@ call.end292:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else293
+	jne .call.else300
 	call _new_binary_node
-	jmp call.end293
-call.else293:
+	jmp .call.end300
+.call.else300:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end293:
+.call.end300:
 	push rax
 	pop rbx
 	pop rax
@@ -12466,51 +12696,51 @@ call.end293:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else294
+	jne .call.else301
 	call _new_binary_node
-	jmp call.end294
-call.else294:
+	jmp .call.end301
+.call.else301:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end294:
+.call.end301:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end133
-.Lif.else133:
-	lea rax, qword ptr [rip + .LC82]
+	jmp .Lif.end135
+.Lif.else135:
+	lea rax, qword ptr [rip + .LC85]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else295
+	jne .call.else302
 	call _consume
-	jmp call.end295
-call.else295:
+	jmp .call.end302
+.call.else302:
 	push rsi
 	call _consume
 	pop rsi
-call.end295:
+.call.end302:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then134
-	jmp .Lif.else134
-.Lif.then134:
+	test rax, rax
+	je .Lif.then136
+	jmp .Lif.else136
+.Lif.then136:
 	lea rax, [rbp-24]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else296
+	jne .call.else303
 	call _expr
-	jmp call.end296
-call.else296:
+	jmp .call.end303
+.call.else303:
 	push rsi
 	call _expr
 	pop rsi
-call.end296:
+.call.end303:
 	push rax
 	pop rbx
 	pop rax
@@ -12537,14 +12767,14 @@ call.end296:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else297
+	jne .call.else304
 	call _new_binary_node
-	jmp call.end297
-call.else297:
+	jmp .call.end304
+.call.else304:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end297:
+.call.end304:
 	push rax
 	pop rbx
 	pop rax
@@ -12571,51 +12801,51 @@ call.end297:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else298
+	jne .call.else305
 	call _new_binary_node
-	jmp call.end298
-call.else298:
+	jmp .call.end305
+.call.else305:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end298:
+.call.end305:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end134
-.Lif.else134:
-	lea rax, qword ptr [rip + .LC83]
+	jmp .Lif.end136
+.Lif.else136:
+	lea rax, qword ptr [rip + .LC86]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else299
+	jne .call.else306
 	call _consume
-	jmp call.end299
-call.else299:
+	jmp .call.end306
+.call.else306:
 	push rsi
 	call _consume
 	pop rsi
-call.end299:
+.call.end306:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then135
-	jmp .Lif.else135
-.Lif.then135:
+	test rax, rax
+	je .Lif.then137
+	jmp .Lif.else137
+.Lif.then137:
 	lea rax, [rbp-24]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else300
+	jne .call.else307
 	call _expr
-	jmp call.end300
-call.else300:
+	jmp .call.end307
+.call.else307:
 	push rsi
 	call _expr
 	pop rsi
-call.end300:
+.call.end307:
 	push rax
 	pop rbx
 	pop rax
@@ -12642,14 +12872,14 @@ call.end300:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else301
+	jne .call.else308
 	call _new_binary_node
-	jmp call.end301
-call.else301:
+	jmp .call.end308
+.call.else308:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end301:
+.call.end308:
 	push rax
 	pop rbx
 	pop rax
@@ -12676,51 +12906,51 @@ call.end301:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else302
+	jne .call.else309
 	call _new_binary_node
-	jmp call.end302
-call.else302:
+	jmp .call.end309
+.call.else309:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end302:
+.call.end309:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end135
-.Lif.else135:
-	lea rax, qword ptr [rip + .LC84]
+	jmp .Lif.end137
+.Lif.else137:
+	lea rax, qword ptr [rip + .LC87]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else303
+	jne .call.else310
 	call _consume
-	jmp call.end303
-call.else303:
+	jmp .call.end310
+.call.else310:
 	push rsi
 	call _consume
 	pop rsi
-call.end303:
+.call.end310:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then136
-	jmp .Lif.else136
-.Lif.then136:
+	test rax, rax
+	je .Lif.then138
+	jmp .Lif.else138
+.Lif.then138:
 	lea rax, [rbp-24]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else304
+	jne .call.else311
 	call _expr
-	jmp call.end304
-call.else304:
+	jmp .call.end311
+.call.else311:
 	push rsi
 	call _expr
 	pop rsi
-call.end304:
+.call.end311:
 	push rax
 	pop rbx
 	pop rax
@@ -12747,14 +12977,14 @@ call.end304:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else305
+	jne .call.else312
 	call _new_binary_node
-	jmp call.end305
-call.else305:
+	jmp .call.end312
+.call.else312:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end305:
+.call.end312:
 	push rax
 	pop rbx
 	pop rax
@@ -12781,51 +13011,51 @@ call.end305:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else306
+	jne .call.else313
 	call _new_binary_node
-	jmp call.end306
-call.else306:
+	jmp .call.end313
+.call.else313:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end306:
+.call.end313:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end136
-.Lif.else136:
-	lea rax, qword ptr [rip + .LC85]
+	jmp .Lif.end138
+.Lif.else138:
+	lea rax, qword ptr [rip + .LC88]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else307
+	jne .call.else314
 	call _consume
-	jmp call.end307
-call.else307:
+	jmp .call.end314
+.call.else314:
 	push rsi
 	call _consume
 	pop rsi
-call.end307:
+.call.end314:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then137
-	jmp .Lif.else137
-.Lif.then137:
+	test rax, rax
+	je .Lif.then139
+	jmp .Lif.else139
+.Lif.then139:
 	lea rax, [rbp-24]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else308
+	jne .call.else315
 	call _expr
-	jmp call.end308
-call.else308:
+	jmp .call.end315
+.call.else315:
 	push rsi
 	call _expr
 	pop rsi
-call.end308:
+.call.end315:
 	push rax
 	pop rbx
 	pop rax
@@ -12852,14 +13082,14 @@ call.end308:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else309
+	jne .call.else316
 	call _new_binary_node
-	jmp call.end309
-call.else309:
+	jmp .call.end316
+.call.else316:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end309:
+.call.end316:
 	push rax
 	pop rbx
 	pop rax
@@ -12886,51 +13116,51 @@ call.end309:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else310
+	jne .call.else317
 	call _new_binary_node
-	jmp call.end310
-call.else310:
+	jmp .call.end317
+.call.else317:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end310:
+.call.end317:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end137
-.Lif.else137:
-	lea rax, qword ptr [rip + .LC86]
+	jmp .Lif.end139
+.Lif.else139:
+	lea rax, qword ptr [rip + .LC89]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else311
+	jne .call.else318
 	call _consume
-	jmp call.end311
-call.else311:
+	jmp .call.end318
+.call.else318:
 	push rsi
 	call _consume
 	pop rsi
-call.end311:
+.call.end318:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then138
-	jmp .Lif.else138
-.Lif.then138:
+	test rax, rax
+	je .Lif.then140
+	jmp .Lif.else140
+.Lif.then140:
 	lea rax, [rbp-24]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else312
+	jne .call.else319
 	call _expr
-	jmp call.end312
-call.else312:
+	jmp .call.end319
+.call.else319:
 	push rsi
 	call _expr
 	pop rsi
-call.end312:
+.call.end319:
 	push rax
 	pop rbx
 	pop rax
@@ -12957,14 +13187,14 @@ call.end312:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else313
+	jne .call.else320
 	call _new_binary_node
-	jmp call.end313
-call.else313:
+	jmp .call.end320
+.call.else320:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end313:
+.call.end320:
 	push rax
 	pop rbx
 	pop rax
@@ -12991,51 +13221,51 @@ call.end313:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else314
+	jne .call.else321
 	call _new_binary_node
-	jmp call.end314
-call.else314:
+	jmp .call.end321
+.call.else321:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end314:
+.call.end321:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end138
-.Lif.else138:
-	lea rax, qword ptr [rip + .LC87]
+	jmp .Lif.end140
+.Lif.else140:
+	lea rax, qword ptr [rip + .LC90]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else315
+	jne .call.else322
 	call _consume
-	jmp call.end315
-call.else315:
+	jmp .call.end322
+.call.else322:
 	push rsi
 	call _consume
 	pop rsi
-call.end315:
+.call.end322:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then139
-	jmp .Lif.else139
-.Lif.then139:
+	test rax, rax
+	je .Lif.then141
+	jmp .Lif.else141
+.Lif.then141:
 	lea rax, [rbp-24]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else316
+	jne .call.else323
 	call _expr
-	jmp call.end316
-call.else316:
+	jmp .call.end323
+.call.else323:
 	push rsi
 	call _expr
 	pop rsi
-call.end316:
+.call.end323:
 	push rax
 	pop rbx
 	pop rax
@@ -13062,14 +13292,14 @@ call.end316:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else317
+	jne .call.else324
 	call _new_binary_node
-	jmp call.end317
-call.else317:
+	jmp .call.end324
+.call.else324:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end317:
+.call.end324:
 	push rax
 	pop rbx
 	pop rax
@@ -13096,51 +13326,51 @@ call.end317:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else318
+	jne .call.else325
 	call _new_binary_node
-	jmp call.end318
-call.else318:
+	jmp .call.end325
+.call.else325:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end318:
+.call.end325:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end139
-.Lif.else139:
-	lea rax, qword ptr [rip + .LC88]
+	jmp .Lif.end141
+.Lif.else141:
+	lea rax, qword ptr [rip + .LC91]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else319
+	jne .call.else326
 	call _consume
-	jmp call.end319
-call.else319:
+	jmp .call.end326
+.call.else326:
 	push rsi
 	call _consume
 	pop rsi
-call.end319:
+.call.end326:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then140
-	jmp .Lif.else140
-.Lif.then140:
+	test rax, rax
+	je .Lif.then142
+	jmp .Lif.else142
+.Lif.then142:
 	lea rax, [rbp-24]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else320
+	jne .call.else327
 	call _expr
-	jmp call.end320
-call.else320:
+	jmp .call.end327
+.call.else327:
 	push rsi
 	call _expr
 	pop rsi
-call.end320:
+.call.end327:
 	push rax
 	pop rbx
 	pop rax
@@ -13167,14 +13397,14 @@ call.end320:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else321
+	jne .call.else328
 	call _new_binary_node
-	jmp call.end321
-call.else321:
+	jmp .call.end328
+.call.else328:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end321:
+.call.end328:
 	push rax
 	pop rbx
 	pop rax
@@ -13201,51 +13431,51 @@ call.end321:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else322
+	jne .call.else329
 	call _new_binary_node
-	jmp call.end322
-call.else322:
+	jmp .call.end329
+.call.else329:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end322:
+.call.end329:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end140
-.Lif.else140:
-	lea rax, qword ptr [rip + .LC89]
+	jmp .Lif.end142
+.Lif.else142:
+	lea rax, qword ptr [rip + .LC92]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else323
+	jne .call.else330
 	call _consume
-	jmp call.end323
-call.else323:
+	jmp .call.end330
+.call.else330:
 	push rsi
 	call _consume
 	pop rsi
-call.end323:
+.call.end330:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then141
-	jmp .Lif.else141
-.Lif.then141:
+	test rax, rax
+	je .Lif.then143
+	jmp .Lif.else143
+.Lif.then143:
 	lea rax, [rbp-24]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else324
+	jne .call.else331
 	call _expr
-	jmp call.end324
-call.else324:
+	jmp .call.end331
+.call.else331:
 	push rsi
 	call _expr
 	pop rsi
-call.end324:
+.call.end331:
 	push rax
 	pop rbx
 	pop rax
@@ -13272,14 +13502,14 @@ call.end324:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else325
+	jne .call.else332
 	call _new_binary_node
-	jmp call.end325
-call.else325:
+	jmp .call.end332
+.call.else332:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end325:
+.call.end332:
 	push rax
 	pop rbx
 	pop rax
@@ -13306,51 +13536,51 @@ call.end325:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else326
+	jne .call.else333
 	call _new_binary_node
-	jmp call.end326
-call.else326:
+	jmp .call.end333
+.call.else333:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end326:
+.call.end333:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end141
-.Lif.else141:
-	lea rax, qword ptr [rip + .LC90]
+	jmp .Lif.end143
+.Lif.else143:
+	lea rax, qword ptr [rip + .LC93]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else327
+	jne .call.else334
 	call _consume
-	jmp call.end327
-call.else327:
+	jmp .call.end334
+.call.else334:
 	push rsi
 	call _consume
 	pop rsi
-call.end327:
+.call.end334:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then142
-	jmp .Lif.else142
-.Lif.then142:
+	test rax, rax
+	je .Lif.then144
+	jmp .Lif.else144
+.Lif.then144:
 	lea rax, [rbp-24]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else328
+	jne .call.else335
 	call _expr
-	jmp call.end328
-call.else328:
+	jmp .call.end335
+.call.else335:
 	push rsi
 	call _expr
 	pop rsi
-call.end328:
+.call.end335:
 	push rax
 	pop rbx
 	pop rax
@@ -13377,14 +13607,14 @@ call.end328:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else329
+	jne .call.else336
 	call _new_binary_node
-	jmp call.end329
-call.else329:
+	jmp .call.end336
+.call.else336:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end329:
+.call.end336:
 	push rax
 	pop rbx
 	pop rax
@@ -13411,51 +13641,51 @@ call.end329:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else330
+	jne .call.else337
 	call _new_binary_node
-	jmp call.end330
-call.else330:
+	jmp .call.end337
+.call.else337:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end330:
+.call.end337:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end142
-.Lif.else142:
-	lea rax, qword ptr [rip + .LC91]
+	jmp .Lif.end144
+.Lif.else144:
+	lea rax, qword ptr [rip + .LC94]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else331
+	jne .call.else338
 	call _consume
-	jmp call.end331
-call.else331:
+	jmp .call.end338
+.call.else338:
 	push rsi
 	call _consume
 	pop rsi
-call.end331:
+.call.end338:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then143
-	jmp .Lif.else143
-.Lif.then143:
+	test rax, rax
+	je .Lif.then145
+	jmp .Lif.else145
+.Lif.then145:
 	lea rax, [rbp-24]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else332
+	jne .call.else339
 	call _expr
-	jmp call.end332
-call.else332:
+	jmp .call.end339
+.call.else339:
 	push rsi
 	call _expr
 	pop rsi
-call.end332:
+.call.end339:
 	push rax
 	pop rbx
 	pop rax
@@ -13482,20 +13712,20 @@ call.end332:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else333
+	jne .call.else340
 	call _new_binary_node
-	jmp call.end333
-call.else333:
+	jmp .call.end340
+.call.else340:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end333:
+.call.end340:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end143
-.Lif.else143:
+	jmp .Lif.end145
+.Lif.else145:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	lea rax, [rbp-8]
@@ -13510,18 +13740,22 @@ call.end333:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else334
+	jne .call.else341
 	call _rvalue
-	jmp call.end334
-call.else334:
+	jmp .call.end341
+.call.else341:
 	push rsi
 	call _rvalue
 	pop rsi
-call.end334:
+.call.end341:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
+	jmp .Lif.end145
+.Lif.end145:
+	jmp .Lif.end144
+.Lif.end144:
 	jmp .Lif.end143
 .Lif.end143:
 	jmp .Lif.end142
@@ -13541,11 +13775,7 @@ call.end334:
 	jmp .Lif.end135
 .Lif.end135:
 	jmp .Lif.end134
-.Lif.end134:
-	jmp .Lif.end133
-.Lif.end133:
-	jmp .Lif.end132
-.Lif.else132:
+.Lif.else134:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	lea rax, [rbp-8]
@@ -13560,20 +13790,20 @@ call.end334:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else335
+	jne .call.else342
 	call _rvalue
-	jmp call.end335
-call.else335:
+	jmp .call.end342
+.call.else342:
 	push rsi
 	call _rvalue
 	pop rsi
-call.end335:
+.call.end342:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end132
-.Lif.end132:
+	jmp .Lif.end134
+.Lif.end134:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -13585,108 +13815,154 @@ _switch_case:
 	push rbp
 	mov rbp, rsp
 	sub rsp, 24
-	mov rax, 0
-	test rsp, 15
-	jne call.else336
-	call _cu
-	jmp call.end336
-call.else336:
-	push rsi
-	call _cu
-	pop rsi
-call.end336:
-	push rax
-	lea rax, qword ptr [rip + .LC92]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else337
-	call _consume
-	jmp call.end337
-call.else337:
-	push rsi
-	call _consume
-	pop rsi
-call.end337:
-	push rax
+	push 0
+	pop rbx
 	pop rax
-	cmp rax, 0
-	je .Lif.then144
-	jmp .Lif.else144
-.Lif.then144:
-	lea rax, [rbp-8]
-	push rax
+	mov DWORD PTR [rax], ebx
 	mov rax, 0
 	test rsp, 15
-	jne call.else338
-	call _rvalue
-	jmp call.end338
-call.else338:
+	jne .call.else343
+	call _new_vector
+	jmp .call.end343
+.call.else343:
 	push rsi
-	call _rvalue
+	call _new_vector
 	pop rsi
-call.end338:
+.call.end343:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC93]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else339
-	call _expect
-	jmp call.end339
-call.else339:
-	push rsi
-	call _expect
-	pop rsi
-call.end339:
-	push rax
-	mov rax, 0
-	test rsp, 15
-	jne call.else340
-	call _cu
-	jmp call.end340
-call.else340:
-	push rsi
-	call _cu
-	pop rsi
-call.end340:
-	push rax
-.Lwhile.loop2:
-	lea rax, qword ptr [rip + .LC94]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else341
-	call _check
-	jmp call.end341
-call.else341:
-	push rsi
-	call _check
-	pop rsi
-call.end341:
-	push rax
-	pop rax
-	not eax
-	push rax
 	lea rax, qword ptr [rip + .LC95]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else342
+	jne .call.else344
+	call _consume
+	jmp .call.end344
+.call.else344:
+	push rsi
+	call _consume
+	pop rsi
+.call.end344:
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then146
+	jmp .Lif.else146
+.Lif.then146:
+	lea rax, [rbp-8]
+	push rax
+	mov rax, 0
+	test rsp, 15
+	jne .call.else345
+	call _rvalue
+	jmp .call.end345
+.call.else345:
+	push rsi
+	call _rvalue
+	pop rsi
+.call.end345:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, qword ptr [rip + .LC96]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else346
+	call _expect
+	jmp .call.end346
+.call.else346:
+	push rsi
+	call _expect
+	pop rsi
+.call.end346:
+	push rax
+	jmp .Lif.end146
+.Lif.else146:
+	lea rax, qword ptr [rip + .LC97]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else347
+	call _consume
+	jmp .call.end347
+.call.else347:
+	push rsi
+	call _consume
+	pop rsi
+.call.end347:
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then147
+	jmp .Lif.else147
+.Lif.then147:
+	lea rax, [rbp-8]
+	push rax
+	push 0
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
+	lea rax, qword ptr [rip + .LC98]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else348
+	call _expect
+	jmp .call.end348
+.call.else348:
+	push rsi
+	call _expect
+	pop rsi
+.call.end348:
+	push rax
+	jmp .Lif.end147
+.Lif.else147:
+	push 0
+	pop rbp
+	ret
+	jmp .Lif.end147
+.Lif.end147:
+	jmp .Lif.end146
+.Lif.end146:
+.Lwhile.loop2:
+	lea rax, qword ptr [rip + .LC99]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else349
 	call _check
-	jmp call.end342
-call.else342:
+	jmp .call.end349
+.call.else349:
 	push rsi
 	call _check
 	pop rsi
-call.end342:
+.call.end349:
+	push rax
+	pop rax
+	not eax
+	push rax
+	lea rax, qword ptr [rip + .LC100]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else350
+	call _check
+	jmp .call.end350
+.call.else350:
+	push rsi
+	call _check
+	pop rsi
+.call.end350:
 	push rax
 	pop rax
 	not eax
@@ -13701,14 +13977,14 @@ call.end342:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else343
-	call _stmt
-	jmp call.end343
-call.else343:
+	jne .call.else351
+	call _stmts
+	jmp .call.end351
+.call.else351:
 	push rsi
-	call _stmt
+	call _stmts
 	pop rsi
-call.end343:
+.call.end351:
 	push rax
 	pop rbx
 	pop rax
@@ -13719,10 +13995,10 @@ call.end343:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then145
-	jmp .Lif.else145
-.Lif.then145:
+	test rax, rax
+	je .Lif.then148
+	jmp .Lif.else148
+.Lif.then148:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -13737,33 +14013,22 @@ call.end343:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else344
+	jne .call.else352
 	call _push_back
-	jmp call.end344
-call.else344:
+	jmp .call.end352
+.call.else352:
 	push rsi
 	call _push_back
 	pop rsi
-call.end344:
+.call.end352:
 	push rax
-	jmp .Lif.end145
-.Lif.else145:
+	jmp .Lif.end148
+.Lif.else148:
 	jmp .Lwhile.end2
-	jmp .Lif.end145
-.Lif.end145:
+	jmp .Lif.end148
+.Lif.end148:
 	jmp .Lwhile.loop2
 .Lwhile.end2:
-	mov rax, 0
-	test rsp, 15
-	jne call.else345
-	call _cu
-	jmp call.end345
-call.else345:
-	push rsi
-	call _cu
-	pop rsi
-call.end345:
-	push rax
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-104]
@@ -13780,14 +14045,14 @@ call.end345:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else346
+	jne .call.else353
 	call _new_node
-	jmp call.end346
-call.else346:
+	jmp .call.end353
+.call.else353:
 	push rsi
 	call _new_node
 	pop rsi
-call.end346:
+.call.end353:
 	push rax
 	pop rbx
 	pop rax
@@ -13813,186 +14078,6 @@ call.end346:
 	pop rax
 	mov rax, QWORD PTR [rax]
 	push rax
-	pop rbp
-	ret
-	jmp .Lif.end144
-.Lif.else144:
-	lea rax, qword ptr [rip + .LC96]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else347
-	call _consume
-	jmp call.end347
-call.else347:
-	push rsi
-	call _consume
-	pop rsi
-call.end347:
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then146
-	jmp .Lif.end146
-.Lif.then146:
-	lea rax, [rbp-8]
-	push rax
-	push 0
-	pop rbx
-	pop rax
-	mov DWORD PTR [rax], ebx
-	lea rax, qword ptr [rip + .LC97]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else348
-	call _expect
-	jmp call.end348
-call.else348:
-	push rsi
-	call _expect
-	pop rsi
-call.end348:
-	push rax
-.Lwhile.loop3:
-	lea rax, qword ptr [rip + .LC98]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else349
-	call _check
-	jmp call.end349
-call.else349:
-	push rsi
-	call _check
-	pop rsi
-call.end349:
-	push rax
-	pop rax
-	not eax
-	push rax
-	lea rax, qword ptr [rip + .LC99]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else350
-	call _check
-	jmp call.end350
-call.else350:
-	push rsi
-	call _check
-	pop rsi
-call.end350:
-	push rax
-	pop rax
-	not eax
-	push rax
-	pop rbx
-	pop rax
-	and eax, ebx
-	push rax
-	cmp rax, 0
-	je .Lwhile.end3
-	lea rax, [rbp-0]
-	push rax
-	mov rax, 0
-	test rsp, 15
-	jne call.else351
-	call _stmt
-	jmp call.end351
-call.else351:
-	push rsi
-	call _stmt
-	pop rsi
-call.end351:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-	lea rax, [rbp-16]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rdi
-	lea rax, [rbp-0]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rsi
-	mov rax, 2
-	test rsp, 15
-	jne call.else352
-	call _push_back
-	jmp call.end352
-call.else352:
-	push rsi
-	call _push_back
-	pop rsi
-call.end352:
-	push rax
-	jmp .Lwhile.loop3
-.Lwhile.end3:
-	lea rax, [rbp-0]
-	push rax
-	lea rax, [rbp-104]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rdi
-	lea rax, [rbp-8]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rsi
-	mov rax, 2
-	test rsp, 15
-	jne call.else353
-	call _new_node
-	jmp call.end353
-call.else353:
-	push rsi
-	call _new_node
-	pop rsi
-call.end353:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-	lea rax, [rbp-0]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	lea rax, [rax-240]
-	push rax
-	lea rax, [rbp-16]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-	lea rax, [rbp-0]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rbp
-	ret
-.Lif.end146:
-	jmp .Lif.end144
-.Lif.end144:
-	push 0
 	pop rbp
 	ret
 _stmt:
@@ -14003,37 +14088,37 @@ _stmt:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-	lea rax, qword ptr [rip + .LC100]
+	lea rax, qword ptr [rip + .LC101]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else354
+	jne .call.else354
 	call _consume
-	jmp call.end354
-call.else354:
+	jmp .call.end354
+.call.else354:
 	push rsi
 	call _consume
 	pop rsi
-call.end354:
+.call.end354:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then147
-	jmp .Lif.else147
-.Lif.then147:
+	test rax, rax
+	je .Lif.then149
+	jmp .Lif.else149
+.Lif.then149:
 	lea rax, [rbp-0]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else355
+	jne .call.else355
 	call _expr
-	jmp call.end355
-call.else355:
+	jmp .call.end355
+.call.else355:
 	push rsi
 	call _expr
 	pop rsi
-call.end355:
+.call.end355:
 	push rax
 	pop rbx
 	pop rax
@@ -14047,29 +14132,29 @@ call.end355:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then148
-	jmp .Lif.end148
-.Lif.then148:
+	test rax, rax
+	je .Lif.then150
+	jmp .Lif.end150
+.Lif.then150:
 	lea rax, [rbp-0]
 	push rax
 	push 0
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else356
+	jne .call.else356
 	call _new_node_num
-	jmp call.end356
-call.else356:
+	jmp .call.end356
+.call.else356:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end356:
+.call.end356:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lif.end148:
+.Lif.end150:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-92]
@@ -14086,109 +14171,79 @@ call.end356:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else357
+	jne .call.else357
 	call _new_node
-	jmp call.end357
-call.else357:
+	jmp .call.end357
+.call.else357:
 	push rsi
 	call _new_node
 	pop rsi
-call.end357:
+.call.end357:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC101]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else358
-	call _expect
-	jmp call.end358
-call.else358:
-	push rsi
-	call _expect
-	pop rsi
-call.end358:
-	push rax
-	jmp .Lif.end147
-.Lif.else147:
 	lea rax, qword ptr [rip + .LC102]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else359
-	call _consume
-	jmp call.end359
-call.else359:
+	jne .call.else358
+	call _expect
+	jmp .call.end358
+.call.else358:
 	push rsi
-	call _consume
+	call _expect
 	pop rsi
-call.end359:
+.call.end358:
 	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then149
-	jmp .Lif.else149
-.Lif.then149:
+	jmp .Lif.end149
+.Lif.else149:
 	lea rax, qword ptr [rip + .LC103]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else360
-	call _expect
-	jmp call.end360
-call.else360:
+	jne .call.else359
+	call _consume
+	jmp .call.end359
+.call.else359:
 	push rsi
-	call _expect
+	call _consume
 	pop rsi
-call.end360:
+.call.end359:
 	push rax
-	lea rax, [rbp-16]
-	push rax
-	mov rax, 0
-	test rsp, 15
-	jne call.else361
-	call _expr
-	jmp call.end361
-call.else361:
-	push rsi
-	call _expr
-	pop rsi
-call.end361:
-	push rax
-	pop rbx
 	pop rax
-	mov QWORD PTR [rax], rbx
+	test rax, rax
+	je .Lif.then151
+	jmp .Lif.else151
+.Lif.then151:
 	lea rax, qword ptr [rip + .LC104]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else362
+	jne .call.else360
 	call _expect
-	jmp call.end362
-call.else362:
+	jmp .call.end360
+.call.else360:
 	push rsi
 	call _expect
 	pop rsi
-call.end362:
+.call.end360:
 	push rax
-	lea rax, [rbp-24]
+	lea rax, [rbp-16]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else363
-	call _stmts
-	jmp call.end363
-call.else363:
+	jne .call.else361
+	call _expr
+	jmp .call.end361
+.call.else361:
 	push rsi
-	call _stmts
+	call _expr
 	pop rsi
-call.end363:
+.call.end361:
 	push rax
 	pop rbx
 	pop rax
@@ -14198,46 +14253,76 @@ call.end363:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else364
-	call _consume
-	jmp call.end364
-call.else364:
+	jne .call.else362
+	call _expect
+	jmp .call.end362
+.call.else362:
 	push rsi
-	call _consume
+	call _expect
 	pop rsi
-call.end364:
+.call.end362:
 	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then150
-	jmp .Lif.else150
-.Lif.then150:
-	lea rax, [rbp-32]
+	lea rax, [rbp-24]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else365
+	jne .call.else363
 	call _stmts
-	jmp call.end365
-call.else365:
+	jmp .call.end363
+.call.else363:
 	push rsi
 	call _stmts
 	pop rsi
-call.end365:
+.call.end363:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end150
-.Lif.else150:
+	lea rax, qword ptr [rip + .LC106]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else364
+	call _consume
+	jmp .call.end364
+.call.else364:
+	push rsi
+	call _consume
+	pop rsi
+.call.end364:
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then152
+	jmp .Lif.else152
+.Lif.then152:
+	lea rax, [rbp-32]
+	push rax
+	mov rax, 0
+	test rsp, 15
+	jne .call.else365
+	call _stmts
+	jmp .call.end365
+.call.else365:
+	push rsi
+	call _stmts
+	pop rsi
+.call.end365:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	jmp .Lif.end152
+.Lif.else152:
 	lea rax, [rbp-32]
 	push rax
 	push 0
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-	jmp .Lif.end150
-.Lif.end150:
+	jmp .Lif.end152
+.Lif.end152:
 	lea rax, [rbp-0]
 	push rax
 	lea rax, [rbp-96]
@@ -14266,65 +14351,49 @@ call.end365:
 	pop rcx
 	mov rax, 4
 	test rsp, 15
-	jne call.else366
+	jne .call.else366
 	call _new_node_if
-	jmp call.end366
-call.else366:
+	jmp .call.end366
+.call.else366:
 	push rsi
 	call _new_node_if
 	pop rsi
-call.end366:
+.call.end366:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end149
-.Lif.else149:
-	lea rax, qword ptr [rip + .LC106]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else367
-	call _consume
-	jmp call.end367
-call.else367:
-	push rsi
-	call _consume
-	pop rsi
-call.end367:
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then151
-	jmp .Lif.else151
-.Lif.then151:
+	jmp .Lif.end151
+.Lif.else151:
 	lea rax, qword ptr [rip + .LC107]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else368
-	call _expect
-	jmp call.end368
-call.else368:
+	jne .call.else367
+	call _consume
+	jmp .call.end367
+.call.else367:
 	push rsi
-	call _expect
+	call _consume
 	pop rsi
-call.end368:
+.call.end367:
 	push rax
-	lea rax, [rbp-40]
-	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then153
+	jmp .Lif.else153
+.Lif.then153:
 	mov rax, 0
 	test rsp, 15
-	jne call.else369
-	call _expr
-	jmp call.end369
-call.else369:
+	jne .call.else368
+	call _new_vector
+	jmp .call.end368
+.call.else368:
 	push rsi
-	call _expr
+	call _new_vector
 	pop rsi
-call.end369:
+.call.end368:
 	push rax
 	pop rbx
 	pop rax
@@ -14334,53 +14403,83 @@ call.end369:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else370
+	jne .call.else369
 	call _expect
-	jmp call.end370
-call.else370:
+	jmp .call.end369
+.call.else369:
 	push rsi
 	call _expect
 	pop rsi
-call.end370:
+.call.end369:
 	push rax
+	lea rax, [rbp-40]
+	push rax
+	mov rax, 0
+	test rsp, 15
+	jne .call.else370
+	call _expr
+	jmp .call.end370
+.call.else370:
+	push rsi
+	call _expr
+	pop rsi
+.call.end370:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
 	lea rax, qword ptr [rip + .LC109]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else371
+	jne .call.else371
 	call _expect
-	jmp call.end371
-call.else371:
+	jmp .call.end371
+.call.else371:
 	push rsi
 	call _expect
 	pop rsi
-call.end371:
+.call.end371:
+	push rax
+	lea rax, qword ptr [rip + .LC110]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else372
+	call _expect
+	jmp .call.end372
+.call.else372:
+	push rsi
+	call _expect
+	pop rsi
+.call.end372:
 	push rax
 	lea rax, [rbp-56]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else372
+	jne .call.else373
 	call _switch_case
-	jmp call.end372
-call.else372:
+	jmp .call.end373
+.call.else373:
 	push rsi
 	call _switch_case
 	pop rsi
-call.end372:
+.call.end373:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lwhile.loop4:
+.Lwhile.loop3:
 	lea rax, [rbp-56]
 	push rax
 	pop rax
 	mov rax, QWORD PTR [rax]
 	push rax
 	cmp rax, 0
-	je .Lwhile.end4
+	je .Lwhile.end3
 	lea rax, [rbp-48]
 	push rax
 	pop rax
@@ -14395,46 +14494,46 @@ call.end372:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else373
+	jne .call.else374
 	call _push_back
-	jmp call.end373
-call.else373:
+	jmp .call.end374
+.call.else374:
 	push rsi
 	call _push_back
 	pop rsi
-call.end373:
+.call.end374:
 	push rax
 	lea rax, [rbp-56]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else374
+	jne .call.else375
 	call _switch_case
-	jmp call.end374
-call.else374:
+	jmp .call.end375
+.call.else375:
 	push rsi
 	call _switch_case
 	pop rsi
-call.end374:
+.call.end375:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lwhile.loop4
-.Lwhile.end4:
-	lea rax, qword ptr [rip + .LC110]
+	jmp .Lwhile.loop3
+.Lwhile.end3:
+	lea rax, qword ptr [rip + .LC111]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else375
+	jne .call.else376
 	call _expect
-	jmp call.end375
-call.else375:
+	jmp .call.end376
+.call.else376:
 	push rsi
 	call _expect
 	pop rsi
-call.end375:
+.call.end376:
 	push rax
 	lea rax, [rbp-0]
 	push rax
@@ -14452,14 +14551,14 @@ call.end375:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else376
+	jne .call.else377
 	call _new_node
-	jmp call.end376
-call.else376:
+	jmp .call.end377
+.call.else377:
 	push rsi
 	call _new_node
 	pop rsi
-call.end376:
+.call.end377:
 	push rax
 	pop rbx
 	pop rax
@@ -14480,83 +14579,83 @@ call.end376:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end151
-.Lif.else151:
-	lea rax, qword ptr [rip + .LC111]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else377
-	call _consume
-	jmp call.end377
-call.else377:
-	push rsi
-	call _consume
-	pop rsi
-call.end377:
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then152
-	jmp .Lif.else152
-.Lif.then152:
+	jmp .Lif.end153
+.Lif.else153:
 	lea rax, qword ptr [rip + .LC112]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else378
-	call _expect
-	jmp call.end378
-call.else378:
+	jne .call.else378
+	call _consume
+	jmp .call.end378
+.call.else378:
 	push rsi
-	call _expect
+	call _consume
 	pop rsi
-call.end378:
+.call.end378:
 	push rax
-	lea rax, [rbp-64]
-	push rax
-	mov rax, 0
-	test rsp, 15
-	jne call.else379
-	call _expr
-	jmp call.end379
-call.else379:
-	push rsi
-	call _expr
-	pop rsi
-call.end379:
-	push rax
-	pop rbx
 	pop rax
-	mov QWORD PTR [rax], rbx
+	test rax, rax
+	je .Lif.then154
+	jmp .Lif.else154
+.Lif.then154:
 	lea rax, qword ptr [rip + .LC113]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else380
+	jne .call.else379
 	call _expect
-	jmp call.end380
-call.else380:
+	jmp .call.end379
+.call.else379:
 	push rsi
 	call _expect
 	pop rsi
-call.end380:
+.call.end379:
+	push rax
+	lea rax, [rbp-64]
+	push rax
+	mov rax, 0
+	test rsp, 15
+	jne .call.else380
+	call _expr
+	jmp .call.end380
+.call.else380:
+	push rsi
+	call _expr
+	pop rsi
+.call.end380:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, qword ptr [rip + .LC114]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else381
+	call _expect
+	jmp .call.end381
+.call.else381:
+	push rsi
+	call _expect
+	pop rsi
+.call.end381:
 	push rax
 	lea rax, [rbp-8]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else381
+	jne .call.else382
 	call _stmts
-	jmp call.end381
-call.else381:
+	jmp .call.end382
+.call.else382:
 	push rsi
 	call _stmts
 	pop rsi
-call.end381:
+.call.end382:
 	push rax
 	pop rbx
 	pop rax
@@ -14583,95 +14682,65 @@ call.end381:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else382
+	jne .call.else383
 	call _new_binary_node
-	jmp call.end382
-call.else382:
+	jmp .call.end383
+.call.else383:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end382:
+.call.end383:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end152
-.Lif.else152:
-	lea rax, qword ptr [rip + .LC114]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else383
-	call _consume
-	jmp call.end383
-call.else383:
-	push rsi
-	call _consume
-	pop rsi
-call.end383:
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then153
-	jmp .Lif.else153
-.Lif.then153:
+	jmp .Lif.end154
+.Lif.else154:
 	lea rax, qword ptr [rip + .LC115]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else384
-	call _expect
-	jmp call.end384
-call.else384:
+	jne .call.else384
+	call _consume
+	jmp .call.end384
+.call.else384:
 	push rsi
-	call _expect
+	call _consume
 	pop rsi
-call.end384:
+.call.end384:
 	push rax
-	lea rax, [rbp-72]
-	push rax
-	mov rax, 0
-	test rsp, 15
-	jne call.else385
-	call _expr
-	jmp call.end385
-call.else385:
-	push rsi
-	call _expr
-	pop rsi
-call.end385:
-	push rax
-	pop rbx
 	pop rax
-	mov QWORD PTR [rax], rbx
+	test rax, rax
+	je .Lif.then155
+	jmp .Lif.else155
+.Lif.then155:
 	lea rax, qword ptr [rip + .LC116]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else386
+	jne .call.else385
 	call _expect
-	jmp call.end386
-call.else386:
+	jmp .call.end385
+.call.else385:
 	push rsi
 	call _expect
 	pop rsi
-call.end386:
+.call.end385:
 	push rax
-	lea rax, [rbp-80]
+	lea rax, [rbp-72]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else387
+	jne .call.else386
 	call _expr
-	jmp call.end387
-call.else387:
+	jmp .call.end386
+.call.else386:
 	push rsi
 	call _expr
 	pop rsi
-call.end387:
+.call.end386:
 	push rax
 	pop rbx
 	pop rax
@@ -14681,27 +14750,27 @@ call.end387:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else388
+	jne .call.else387
 	call _expect
-	jmp call.end388
-call.else388:
+	jmp .call.end387
+.call.else387:
 	push rsi
 	call _expect
 	pop rsi
-call.end388:
+.call.end387:
 	push rax
-	lea rax, [rbp-88]
+	lea rax, [rbp-80]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else389
+	jne .call.else388
 	call _expr
-	jmp call.end389
-call.else389:
+	jmp .call.end388
+.call.else388:
 	push rsi
 	call _expr
 	pop rsi
-call.end389:
+.call.end388:
 	push rax
 	pop rbx
 	pop rax
@@ -14711,27 +14780,57 @@ call.end389:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else390
+	jne .call.else389
 	call _expect
-	jmp call.end390
-call.else390:
+	jmp .call.end389
+.call.else389:
 	push rsi
 	call _expect
 	pop rsi
-call.end390:
+.call.end389:
+	push rax
+	lea rax, [rbp-88]
+	push rax
+	mov rax, 0
+	test rsp, 15
+	jne .call.else390
+	call _expr
+	jmp .call.end390
+.call.else390:
+	push rsi
+	call _expr
+	pop rsi
+.call.end390:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, qword ptr [rip + .LC119]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else391
+	call _expect
+	jmp .call.end391
+.call.else391:
+	push rsi
+	call _expect
+	pop rsi
+.call.end391:
 	push rax
 	lea rax, [rbp-8]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else391
+	jne .call.else392
 	call _stmts
-	jmp call.end391
-call.else391:
+	jmp .call.end392
+.call.else392:
 	push rsi
 	call _stmts
 	pop rsi
-call.end391:
+.call.end392:
 	push rax
 	pop rbx
 	pop rax
@@ -14770,32 +14869,32 @@ call.end391:
 	pop r8
 	mov rax, 5
 	test rsp, 15
-	jne call.else392
+	jne .call.else393
 	call _new_node_for
-	jmp call.end392
-call.else392:
+	jmp .call.end393
+.call.else393:
 	push rsi
 	call _new_node_for
 	pop rsi
-call.end392:
+.call.end393:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end153
-.Lif.else153:
+	jmp .Lif.end155
+.Lif.else155:
 	lea rax, [rbp-0]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else393
+	jne .call.else394
 	call _expr
-	jmp call.end393
-call.else393:
+	jmp .call.end394
+.call.else394:
 	push rsi
 	call _expr
 	pop rsi
-call.end393:
+.call.end394:
 	push rax
 	pop rbx
 	pop rax
@@ -14806,35 +14905,35 @@ call.end393:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then154
-	jmp .Lif.end154
-.Lif.then154:
-	lea rax, qword ptr [rip + .LC119]
+	test rax, rax
+	je .Lif.then156
+	jmp .Lif.end156
+.Lif.then156:
+	lea rax, qword ptr [rip + .LC120]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else394
+	jne .call.else395
 	call _expect
-	jmp call.end394
-call.else394:
+	jmp .call.end395
+.call.else395:
 	push rsi
 	call _expect
 	pop rsi
-call.end394:
+.call.end395:
 	push rax
+.Lif.end156:
+	jmp .Lif.end155
+.Lif.end155:
+	jmp .Lif.end154
 .Lif.end154:
 	jmp .Lif.end153
 .Lif.end153:
-	jmp .Lif.end152
-.Lif.end152:
 	jmp .Lif.end151
 .Lif.end151:
 	jmp .Lif.end149
 .Lif.end149:
-	jmp .Lif.end147
-.Lif.end147:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -14846,35 +14945,35 @@ _stmts:
 	push rbp
 	mov rbp, rsp
 	sub rsp, 32
-	lea rax, qword ptr [rip + .LC120]
+	lea rax, qword ptr [rip + .LC121]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else395
+	jne .call.else396
 	call _consume
-	jmp call.end395
-call.else395:
+	jmp .call.end396
+.call.else396:
 	push rsi
 	call _consume
 	pop rsi
-call.end395:
+.call.end396:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then155
-	jmp .Lif.else155
-.Lif.then155:
+	test rax, rax
+	je .Lif.then157
+	jmp .Lif.else157
+.Lif.then157:
 	mov rax, 0
 	test rsp, 15
-	jne call.else396
+	jne .call.else397
 	call _new_vector
-	jmp call.end396
-call.else396:
+	jmp .call.end397
+.call.else397:
 	push rsi
 	call _new_vector
 	pop rsi
-call.end396:
+.call.end397:
 	push rax
 	pop rbx
 	pop rax
@@ -14902,14 +15001,14 @@ call.end396:
 	je .Lfor.end23
 	mov rax, 0
 	test rsp, 15
-	jne call.else397
+	jne .call.else398
 	call _stmt
-	jmp call.end397
-call.else397:
+	jmp .call.end398
+.call.else398:
 	push rsi
 	call _stmt
 	pop rsi
-call.end397:
+.call.end398:
 	push rax
 	pop rbx
 	pop rax
@@ -14922,7 +15021,7 @@ call.end397:
 	pop rax
 	not eax
 	push rax
-	lea rax, qword ptr [rip + .LC121]
+	lea rax, qword ptr [rip + .LC122]
 	push rax
 	pop rdi
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
@@ -14951,36 +15050,36 @@ call.end397:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else398
+	jne .call.else399
 	call _strncmp
-	jmp call.end398
-call.else398:
+	jmp .call.end399
+.call.else399:
 	push rsi
 	call _strncmp
 	pop rsi
-call.end398:
+.call.end399:
 	push rax
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then156
-	jmp .Lif.end156
-.Lif.then156:
-	lea rax, qword ptr [rip + .LC122]
+	je .Lif.then158
+	jmp .Lif.end158
+.Lif.then158:
+	lea rax, qword ptr [rip + .LC123]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else399
+	jne .call.else400
 	call _error
-	jmp call.end399
-call.else399:
+	jmp .call.end400
+.call.else400:
 	push rsi
 	call _error
 	pop rsi
-call.end399:
+.call.end400:
 	push rax
-.Lif.end156:
+.Lif.end158:
 	lea rax, [rbp-8]
 	push rax
 	pop rax
@@ -14995,36 +15094,36 @@ call.end399:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else400
+	jne .call.else401
 	call _push_back
-	jmp call.end400
-call.else400:
+	jmp .call.end401
+.call.else401:
 	push rsi
 	call _push_back
 	pop rsi
-call.end400:
+.call.end401:
 	push rax
-	lea rax, qword ptr [rip + .LC123]
+	lea rax, qword ptr [rip + .LC124]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else401
+	jne .call.else402
 	call _consume
-	jmp call.end401
-call.else401:
+	jmp .call.end402
+.call.else402:
 	push rsi
 	call _consume
 	pop rsi
-call.end401:
+.call.end402:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then157
-	jmp .Lif.end157
-.Lif.then157:
+	test rax, rax
+	je .Lif.then159
+	jmp .Lif.end159
+.Lif.then159:
 	jmp .Lfor.end23
-.Lif.end157:
+.Lif.end159:
 .Lfor.inc23:
 	jmp .Lfor.loop23
 .Lfor.end23:
@@ -15046,14 +15145,14 @@ call.end401:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else402
+	jne .call.else403
 	call _calloc
-	jmp call.end402
-call.else402:
+	jmp .call.end403
+.call.else403:
 	push rsi
 	call _calloc
 	pop rsi
-call.end402:
+.call.end403:
 	push rax
 	pop rbx
 	pop rax
@@ -15090,26 +15189,26 @@ call.end402:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end155
-.Lif.else155:
+	jmp .Lif.end157
+.Lif.else157:
 	lea rax, [rbp-0]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else403
+	jne .call.else404
 	call _stmt
-	jmp call.end403
-call.else403:
+	jmp .call.end404
+.call.else404:
 	push rsi
 	call _stmt
 	pop rsi
-call.end403:
+.call.end404:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end155
-.Lif.end155:
+	jmp .Lif.end157
+.Lif.end157:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -15138,42 +15237,42 @@ _variable_decl:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-	lea rax, qword ptr [rip + .LC124]
+	lea rax, qword ptr [rip + .LC125]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else404
+	jne .call.else405
 	call _consume
-	jmp call.end404
-call.else404:
+	jmp .call.end405
+.call.else405:
 	push rsi
 	call _consume
 	pop rsi
-call.end404:
+.call.end405:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then158
-	jmp .Lif.end158
-.Lif.then158:
+	test rax, rax
+	je .Lif.then160
+	jmp .Lif.end160
+.Lif.then160:
 	lea rax, [rbp-20]
 	push rax
 	push 0
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-.Lif.end158:
+.Lif.end160:
 	mov rax, 0
 	test rsp, 15
-	jne call.else405
+	jne .call.else406
 	call _prim_type_spec
-	jmp call.end405
-call.else405:
+	jmp .call.end406
+.call.else406:
 	push rsi
 	call _prim_type_spec
 	pop rsi
-call.end405:
+.call.end406:
 	push rax
 	pop rbx
 	pop rax
@@ -15184,10 +15283,10 @@ call.end405:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then159
-	jmp .Lif.end159
-.Lif.then159:
+	test rax, rax
+	je .Lif.then161
+	jmp .Lif.end161
+.Lif.then161:
 .Lfor.loop24:
 	cmp rax, 0
 	je .Lfor.end24
@@ -15201,23 +15300,23 @@ call.end405:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lwhile.loop5:
-	lea rax, qword ptr [rip + .LC125]
+.Lwhile.loop4:
+	lea rax, qword ptr [rip + .LC126]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else406
+	jne .call.else407
 	call _consume
-	jmp call.end406
-call.else406:
+	jmp .call.end407
+.call.else407:
 	push rsi
 	call _consume
 	pop rsi
-call.end406:
+.call.end407:
 	push rax
 	cmp rax, 0
-	je .Lwhile.end5
+	je .Lwhile.end4
 	lea rax, [rbp-29]
 	push rax
 	lea rax, [rbp-29]
@@ -15228,30 +15327,30 @@ call.end406:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else407
+	jne .call.else408
 	call _wrap_pointer
-	jmp call.end407
-call.else407:
+	jmp .call.end408
+.call.else408:
 	push rsi
 	call _wrap_pointer
 	pop rsi
-call.end407:
+.call.end408:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lwhile.loop5
-.Lwhile.end5:
+	jmp .Lwhile.loop4
+.Lwhile.end4:
 	mov rax, 0
 	test rsp, 15
-	jne call.else408
+	jne .call.else409
 	call _consume_ident
-	jmp call.end408
-call.else408:
+	jmp .call.end409
+.call.else409:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end408:
+.call.end409:
 	push rax
 	pop rbx
 	pop rax
@@ -15265,19 +15364,19 @@ call.end408:
 	pop rax
 	mov rax, QWORD PTR [rax]
 	push rax
-	lea rax, qword ptr [rip + .LC126]
+	lea rax, qword ptr [rip + .LC127]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else409
+	jne .call.else410
 	call _check
-	jmp call.end409
-call.else409:
+	jmp .call.end410
+.call.else410:
 	push rsi
 	call _check
 	pop rsi
-call.end409:
+.call.end410:
 	push rax
 	pop rax
 	not eax
@@ -15285,92 +15384,92 @@ call.end409:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then160
-	jmp .Lif.else160
-.Lif.then160:
-	lea rax, qword ptr [rip + .LC127]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else410
-	call _consume
-	jmp call.end410
-call.else410:
-	push rsi
-	call _consume
-	pop rsi
-call.end410:
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then161
-	jmp .Lif.end161
-.Lif.then161:
-	mov rax, 0
-	test rsp, 15
-	jne call.else411
-	call _consume_number
-	jmp call.end411
-call.else411:
-	push rsi
-	call _consume_number
-	pop rsi
-call.end411:
-	push rax
-	pop rbx
-	pop rax
-	mov DWORD PTR [rax], ebx
+	je .Lif.then162
+	jmp .Lif.else162
+.Lif.then162:
 	lea rax, qword ptr [rip + .LC128]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else412
-	call _expect
-	jmp call.end412
-call.else412:
+	jne .call.else411
+	call _consume
+	jmp .call.end411
+.call.else411:
 	push rsi
-	call _expect
+	call _consume
 	pop rsi
-call.end412:
+.call.end411:
 	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then163
+	jmp .Lif.end163
+.Lif.then163:
+	mov rax, 0
+	test rsp, 15
+	jne .call.else412
+	call _consume_number
+	jmp .call.end412
+.call.else412:
+	push rsi
+	call _consume_number
+	pop rsi
+.call.end412:
+	push rax
+	pop rbx
+	pop rax
+	mov DWORD PTR [rax], ebx
 	lea rax, qword ptr [rip + .LC129]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else413
+	jne .call.else413
+	call _expect
+	jmp .call.end413
+.call.else413:
+	push rsi
+	call _expect
+	pop rsi
+.call.end413:
+	push rax
+	lea rax, qword ptr [rip + .LC130]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else414
 	call _consume
-	jmp call.end413
-call.else413:
+	jmp .call.end414
+.call.else414:
 	push rsi
 	call _consume
 	pop rsi
-call.end413:
+.call.end414:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then162
-	jmp .Lif.end162
-.Lif.then162:
+	test rax, rax
+	je .Lif.then164
+	jmp .Lif.end164
+.Lif.then164:
 	lea rax, [rbp-45]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else414
+	jne .call.else415
 	call _initializer
-	jmp call.end414
-call.else414:
+	jmp .call.end415
+.call.else415:
 	push rsi
 	call _initializer
 	pop rsi
-call.end414:
+.call.end415:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lif.end162:
+.Lif.end164:
 	lea rax, [rbp-53]
 	push rax
 	pop rax
@@ -15380,9 +15479,9 @@ call.end414:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then163
-	jmp .Lif.end163
-.Lif.then163:
+	je .Lif.then165
+	jmp .Lif.end165
+.Lif.then165:
 	lea rax, [rbp-45]
 	push rax
 	pop rax
@@ -15394,9 +15493,9 @@ call.end414:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then164
-	jmp .Lif.else164
-.Lif.then164:
+	je .Lif.then166
+	jmp .Lif.else166
+.Lif.then166:
 	lea rax, [rbp-53]
 	push rax
 	lea rax, [rbp-45]
@@ -15419,8 +15518,8 @@ call.end414:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-	jmp .Lif.end164
-.Lif.else164:
+	jmp .Lif.end166
+.Lif.else166:
 	lea rax, [rbp-53]
 	push rax
 	lea rax, [rbp-45]
@@ -15437,9 +15536,9 @@ call.end414:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-	jmp .Lif.end164
-.Lif.end164:
-.Lif.end163:
+	jmp .Lif.end166
+.Lif.end166:
+.Lif.end165:
 	lea rax, [rbp-29]
 	push rax
 	pop rax
@@ -15454,14 +15553,14 @@ call.end414:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else415
+	jne .call.else416
 	call _array_type
-	jmp call.end415
-call.else415:
+	jmp .call.end416
+.call.else416:
 	push rsi
 	call _array_type
 	pop rsi
-call.end415:
+.call.end416:
 	push rax
 	pop rbx
 	pop rax
@@ -15476,7 +15575,7 @@ call.end415:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lif.end161:
+.Lif.end163:
 	lea rax, [rbp-65]
 	push rax
 	lea rax, [rbp-37]
@@ -15493,14 +15592,14 @@ call.end415:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else416
+	jne .call.else417
 	call _make_lvar
-	jmp call.end416
-call.else416:
+	jmp .call.end417
+.call.else417:
 	push rsi
 	call _make_lvar
 	pop rsi
-call.end416:
+.call.end417:
 	push rax
 	pop rbx
 	pop rax
@@ -15519,14 +15618,14 @@ call.end416:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else417
+	jne .call.else418
 	call _add_var
-	jmp call.end417
-call.else417:
+	jmp .call.end418
+.call.else418:
 	push rsi
 	call _add_var
 	pop rsi
-call.end417:
+.call.end418:
 	push rax
 	lea rax, [rbp-0]
 	push rax
@@ -15544,9 +15643,9 @@ call.end417:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then165
-	jmp .Lif.end165
-.Lif.then165:
+	je .Lif.then167
+	jmp .Lif.end167
+.Lif.then167:
 	lea rax, [rbp-4]
 	push rax
 	lea rax, [rbp-152]
@@ -15569,14 +15668,14 @@ call.end417:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else418
+	jne .call.else419
 	call _new_node_s
-	jmp call.end418
-call.else418:
+	jmp .call.end419
+.call.else419:
 	push rsi
 	call _new_node_s
 	pop rsi
-call.end418:
+.call.end419:
 	push rax
 	pop rbx
 	pop rax
@@ -15603,10 +15702,10 @@ call.end418:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then166
-	jmp .Lif.else166
-.Lif.then166:
+	test rax, rax
+	je .Lif.then168
+	jmp .Lif.else168
+.Lif.then168:
 	lea rax, [rbp-4]
 	push rax
 	lea rax, [rbp-60]
@@ -15629,118 +15728,118 @@ call.end418:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else419
+	jne .call.else420
 	call _new_binary_node
-	jmp call.end419
-call.else419:
+	jmp .call.end420
+.call.else420:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end419:
+.call.end420:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end166
-.Lif.else166:
-	lea rax, qword ptr [rip + .LC130]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else420
-	call _consume
-	jmp call.end420
-call.else420:
-	push rsi
-	call _consume
-	pop rsi
-call.end420:
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then167
-	jmp .Lif.end167
-.Lif.then167:
-	lea rax, [rbp-45]
-	push rax
-	mov rax, 0
-	test rsp, 15
-	jne call.else421
-	call _initializer
-	jmp call.end421
-call.else421:
-	push rsi
-	call _initializer
-	pop rsi
-call.end421:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-	lea rax, [rbp-4]
-	push rax
-	lea rax, [rbp-60]
-	push rax
-	pop rax
-	mov eax, DWORD PTR [rax]
-	push rax
-	pop rdi
-	lea rax, [rbp-4]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rsi
-	lea rax, [rbp-45]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rdx
-	mov rax, 3
-	test rsp, 15
-	jne call.else422
-	call _new_binary_node
-	jmp call.end422
-call.else422:
-	push rsi
-	call _new_binary_node
-	pop rsi
-call.end422:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-.Lif.end167:
-	jmp .Lif.end166
-.Lif.end166:
-.Lif.end165:
+	jmp .Lif.end168
+.Lif.else168:
 	lea rax, qword ptr [rip + .LC131]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else423
+	jne .call.else421
 	call _consume
-	jmp call.end423
-call.else423:
+	jmp .call.end421
+.call.else421:
 	push rsi
 	call _consume
 	pop rsi
-call.end423:
+.call.end421:
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then169
+	jmp .Lif.end169
+.Lif.then169:
+	lea rax, [rbp-45]
+	push rax
+	mov rax, 0
+	test rsp, 15
+	jne .call.else422
+	call _initializer
+	jmp .call.end422
+.call.else422:
+	push rsi
+	call _initializer
+	pop rsi
+.call.end422:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-4]
+	push rax
+	lea rax, [rbp-60]
+	push rax
+	pop rax
+	mov eax, DWORD PTR [rax]
+	push rax
+	pop rdi
+	lea rax, [rbp-4]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rsi
+	lea rax, [rbp-45]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rdx
+	mov rax, 3
+	test rsp, 15
+	jne .call.else423
+	call _new_binary_node
+	jmp .call.end423
+.call.else423:
+	push rsi
+	call _new_binary_node
+	pop rsi
+.call.end423:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+.Lif.end169:
+	jmp .Lif.end168
+.Lif.end168:
+.Lif.end167:
+	lea rax, qword ptr [rip + .LC132]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else424
+	call _consume
+	jmp .call.end424
+.call.else424:
+	push rsi
+	call _consume
+	pop rsi
+.call.end424:
 	push rax
 	pop rax
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then168
-	jmp .Lif.else168
-.Lif.then168:
+	test rax, rax
+	je .Lif.then170
+	jmp .Lif.else170
+.Lif.then170:
 	jmp .Lfor.end24
-	jmp .Lif.end168
-.Lif.else168:
+	jmp .Lif.end170
+.Lif.else170:
 	lea rax, QWORD PTR [rip + cur_nodes@GOTPCREL]
 	push rax
 	pop rax
@@ -15755,19 +15854,19 @@ call.end423:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else424
+	jne .call.else425
 	call _push_back
-	jmp call.end424
-call.else424:
+	jmp .call.end425
+.call.else425:
 	push rsi
 	call _push_back
 	pop rsi
-call.end424:
+.call.end425:
 	push rax
-	jmp .Lif.end168
-.Lif.end168:
-	jmp .Lif.end160
-.Lif.else160:
+	jmp .Lif.end170
+.Lif.end170:
+	jmp .Lif.end162
+.Lif.else162:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	lea rax, [rbp-12]
@@ -15785,8 +15884,8 @@ call.end424:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end160
-.Lif.end160:
+	jmp .Lif.end162
+.Lif.end162:
 .Lfor.inc24:
 	jmp .Lfor.loop24
 .Lfor.end24:
@@ -15799,24 +15898,24 @@ call.end424:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then169
-	jmp .Lif.end169
-.Lif.then169:
-	lea rax, qword ptr [rip + .LC132]
+	je .Lif.then171
+	jmp .Lif.end171
+.Lif.then171:
+	lea rax, qword ptr [rip + .LC133]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else425
+	jne .call.else426
 	call _expect
-	jmp call.end425
-call.else425:
+	jmp .call.end426
+.call.else426:
 	push rsi
 	call _expect
 	pop rsi
-call.end425:
+.call.end426:
 	push rax
-.Lif.end169:
+.Lif.end171:
 	lea rax, [rbp-4]
 	push rax
 	pop rax
@@ -15824,7 +15923,7 @@ call.end425:
 	push rax
 	pop rbp
 	ret
-.Lif.end159:
+.Lif.end161:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	lea rax, [rbp-12]
@@ -15852,14 +15951,14 @@ _init_variable_list:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else426
+	jne .call.else427
 	call _calloc
-	jmp call.end426
-call.else426:
+	jmp .call.end427
+.call.else427:
 	push rsi
 	call _calloc
 	pop rsi
-call.end426:
+.call.end427:
 	push rax
 	pop rbx
 	pop rax
@@ -15878,14 +15977,14 @@ call.end426:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else427
+	jne .call.else428
 	call _calloc
-	jmp call.end427
-call.else427:
+	jmp .call.end428
+.call.else428:
 	push rsi
 	call _calloc
 	pop rsi
-call.end427:
+.call.end428:
 	push rax
 	pop rbx
 	pop rax
@@ -15943,36 +16042,36 @@ _func_decl_or_def:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC133]
+	lea rax, qword ptr [rip + .LC134]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else428
+	jne .call.else429
 	call _consume
-	jmp call.end428
-call.else428:
+	jmp .call.end429
+.call.else429:
 	push rsi
 	call _consume
 	pop rsi
-call.end428:
+.call.end429:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then170
-	jmp .Lif.end170
-.Lif.then170:
-.Lif.end170:
+	test rax, rax
+	je .Lif.then172
+	jmp .Lif.end172
+.Lif.then172:
+.Lif.end172:
 	mov rax, 0
 	test rsp, 15
-	jne call.else429
+	jne .call.else430
 	call _type_spec
-	jmp call.end429
-call.else429:
+	jmp .call.end430
+.call.else430:
 	push rsi
 	call _type_spec
 	pop rsi
-call.end429:
+.call.end430:
 	push rax
 	pop rbx
 	pop rax
@@ -15981,14 +16080,14 @@ call.end429:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else430
+	jne .call.else431
 	call _init_variable_list
-	jmp call.end430
-call.else430:
+	jmp .call.end431
+.call.else431:
 	push rsi
 	call _init_variable_list
 	pop rsi
-call.end430:
+.call.end431:
 	push rax
 	pop rbx
 	pop rax
@@ -15999,20 +16098,20 @@ call.end430:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then171
-	jmp .Lif.end171
-.Lif.then171:
+	test rax, rax
+	je .Lif.then173
+	jmp .Lif.end173
+.Lif.then173:
 	mov rax, 0
 	test rsp, 15
-	jne call.else431
+	jne .call.else432
 	call _consume_ident
-	jmp call.end431
-call.else431:
+	jmp .call.end432
+.call.else432:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end431:
+.call.end432:
 	push rax
 	pop rbx
 	pop rax
@@ -16023,39 +16122,39 @@ call.end431:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then172
-	jmp .Lif.end172
-.Lif.then172:
-	lea rax, qword ptr [rip + .LC134]
+	test rax, rax
+	je .Lif.then174
+	jmp .Lif.end174
+.Lif.then174:
+	lea rax, qword ptr [rip + .LC135]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else432
+	jne .call.else433
 	call _consume
-	jmp call.end432
-call.else432:
+	jmp .call.end433
+.call.else433:
 	push rsi
 	call _consume
 	pop rsi
-call.end432:
+.call.end433:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then173
-	jmp .Lif.end173
-.Lif.then173:
+	test rax, rax
+	je .Lif.then175
+	jmp .Lif.end175
+.Lif.then175:
 	mov rax, 0
 	test rsp, 15
-	jne call.else433
+	jne .call.else434
 	call _init_variable_list
-	jmp call.end433
-call.else433:
+	jmp .call.end434
+.call.else434:
 	push rsi
 	call _init_variable_list
 	pop rsi
-call.end433:
+.call.end434:
 	push rax
 	pop rbx
 	pop rax
@@ -16094,14 +16193,14 @@ call.end433:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else434
+	jne .call.else435
 	call _new_node_s
-	jmp call.end434
-call.else434:
+	jmp .call.end435
+.call.else435:
 	push rsi
 	call _new_node_s
 	pop rsi
-call.end434:
+.call.end435:
 	push rax
 	pop rbx
 	pop rax
@@ -16120,14 +16219,14 @@ call.end434:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else435
+	jne .call.else436
 	call _add_node
-	jmp call.end435
-call.else435:
+	jmp .call.end436
+.call.else436:
 	push rsi
 	call _add_node
 	pop rsi
-call.end435:
+.call.end436:
 	push rax
 	lea rax, QWORD PTR [rip + cur_scope@GOTPCREL]
 	push rax
@@ -16139,38 +16238,38 @@ call.end435:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lwhile.loop6:
-	lea rax, qword ptr [rip + .LC135]
+.Lwhile.loop5:
+	lea rax, qword ptr [rip + .LC136]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else436
+	jne .call.else437
 	call _consume
-	jmp call.end436
-call.else436:
+	jmp .call.end437
+.call.else437:
 	push rsi
 	call _consume
 	pop rsi
-call.end436:
+.call.end437:
 	push rax
 	pop rax
 	not eax
 	push rax
 	cmp rax, 0
-	je .Lwhile.end6
+	je .Lwhile.end5
 	lea rax, [rbp-64]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else437
+	jne .call.else438
 	call _type_spec
-	jmp call.end437
-call.else437:
+	jmp .call.end438
+.call.else438:
 	push rsi
 	call _type_spec
 	pop rsi
-call.end437:
+.call.end438:
 	push rax
 	pop rbx
 	pop rax
@@ -16184,10 +16283,10 @@ call.end437:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then174
-	jmp .Lif.end174
-.Lif.then174:
+	test rax, rax
+	je .Lif.then176
+	jmp .Lif.end176
+.Lif.then176:
 	lea rax, [rbp-40]
 	push rax
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
@@ -16198,25 +16297,25 @@ call.end437:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC136]
+	lea rax, qword ptr [rip + .LC137]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else438
+	jne .call.else439
 	call _consume
-	jmp call.end438
-call.else438:
+	jmp .call.end439
+.call.else439:
 	push rsi
 	call _consume
 	pop rsi
-call.end438:
+.call.end439:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then175
-	jmp .Lif.end175
-.Lif.then175:
+	test rax, rax
+	je .Lif.then177
+	jmp .Lif.end177
+.Lif.then177:
 	lea rax, [rbp-72]
 	push rax
 	lea rax, [rbp-48]
@@ -16239,14 +16338,14 @@ call.end438:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else439
+	jne .call.else440
 	call _new_arg
-	jmp call.end439
-call.else439:
+	jmp .call.end440
+.call.else440:
 	push rsi
 	call _new_arg
 	pop rsi
-call.end439:
+.call.end440:
 	push rax
 	pop rbx
 	pop rax
@@ -16293,14 +16392,14 @@ call.end439:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else440
+	jne .call.else441
 	call _make_lvar
-	jmp call.end440
-call.else440:
+	jmp .call.end441
+.call.else441:
 	push rsi
 	call _make_lvar
 	pop rsi
-call.end440:
+.call.end441:
 	push rax
 	pop rbx
 	pop rax
@@ -16319,45 +16418,45 @@ call.end440:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else441
+	jne .call.else442
 	call _add_var
-	jmp call.end441
-call.else441:
+	jmp .call.end442
+.call.else442:
 	push rsi
 	call _add_var
 	pop rsi
-call.end441:
+.call.end442:
 	push rax
-	lea rax, qword ptr [rip + .LC137]
+	lea rax, qword ptr [rip + .LC138]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else442
+	jne .call.else443
 	call _expect
-	jmp call.end442
-call.else442:
+	jmp .call.end443
+.call.else443:
 	push rsi
 	call _expect
 	pop rsi
-call.end442:
+.call.end443:
 	push rax
-	jmp .Lwhile.end6
-.Lif.end175:
-	jmp .Lwhile.end6
-.Lif.end174:
+	jmp .Lwhile.end5
+.Lif.end177:
+	jmp .Lwhile.end5
+.Lif.end176:
 	lea rax, [rbp-40]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else443
+	jne .call.else444
 	call _consume_ident
-	jmp call.end443
-call.else443:
+	jmp .call.end444
+.call.else444:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end443:
+.call.end444:
 	push rax
 	pop rbx
 	pop rax
@@ -16371,10 +16470,10 @@ call.end443:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then176
-	jmp .Lif.end176
-.Lif.then176:
+	test rax, rax
+	je .Lif.then178
+	jmp .Lif.end178
+.Lif.then178:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	pop rax
@@ -16387,22 +16486,22 @@ call.end443:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC138]
+	lea rax, qword ptr [rip + .LC139]
 	push rax
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else444
+	jne .call.else445
 	call _error_at
-	jmp call.end444
-call.else444:
+	jmp .call.end445
+.call.else445:
 	push rsi
 	call _error_at
 	pop rsi
-call.end444:
+.call.end445:
 	push rax
-	jmp .Lwhile.end6
-.Lif.end176:
+	jmp .Lwhile.end5
+.Lif.end178:
 	lea rax, [rbp-72]
 	push rax
 	lea rax, [rbp-48]
@@ -16425,14 +16524,14 @@ call.end444:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else445
+	jne .call.else446
 	call _new_arg
-	jmp call.end445
-call.else445:
+	jmp .call.end446
+.call.else446:
 	push rsi
 	call _new_arg
 	pop rsi
-call.end445:
+.call.end446:
 	push rax
 	pop rbx
 	pop rax
@@ -16479,14 +16578,14 @@ call.end445:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else446
+	jne .call.else447
 	call _make_lvar
-	jmp call.end446
-call.else446:
+	jmp .call.end447
+.call.else447:
 	push rsi
 	call _make_lvar
 	pop rsi
-call.end446:
+.call.end447:
 	push rax
 	pop rbx
 	pop rax
@@ -16505,74 +16604,74 @@ call.end446:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else447
+	jne .call.else448
 	call _add_var
-	jmp call.end447
-call.else447:
+	jmp .call.end448
+.call.else448:
 	push rsi
 	call _add_var
 	pop rsi
-call.end447:
+.call.end448:
 	push rax
-	lea rax, qword ptr [rip + .LC139]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else448
-	call _consume
-	jmp call.end448
-call.else448:
-	push rsi
-	call _consume
-	pop rsi
-call.end448:
-	push rax
-	pop rax
-	not eax
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then177
-	jmp .Lif.end177
-.Lif.then177:
 	lea rax, qword ptr [rip + .LC140]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else449
-	call _expect
-	jmp call.end449
-call.else449:
+	jne .call.else449
+	call _consume
+	jmp .call.end449
+.call.else449:
 	push rsi
-	call _expect
+	call _consume
 	pop rsi
-call.end449:
+.call.end449:
 	push rax
-	jmp .Lwhile.end6
-.Lif.end177:
-	jmp .Lwhile.loop6
-.Lwhile.end6:
+	pop rax
+	not eax
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then179
+	jmp .Lif.end179
+.Lif.then179:
 	lea rax, qword ptr [rip + .LC141]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else450
+	jne .call.else450
+	call _expect
+	jmp .call.end450
+.call.else450:
+	push rsi
+	call _expect
+	pop rsi
+.call.end450:
+	push rax
+	jmp .Lwhile.end5
+.Lif.end179:
+	jmp .Lwhile.loop5
+.Lwhile.end5:
+	lea rax, qword ptr [rip + .LC142]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else451
 	call _consume
-	jmp call.end450
-call.else450:
+	jmp .call.end451
+.call.else451:
 	push rsi
 	call _consume
 	pop rsi
-call.end450:
+.call.end451:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then178
-	jmp .Lif.else178
-.Lif.then178:
+	test rax, rax
+	je .Lif.then180
+	jmp .Lif.else180
+.Lif.then180:
 	lea rax, [rbp-32]
 	push rax
 	lea rax, QWORD PTR [rip + extern_funcs@GOTPCREL]
@@ -16601,14 +16700,14 @@ call.end450:
 	pop rcx
 	mov rax, 4
 	test rsp, 15
-	jne call.else451
+	jne .call.else452
 	call _new_func
-	jmp call.end451
-call.else451:
+	jmp .call.end452
+.call.else452:
 	push rsi
 	call _new_func
 	pop rsi
-call.end451:
+.call.end452:
 	push rax
 	pop rbx
 	pop rax
@@ -16661,8 +16760,8 @@ call.end451:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end178
-.Lif.else178:
+	jmp .Lif.end180
+.Lif.else180:
 	lea rax, [rbp-32]
 	push rax
 	lea rax, QWORD PTR [rip + funcs@GOTPCREL]
@@ -16691,14 +16790,14 @@ call.end451:
 	pop rcx
 	mov rax, 4
 	test rsp, 15
-	jne call.else452
+	jne .call.else453
 	call _new_func
-	jmp call.end452
-call.else452:
+	jmp .call.end453
+.call.else453:
 	push rsi
 	call _new_func
 	pop rsi
-call.end452:
+.call.end453:
 	push rax
 	pop rbx
 	pop rax
@@ -16749,14 +16848,14 @@ call.end452:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else453
+	jne .call.else454
 	call _stmts
-	jmp call.end453
-call.else453:
+	jmp .call.end454
+.call.else454:
 	push rsi
 	call _stmts
 	pop rsi
-call.end453:
+.call.end454:
 	push rax
 	pop rbx
 	pop rax
@@ -16797,14 +16896,14 @@ call.end453:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else454
+	jne .call.else455
 	call _search_hash
-	jmp call.end454
-call.else454:
+	jmp .call.end455
+.call.else455:
 	push rsi
 	call _search_hash
 	pop rsi
-call.end454:
+.call.end455:
 	push rax
 	pop rbx
 	pop rax
@@ -16825,8 +16924,8 @@ call.end454:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end178
-.Lif.end178:
+	jmp .Lif.end180
+.Lif.end180:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -16834,9 +16933,9 @@ call.end454:
 	push rax
 	pop rbp
 	ret
+.Lif.end175:
+.Lif.end174:
 .Lif.end173:
-.Lif.end172:
-.Lif.end171:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	lea rax, [rbp-8]
@@ -16978,35 +17077,35 @@ _struct_decl:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-	lea rax, qword ptr [rip + .LC142]
+	lea rax, qword ptr [rip + .LC143]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else455
+	jne .call.else456
 	call _consume
-	jmp call.end455
-call.else455:
+	jmp .call.end456
+.call.else456:
 	push rsi
 	call _consume
 	pop rsi
-call.end455:
+.call.end456:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then179
-	jmp .Lif.end179
-.Lif.then179:
+	test rax, rax
+	je .Lif.then181
+	jmp .Lif.end181
+.Lif.then181:
 	mov rax, 0
 	test rsp, 15
-	jne call.else456
+	jne .call.else457
 	call _consume_ident
-	jmp call.end456
-call.else456:
+	jmp .call.end457
+.call.else457:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end456:
+.call.end457:
 	push rax
 	pop rbx
 	pop rax
@@ -17019,14 +17118,14 @@ call.end456:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else457
+	jne .call.else458
 	call _find_aggr
-	jmp call.end457
-call.else457:
+	jmp .call.end458
+.call.else458:
 	push rsi
 	call _find_aggr
 	pop rsi
-call.end457:
+.call.end458:
 	push rax
 	pop rbx
 	pop rax
@@ -17040,10 +17139,10 @@ call.end457:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then180
-	jmp .Lif.end180
-.Lif.then180:
+	test rax, rax
+	je .Lif.then182
+	jmp .Lif.end182
+.Lif.then182:
 	lea rax, [rbp-16]
 	push rax
 	push 1
@@ -17052,19 +17151,19 @@ call.end457:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else458
+	jne .call.else459
 	call _calloc
-	jmp call.end458
-call.else458:
+	jmp .call.end459
+.call.else459:
 	push rsi
 	call _calloc
 	pop rsi
-call.end458:
+.call.end459:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lif.end180:
+.Lif.end182:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -17075,14 +17174,14 @@ call.end458:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else459
+	jne .call.else460
 	call _new_vector
-	jmp call.end459
-call.else459:
+	jmp .call.end460
+.call.else460:
 	push rsi
 	call _new_vector
 	pop rsi
-call.end459:
+.call.end460:
 	push rax
 	pop rbx
 	pop rax
@@ -17093,10 +17192,10 @@ call.end459:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then181
-	jmp .Lif.end181
-.Lif.then181:
+	test rax, rax
+	je .Lif.then183
+	jmp .Lif.end183
+.Lif.then183:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -17141,7 +17240,7 @@ call.end459:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-.Lif.end181:
+.Lif.end183:
 	push 0
 	pop rbx
 	pop rax
@@ -17160,14 +17259,14 @@ call.end459:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else460
+	jne .call.else461
 	call _struct_type
-	jmp call.end460
-call.else460:
+	jmp .call.end461
+.call.else461:
 	push rsi
 	call _struct_type
 	pop rsi
-call.end460:
+.call.end461:
 	push rax
 	pop rbx
 	pop rax
@@ -17194,37 +17293,37 @@ call.end460:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else461
+	jne .call.else462
 	call _new_node_s
-	jmp call.end461
-call.else461:
+	jmp .call.end462
+.call.else462:
 	push rsi
 	call _new_node_s
 	pop rsi
-call.end461:
+.call.end462:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC143]
+	lea rax, qword ptr [rip + .LC144]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else462
+	jne .call.else463
 	call _consume
-	jmp call.end462
-call.else462:
+	jmp .call.end463
+.call.else463:
 	push rsi
 	call _consume
 	pop rsi
-call.end462:
+.call.end463:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then182
-	jmp .Lif.end182
-.Lif.then182:
+	test rax, rax
+	je .Lif.then184
+	jmp .Lif.end184
+.Lif.then184:
 	lea rax, QWORD PTR [rip + cur_scope@GOTPCREL]
 	push rax
 	pop rax
@@ -17247,14 +17346,14 @@ call.end462:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else463
+	jne .call.else464
 	call _add_node
-	jmp call.end463
-call.else463:
+	jmp .call.end464
+.call.else464:
 	push rsi
 	call _add_node
 	pop rsi
-call.end463:
+.call.end464:
 	push rax
 	lea rax, QWORD PTR [rip + cur_scope@GOTPCREL]
 	push rax
@@ -17266,24 +17365,24 @@ call.end463:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lwhile.loop7:
+.Lwhile.loop6:
 	push 1
 	cmp rax, 0
-	je .Lwhile.end7
+	je .Lwhile.end6
 	lea rax, [rbp-44]
 	push rax
 	push 0
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else464
+	jne .call.else465
 	call _variable_decl
-	jmp call.end464
-call.else464:
+	jmp .call.end465
+.call.else465:
 	push rsi
 	call _variable_decl
 	pop rsi
-call.end464:
+.call.end465:
 	push rax
 	pop rbx
 	pop rax
@@ -17297,25 +17396,25 @@ call.end464:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then183
-	jmp .Lif.end183
-.Lif.then183:
-	jmp .Lwhile.end7
-.Lif.end183:
-	lea rax, qword ptr [rip + .LC144]
+	test rax, rax
+	je .Lif.then185
+	jmp .Lif.end185
+.Lif.then185:
+	jmp .Lwhile.end6
+.Lif.end185:
+	lea rax, qword ptr [rip + .LC145]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else465
+	jne .call.else466
 	call _expect
-	jmp call.end465
-call.else465:
+	jmp .call.end466
+.call.else466:
 	push rsi
 	call _expect
 	pop rsi
-call.end465:
+.call.end466:
 	push rax
 	lea rax, [rbp-16]
 	push rax
@@ -17337,14 +17436,14 @@ call.end465:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else466
+	jne .call.else467
 	call _push_back
-	jmp call.end466
-call.else466:
+	jmp .call.end467
+.call.else467:
 	push rsi
 	call _push_back
 	pop rsi
-call.end466:
+.call.end467:
 	push rax
 	lea rax, [rbp-24]
 	push rax
@@ -17377,21 +17476,21 @@ call.end466:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-	jmp .Lwhile.loop7
-.Lwhile.end7:
-	lea rax, qword ptr [rip + .LC145]
+	jmp .Lwhile.loop6
+.Lwhile.end6:
+	lea rax, qword ptr [rip + .LC146]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else467
+	jne .call.else468
 	call _expect
-	jmp call.end467
-call.else467:
+	jmp .call.end468
+.call.else468:
 	push rsi
 	call _expect
 	pop rsi
-call.end467:
+.call.end468:
 	push rax
 	lea rax, QWORD PTR [rip + cur_scope@GOTPCREL]
 	push rax
@@ -17461,14 +17560,14 @@ call.end467:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else468
+	jne .call.else469
 	call _struct_type
-	jmp call.end468
-call.else468:
+	jmp .call.end469
+.call.else469:
 	push rsi
 	call _struct_type
 	pop rsi
-call.end468:
+.call.end469:
 	push rax
 	pop rbx
 	pop rax
@@ -17569,9 +17668,9 @@ call.end468:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then184
-	jmp .Lif.end184
-.Lif.then184:
+	je .Lif.then186
+	jmp .Lif.end186
+.Lif.then186:
 	lea rax, [rbp-16]
 	push rax
 	lea rax, [rbp-56]
@@ -17632,14 +17731,14 @@ call.end468:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else469
+	jne .call.else470
 	call _strncmp
-	jmp call.end469
-call.else469:
+	jmp .call.end470
+.call.else470:
 	push rsi
 	call _strncmp
 	pop rsi
-call.end469:
+.call.end470:
 	push rax
 	push 0
 	pop rbx
@@ -17679,9 +17778,9 @@ call.end469:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then185
-	jmp .Lif.end185
-.Lif.then185:
+	je .Lif.then187
+	jmp .Lif.end187
+.Lif.then187:
 	lea rax, [rbp-56]
 	push rax
 	pop rax
@@ -17702,17 +17801,17 @@ call.end469:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else470
+	jne .call.else471
 	call _move_type
-	jmp call.end470
-call.else470:
+	jmp .call.end471
+.call.else471:
 	push rsi
 	call _move_type
 	pop rsi
-call.end470:
+.call.end471:
 	push rax
-.Lif.end185:
-.Lif.end184:
+.Lif.end187:
+.Lif.end186:
 .Lfor.inc25:
 	lea rax, [rbp-52]
 	push rax
@@ -17745,14 +17844,14 @@ call.end470:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else471
+	jne .call.else472
 	call _push_back
-	jmp call.end471
-call.else471:
+	jmp .call.end472
+.call.else472:
 	push rsi
 	call _push_back
 	pop rsi
-call.end471:
+.call.end472:
 	push rax
 	lea rax, [rbp-0]
 	push rax
@@ -17777,7 +17876,7 @@ call.end471:
 	push rax
 	pop rbp
 	ret
-.Lif.end182:
+.Lif.end184:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -17785,7 +17884,7 @@ call.end471:
 	push rax
 	pop rbp
 	ret
-.Lif.end179:
+.Lif.end181:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -17801,52 +17900,52 @@ _enum_decl:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-	lea rax, qword ptr [rip + .LC146]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else472
-	call _consume
-	jmp call.end472
-call.else472:
-	push rsi
-	call _consume
-	pop rsi
-call.end472:
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then186
-	jmp .Lif.end186
-.Lif.then186:
-	mov rax, 0
-	test rsp, 15
-	jne call.else473
-	call _consume_ident
-	jmp call.end473
-call.else473:
-	push rsi
-	call _consume_ident
-	pop rsi
-call.end473:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
 	lea rax, qword ptr [rip + .LC147]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else474
+	jne .call.else473
+	call _consume
+	jmp .call.end473
+.call.else473:
+	push rsi
+	call _consume
+	pop rsi
+.call.end473:
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then188
+	jmp .Lif.end188
+.Lif.then188:
+	mov rax, 0
+	test rsp, 15
+	jne .call.else474
+	call _consume_ident
+	jmp .call.end474
+.call.else474:
+	push rsi
+	call _consume_ident
+	pop rsi
+.call.end474:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, qword ptr [rip + .LC148]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else475
 	call _expect
-	jmp call.end474
-call.else474:
+	jmp .call.end475
+.call.else475:
 	push rsi
 	call _expect
 	pop rsi
-call.end474:
+.call.end475:
 	push rax
 	lea rax, [rbp-8]
 	push rax
@@ -17856,14 +17955,14 @@ call.end474:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else475
+	jne .call.else476
 	call _find_aggr
-	jmp call.end475
-call.else475:
+	jmp .call.end476
+.call.else476:
 	push rsi
 	call _find_aggr
 	pop rsi
-call.end475:
+.call.end476:
 	push rax
 	pop rbx
 	pop rax
@@ -17877,10 +17976,10 @@ call.end475:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then187
-	jmp .Lif.end187
-.Lif.then187:
+	test rax, rax
+	je .Lif.then189
+	jmp .Lif.end189
+.Lif.then189:
 	lea rax, [rbp-16]
 	push rax
 	push 1
@@ -17889,19 +17988,19 @@ call.end475:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else476
+	jne .call.else477
 	call _calloc
-	jmp call.end476
-call.else476:
+	jmp .call.end477
+.call.else477:
 	push rsi
 	call _calloc
 	pop rsi
-call.end476:
+.call.end477:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lif.end187:
+.Lif.end189:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -17912,14 +18011,14 @@ call.end476:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else477
+	jne .call.else478
 	call _new_vector
-	jmp call.end477
-call.else477:
+	jmp .call.end478
+.call.else478:
 	push rsi
 	call _new_vector
 	pop rsi
-call.end477:
+.call.end478:
 	push rax
 	pop rbx
 	pop rax
@@ -17930,10 +18029,10 @@ call.end477:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then188
-	jmp .Lif.end188
-.Lif.then188:
+	test rax, rax
+	je .Lif.then190
+	jmp .Lif.end190
+.Lif.then190:
 	lea rax, [rbp-16]
 	push rax
 	pop rax
@@ -17978,21 +18077,21 @@ call.end477:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-.Lif.end188:
+.Lif.end190:
 	push 0
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
 	mov rax, 0
 	test rsp, 15
-	jne call.else478
+	jne .call.else479
 	call _int_type
-	jmp call.end478
-call.else478:
+	jmp .call.end479
+.call.else479:
 	push rsi
 	call _int_type
 	pop rsi
-call.end478:
+.call.end479:
 	push rax
 	pop rbx
 	pop rax
@@ -18019,14 +18118,14 @@ call.end478:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else479
+	jne .call.else480
 	call _enum_type
-	jmp call.end479
-call.else479:
+	jmp .call.end480
+.call.else480:
 	push rsi
 	call _enum_type
 	pop rsi
-call.end479:
+.call.end480:
 	push rax
 	pop rbx
 	pop rax
@@ -18053,14 +18152,14 @@ call.end479:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else480
+	jne .call.else481
 	call _new_node_s
-	jmp call.end480
-call.else480:
+	jmp .call.end481
+.call.else481:
 	push rsi
 	call _new_node_s
 	pop rsi
-call.end480:
+.call.end481:
 	push rax
 	pop rbx
 	pop rax
@@ -18087,14 +18186,14 @@ call.end480:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else481
+	jne .call.else482
 	call _add_node
-	jmp call.end481
-call.else481:
+	jmp .call.end482
+.call.else482:
 	push rsi
 	call _add_node
 	pop rsi
-call.end481:
+.call.end482:
 	push rax
 	lea rax, QWORD PTR [rip + cur_scope@GOTPCREL]
 	push rax
@@ -18110,38 +18209,38 @@ call.end481:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-.Lwhile.loop8:
-	lea rax, qword ptr [rip + .LC148]
+.Lwhile.loop7:
+	lea rax, qword ptr [rip + .LC149]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else482
+	jne .call.else483
 	call _consume
-	jmp call.end482
-call.else482:
+	jmp .call.end483
+.call.else483:
 	push rsi
 	call _consume
 	pop rsi
-call.end482:
+.call.end483:
 	push rax
 	pop rax
 	not eax
 	push rax
 	cmp rax, 0
-	je .Lwhile.end8
+	je .Lwhile.end7
 	lea rax, [rbp-28]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else483
+	jne .call.else484
 	call _consume_ident
-	jmp call.end483
-call.else483:
+	jmp .call.end484
+.call.else484:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end483:
+.call.end484:
 	push rax
 	pop rbx
 	pop rax
@@ -18155,10 +18254,10 @@ call.end483:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then189
-	jmp .Lif.end189
-.Lif.then189:
+	test rax, rax
+	je .Lif.then191
+	jmp .Lif.end191
+.Lif.then191:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	pop rax
@@ -18171,22 +18270,22 @@ call.end483:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC149]
+	lea rax, qword ptr [rip + .LC150]
 	push rax
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else484
+	jne .call.else485
 	call _error_at
-	jmp call.end484
-call.else484:
+	jmp .call.end485
+.call.else485:
 	push rsi
 	call _error_at
 	pop rsi
-call.end484:
+.call.end485:
 	push rax
-	jmp .Lwhile.end8
-.Lif.end189:
+	jmp .Lwhile.end7
+.Lif.end191:
 	lea rax, [rbp-36]
 	push rax
 	lea rax, [rbp-28]
@@ -18203,14 +18302,14 @@ call.end484:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else485
+	jne .call.else486
 	call _make_lvar
-	jmp call.end485
-call.else485:
+	jmp .call.end486
+.call.else486:
 	push rsi
 	call _make_lvar
 	pop rsi
-call.end485:
+.call.end486:
 	push rax
 	pop rbx
 	pop rax
@@ -18229,14 +18328,14 @@ call.end485:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else486
+	jne .call.else487
 	call _add_var
-	jmp call.end486
-call.else486:
+	jmp .call.end487
+.call.else487:
 	push rsi
 	call _add_var
 	pop rsi
-call.end486:
+.call.end487:
 	push rax
 	lea rax, [rbp-52]
 	push rax
@@ -18260,14 +18359,14 @@ call.end486:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else487
+	jne .call.else488
 	call _new_node_s
-	jmp call.end487
-call.else487:
+	jmp .call.end488
+.call.else488:
 	push rsi
 	call _new_node_s
 	pop rsi
-call.end487:
+.call.end488:
 	push rax
 	pop rbx
 	pop rax
@@ -18308,14 +18407,14 @@ call.end487:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else488
+	jne .call.else489
 	call _push_back
-	jmp call.end488
-call.else488:
+	jmp .call.end489
+.call.else489:
 	push rsi
 	call _push_back
 	pop rsi
-call.end488:
+.call.end489:
 	push rax
 	lea rax, [rbp-24]
 	push rax
@@ -18352,37 +18451,37 @@ call.end488:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC150]
+	lea rax, qword ptr [rip + .LC151]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else489
+	jne .call.else490
 	call _consume
-	jmp call.end489
-call.else489:
+	jmp .call.end490
+.call.else490:
 	push rsi
 	call _consume
 	pop rsi
-call.end489:
+.call.end490:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then190
-	jmp .Lif.end190
-.Lif.then190:
+	test rax, rax
+	je .Lif.then192
+	jmp .Lif.end192
+.Lif.then192:
 	lea rax, [rbp-60]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else490
+	jne .call.else491
 	call _initializer
-	jmp call.end490
-call.else490:
+	jmp .call.end491
+.call.else491:
 	push rsi
 	call _initializer
 	pop rsi
-call.end490:
+.call.end491:
 	push rax
 	pop rbx
 	pop rax
@@ -18409,39 +18508,39 @@ call.end490:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else491
+	jne .call.else492
 	call _new_binary_node
-	jmp call.end491
-call.else491:
+	jmp .call.end492
+.call.else492:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end491:
+.call.end492:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lif.end190:
+.Lif.end192:
 	lea rax, [rbp-100]
 	push rax
 	pop rax
 	mov al, BYTE PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then191
-	jmp .Lif.else191
-.Lif.then191:
+	test rax, rax
+	je .Lif.then193
+	jmp .Lif.else193
+.Lif.then193:
 	lea rax, [rbp-60]
 	push rax
 	pop rax
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then192
-	jmp .Lif.else192
-.Lif.then192:
+	test rax, rax
+	je .Lif.then194
+	jmp .Lif.else194
+.Lif.then194:
 	lea rax, [rbp-44]
 	push rax
 	lea rax, [rbp-60]
@@ -18496,34 +18595,34 @@ call.end491:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else492
+	jne .call.else493
 	call _new_binary_node
-	jmp call.end492
-call.else492:
+	jmp .call.end493
+.call.else493:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end492:
+.call.end493:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end192
-.Lif.else192:
+	jmp .Lif.end194
+.Lif.else194:
 	lea rax, [rbp-60]
 	push rax
 	push 0
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else493
+	jne .call.else494
 	call _new_node_num
-	jmp call.end493
-call.else493:
+	jmp .call.end494
+.call.else494:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end493:
+.call.end494:
 	push rax
 	pop rbx
 	pop rax
@@ -18550,28 +18649,28 @@ call.end493:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else494
+	jne .call.else495
 	call _new_binary_node
-	jmp call.end494
-call.else494:
+	jmp .call.end495
+.call.else495:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end494:
+.call.end495:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end192
-.Lif.end192:
+	jmp .Lif.end194
+.Lif.end194:
 	lea rax, [rbp-100]
 	push rax
 	push 0
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-	jmp .Lif.end191
-.Lif.else191:
+	jmp .Lif.end193
+.Lif.else193:
 	lea rax, [rbp-60]
 	push rax
 	pop rax
@@ -18581,24 +18680,24 @@ call.end494:
 	not eax
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then193
-	jmp .Lif.end193
-.Lif.then193:
+	test rax, rax
+	je .Lif.then195
+	jmp .Lif.end195
+.Lif.then195:
 	lea rax, [rbp-60]
 	push rax
 	push 1
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else495
+	jne .call.else496
 	call _new_node_num
-	jmp call.end495
-call.else495:
+	jmp .call.end496
+.call.else496:
 	push rsi
 	call _new_node_num
 	pop rsi
-call.end495:
+.call.end496:
 	push rax
 	pop rbx
 	pop rax
@@ -18625,14 +18724,14 @@ call.end495:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else496
+	jne .call.else497
 	call _new_binary_node
-	jmp call.end496
-call.else496:
+	jmp .call.end497
+.call.else497:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end496:
+.call.end497:
 	push rax
 	pop rbx
 	pop rax
@@ -18659,61 +18758,61 @@ call.end496:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else497
+	jne .call.else498
 	call _new_binary_node
-	jmp call.end497
-call.else497:
+	jmp .call.end498
+.call.else498:
 	push rsi
 	call _new_binary_node
 	pop rsi
-call.end497:
+.call.end498:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
+.Lif.end195:
+	jmp .Lif.end193
 .Lif.end193:
-	jmp .Lif.end191
-.Lif.end191:
-	lea rax, qword ptr [rip + .LC151]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else498
-	call _consume
-	jmp call.end498
-call.else498:
-	push rsi
-	call _consume
-	pop rsi
-call.end498:
-	push rax
-	pop rax
-	not eax
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then194
-	jmp .Lif.end194
-.Lif.then194:
 	lea rax, qword ptr [rip + .LC152]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else499
+	jne .call.else499
+	call _consume
+	jmp .call.end499
+.call.else499:
+	push rsi
+	call _consume
+	pop rsi
+.call.end499:
+	push rax
+	pop rax
+	not eax
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then196
+	jmp .Lif.end196
+.Lif.then196:
+	lea rax, qword ptr [rip + .LC153]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else500
 	call _expect
-	jmp call.end499
-call.else499:
+	jmp .call.end500
+.call.else500:
 	push rsi
 	call _expect
 	pop rsi
-call.end499:
+.call.end500:
 	push rax
-	jmp .Lwhile.end8
-.Lif.end194:
-	jmp .Lwhile.loop8
-.Lwhile.end8:
+	jmp .Lwhile.end7
+.Lif.end196:
+	jmp .Lwhile.loop7
+.Lwhile.end7:
 	lea rax, QWORD PTR [rip + cur_scope@GOTPCREL]
 	push rax
 	lea rax, [rbp-92]
@@ -18782,14 +18881,14 @@ call.end499:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else500
+	jne .call.else501
 	call _enum_type
-	jmp call.end500
-call.else500:
+	jmp .call.end501
+.call.else501:
 	push rsi
 	call _enum_type
 	pop rsi
-call.end500:
+.call.end501:
 	push rax
 	pop rbx
 	pop rax
@@ -18890,9 +18989,9 @@ call.end500:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then195
-	jmp .Lif.end195
-.Lif.then195:
+	je .Lif.then197
+	jmp .Lif.end197
+.Lif.then197:
 	lea rax, [rbp-16]
 	push rax
 	lea rax, [rbp-105]
@@ -18958,14 +19057,14 @@ call.end500:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else501
+	jne .call.else502
 	call _strncmp
-	jmp call.end501
-call.else501:
+	jmp .call.end502
+.call.else502:
 	push rsi
 	call _strncmp
 	pop rsi
-call.end501:
+.call.end502:
 	push rax
 	push 0
 	pop rbx
@@ -19009,9 +19108,9 @@ call.end501:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then196
-	jmp .Lif.end196
-.Lif.then196:
+	je .Lif.then198
+	jmp .Lif.end198
+.Lif.then198:
 	lea rax, [rbp-105]
 	push rax
 	pop rax
@@ -19032,17 +19131,17 @@ call.end501:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else502
+	jne .call.else503
 	call _move_type
-	jmp call.end502
-call.else502:
+	jmp .call.end503
+.call.else503:
 	push rsi
 	call _move_type
 	pop rsi
-call.end502:
+.call.end503:
 	push rax
-.Lif.end196:
-.Lif.end195:
+.Lif.end198:
+.Lif.end197:
 .Lfor.inc26:
 	lea rax, [rbp-101]
 	push rax
@@ -19075,14 +19174,14 @@ call.end502:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else503
+	jne .call.else504
 	call _push_back
-	jmp call.end503
-call.else503:
+	jmp .call.end504
+.call.else504:
 	push rsi
 	call _push_back
 	pop rsi
-call.end503:
+.call.end504:
 	push rax
 	lea rax, [rbp-0]
 	push rax
@@ -19107,7 +19206,7 @@ call.end503:
 	push rax
 	pop rbp
 	ret
-.Lif.end186:
+.Lif.end188:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -19127,14 +19226,14 @@ _aggregate_decl:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else504
+	jne .call.else505
 	call _struct_decl
-	jmp call.end504
-call.else504:
+	jmp .call.end505
+.call.else505:
 	push rsi
 	call _struct_decl
 	pop rsi
-call.end504:
+.call.end505:
 	push rax
 	pop rbx
 	pop rax
@@ -19145,10 +19244,10 @@ call.end504:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then197
-	jmp .Lif.end197
-.Lif.then197:
+	test rax, rax
+	je .Lif.then199
+	jmp .Lif.end199
+.Lif.then199:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -19156,19 +19255,19 @@ call.end504:
 	push rax
 	pop rbp
 	ret
-.Lif.end197:
+.Lif.end199:
 	lea rax, [rbp-0]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else505
+	jne .call.else506
 	call _enum_decl
-	jmp call.end505
-call.else505:
+	jmp .call.end506
+.call.else506:
 	push rsi
 	call _enum_decl
 	pop rsi
-call.end505:
+.call.end506:
 	push rax
 	pop rbx
 	pop rax
@@ -19179,10 +19278,10 @@ call.end505:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then198
-	jmp .Lif.end198
-.Lif.then198:
+	test rax, rax
+	je .Lif.then200
+	jmp .Lif.end200
+.Lif.then200:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -19190,7 +19289,7 @@ call.end505:
 	push rax
 	pop rbp
 	ret
-.Lif.end198:
+.Lif.end200:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -19202,25 +19301,25 @@ _typedef_decl:
 	push rbp
 	mov rbp, rsp
 	sub rsp, 40
-	lea rax, qword ptr [rip + .LC153]
+	lea rax, qword ptr [rip + .LC154]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else506
+	jne .call.else507
 	call _consume
-	jmp call.end506
-call.else506:
+	jmp .call.end507
+.call.else507:
 	push rsi
 	call _consume
 	pop rsi
-call.end506:
+.call.end507:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then199
-	jmp .Lif.end199
-.Lif.then199:
+	test rax, rax
+	je .Lif.then201
+	jmp .Lif.end201
+.Lif.then201:
 	lea rax, [rbp-24]
 	push rax
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
@@ -19235,14 +19334,14 @@ call.end506:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else507
+	jne .call.else508
 	call _type_spec
-	jmp call.end507
-call.else507:
+	jmp .call.end508
+.call.else508:
 	push rsi
 	call _type_spec
 	pop rsi
-call.end507:
+.call.end508:
 	push rax
 	pop rbx
 	pop rax
@@ -19253,39 +19352,39 @@ call.end507:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then200
-	jmp .Lif.else200
-.Lif.then200:
+	test rax, rax
+	je .Lif.then202
+	jmp .Lif.else202
+.Lif.then202:
 	lea rax, [rbp-16]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else508
+	jne .call.else509
 	call _consume_ident
-	jmp call.end508
-call.else508:
+	jmp .call.end509
+.call.else509:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end508:
+.call.end509:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC154]
+	lea rax, qword ptr [rip + .LC155]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else509
+	jne .call.else510
 	call _expect
-	jmp call.end509
-call.else509:
+	jmp .call.end510
+.call.else510:
 	push rsi
 	call _expect
 	pop rsi
-call.end509:
+.call.end510:
 	push rax
 	push 1
 	pop rdi
@@ -19293,14 +19392,14 @@ call.end509:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else510
+	jne .call.else511
 	call _calloc
-	jmp call.end510
-call.else510:
+	jmp .call.end511
+.call.else511:
 	push rsi
 	call _calloc
 	pop rsi
-call.end510:
+.call.end511:
 	push rax
 	pop rbx
 	pop rax
@@ -19379,14 +19478,14 @@ call.end510:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else511
+	jne .call.else512
 	call _push_back
-	jmp call.end511
-call.else511:
+	jmp .call.end512
+.call.else512:
 	push rsi
 	call _push_back
 	pop rsi
-call.end511:
+.call.end512:
 	push rax
 	lea rax, [rbp-32]
 	push rax
@@ -19395,8 +19494,8 @@ call.end511:
 	push rax
 	pop rbp
 	ret
-	jmp .Lif.end200
-.Lif.else200:
+	jmp .Lif.end202
+.Lif.else202:
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
 	lea rax, [rbp-24]
@@ -19407,9 +19506,9 @@ call.end511:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lif.end200
-.Lif.end200:
-.Lif.end199:
+	jmp .Lif.end202
+.Lif.end202:
+.Lif.end201:
 	push 0
 	pop rbp
 	ret
@@ -19417,73 +19516,73 @@ _include_file:
 	push rbp
 	mov rbp, rsp
 	sub rsp, 120
-	lea rax, qword ptr [rip + .LC155]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else512
-	call _consume
-	jmp call.end512
-call.else512:
-	push rsi
-	call _consume
-	pop rsi
-call.end512:
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then201
-	jmp .Lif.end201
-.Lif.then201:
 	lea rax, qword ptr [rip + .LC156]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else513
+	jne .call.else513
 	call _consume
-	jmp call.end513
-call.else513:
+	jmp .call.end513
+.call.else513:
 	push rsi
 	call _consume
 	pop rsi
-call.end513:
+.call.end513:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then202
-	jmp .Lif.end202
-.Lif.then202:
+	test rax, rax
+	je .Lif.then203
+	jmp .Lif.end203
+.Lif.then203:
 	lea rax, qword ptr [rip + .LC157]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else514
+	jne .call.else514
 	call _consume
-	jmp call.end514
-call.else514:
+	jmp .call.end514
+.call.else514:
 	push rsi
 	call _consume
 	pop rsi
-call.end514:
+.call.end514:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then203
-	jmp .Lif.else203
-.Lif.then203:
+	test rax, rax
+	je .Lif.then204
+	jmp .Lif.end204
+.Lif.then204:
+	lea rax, qword ptr [rip + .LC158]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else515
+	call _consume
+	jmp .call.end515
+.call.else515:
+	push rsi
+	call _consume
+	pop rsi
+.call.end515:
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then205
+	jmp .Lif.else205
+.Lif.then205:
 	mov rax, 0
 	test rsp, 15
-	jne call.else515
+	jne .call.else516
 	call _consume_ident
-	jmp call.end515
-call.else515:
+	jmp .call.end516
+.call.else516:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end515:
+.call.end516:
 	push rax
 	pop rbx
 	pop rax
@@ -19517,14 +19616,14 @@ call.end515:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne call.else516
+	jne .call.else517
 	call _strncpy
-	jmp call.end516
-call.else516:
+	jmp .call.end517
+.call.else517:
 	push rsi
 	call _strncpy
 	pop rsi
-call.end516:
+.call.end517:
 	push rax
 	lea rax, [rbp-8]
 	push rax
@@ -19553,7 +19652,7 @@ call.end516:
 	pop rax
 	add rax, rbx
 	push rax
-	lea rax, qword ptr [rip + .LC158]
+	lea rax, qword ptr [rip + .LC159]
 	push rax
 	pop rbx
 	pop rax
@@ -19571,14 +19670,14 @@ call.end516:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else517
+	jne .call.else518
 	call _compile_at
-	jmp call.end517
-call.else517:
+	jmp .call.end518
+.call.else518:
 	push rsi
 	call _compile_at
 	pop rsi
-call.end517:
+.call.end518:
 	push rax
 	lea rax, QWORD PTR [rip + token@GOTPCREL]
 	push rax
@@ -19590,105 +19689,105 @@ call.end517:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC159]
-	push rax
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else518
-	call _expect
-	jmp call.end518
-call.else518:
-	push rsi
-	call _expect
-	pop rsi
-call.end518:
-	push rax
-	jmp .Lif.end203
-.Lif.else203:
 	lea rax, qword ptr [rip + .LC160]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else519
-	call _consume
-	jmp call.end519
-call.else519:
+	jne .call.else519
+	call _expect
+	jmp .call.end519
+.call.else519:
 	push rsi
-	call _consume
+	call _expect
 	pop rsi
-call.end519:
+.call.end519:
 	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then204
-	jmp .Lif.end204
-.Lif.then204:
-	mov rax, 0
-	test rsp, 15
-	jne call.else520
-	call _consume_ident
-	jmp call.end520
-call.else520:
-	push rsi
-	call _consume_ident
-	pop rsi
-call.end520:
-	push rax
+	jmp .Lif.end205
+.Lif.else205:
 	lea rax, qword ptr [rip + .LC161]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else521
+	jne .call.else520
 	call _consume
-	jmp call.end521
-call.else521:
+	jmp .call.end520
+.call.else520:
 	push rsi
 	call _consume
 	pop rsi
-call.end521:
+.call.end520:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then205
-	jmp .Lif.end205
-.Lif.then205:
+	test rax, rax
+	je .Lif.then206
+	jmp .Lif.end206
+.Lif.then206:
 	mov rax, 0
 	test rsp, 15
-	jne call.else522
+	jne .call.else521
 	call _consume_ident
-	jmp call.end522
-call.else522:
+	jmp .call.end521
+.call.else521:
 	push rsi
 	call _consume_ident
 	pop rsi
-call.end522:
+.call.end521:
 	push rax
-.Lif.end205:
 	lea rax, qword ptr [rip + .LC162]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else523
+	jne .call.else522
+	call _consume
+	jmp .call.end522
+.call.else522:
+	push rsi
+	call _consume
+	pop rsi
+.call.end522:
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then207
+	jmp .Lif.end207
+.Lif.then207:
+	mov rax, 0
+	test rsp, 15
+	jne .call.else523
+	call _consume_ident
+	jmp .call.end523
+.call.else523:
+	push rsi
+	call _consume_ident
+	pop rsi
+.call.end523:
+	push rax
+.Lif.end207:
+	lea rax, qword ptr [rip + .LC163]
+	push rax
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else524
 	call _expect
-	jmp call.end523
-call.else523:
+	jmp .call.end524
+.call.else524:
 	push rsi
 	call _expect
 	pop rsi
-call.end523:
+.call.end524:
 	push rax
-.Lif.end204:
-	jmp .Lif.end203
-.Lif.end203:
+.Lif.end206:
+	jmp .Lif.end205
+.Lif.end205:
 	push 1
 	pop rbp
 	ret
-.Lif.end202:
-.Lif.end201:
+.Lif.end204:
+.Lif.end203:
 	push 0
 	pop rbp
 	ret
@@ -19698,73 +19797,73 @@ _global:
 	sub rsp, 8
 	mov rax, 0
 	test rsp, 15
-	jne call.else524
+	jne .call.else525
 	call _include_file
-	jmp call.end524
-call.else524:
+	jmp .call.end525
+.call.else525:
 	push rsi
 	call _include_file
 	pop rsi
-call.end524:
+.call.end525:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then206
-	jmp .Lif.end206
-.Lif.then206:
+	test rax, rax
+	je .Lif.then208
+	jmp .Lif.end208
+.Lif.then208:
 	push 0
 	pop rbp
 	ret
-.Lif.end206:
+.Lif.end208:
 	mov rax, 0
 	test rsp, 15
-	jne call.else525
+	jne .call.else526
 	call _typedef_decl
-	jmp call.end525
-call.else525:
+	jmp .call.end526
+.call.else526:
 	push rsi
 	call _typedef_decl
 	pop rsi
-call.end525:
+.call.end526:
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then207
-	jmp .Lif.end207
-.Lif.then207:
+	test rax, rax
+	je .Lif.then209
+	jmp .Lif.end209
+.Lif.then209:
 	push 0
 	pop rbp
 	ret
-.Lif.end207:
+.Lif.end209:
 	lea rax, [rbp-0]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else526
+	jne .call.else527
 	call _aggregate_decl
-	jmp call.end526
-call.else526:
+	jmp .call.end527
+.call.else527:
 	push rsi
 	call _aggregate_decl
 	pop rsi
-call.end526:
+.call.end527:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, qword ptr [rip + .LC163]
+	lea rax, qword ptr [rip + .LC164]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else527
+	jne .call.else528
 	call _consume
-	jmp call.end527
-call.else527:
+	jmp .call.end528
+.call.else528:
 	push rsi
 	call _consume
 	pop rsi
-call.end527:
+.call.end528:
 	push rax
 	lea rax, [rbp-0]
 	push rax
@@ -19774,76 +19873,6 @@ call.end527:
 	pop rax
 	pop rbx
 	cmp rax, rbx
-	je .Lif.then208
-	jmp .Lif.end208
-.Lif.then208:
-	lea rax, [rbp-0]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rbp
-	ret
-.Lif.end208:
-	lea rax, [rbp-0]
-	push rax
-	push 1
-	pop rdi
-	mov rax, 1
-	test rsp, 15
-	jne call.else528
-	call _variable_decl
-	jmp call.end528
-call.else528:
-	push rsi
-	call _variable_decl
-	pop rsi
-call.end528:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-	lea rax, [rbp-0]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	cmp rax, 0
-	je .Lif.then209
-	jmp .Lif.end209
-.Lif.then209:
-	lea rax, [rbp-0]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rbp
-	ret
-.Lif.end209:
-	lea rax, [rbp-0]
-	push rax
-	mov rax, 0
-	test rsp, 15
-	jne call.else529
-	call _func_decl_or_def
-	jmp call.end529
-call.else529:
-	push rsi
-	call _func_decl_or_def
-	pop rsi
-call.end529:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
-	lea rax, [rbp-0]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rax
-	cmp rax, 0
 	je .Lif.then210
 	jmp .Lif.end210
 .Lif.then210:
@@ -19855,16 +19884,86 @@ call.end529:
 	pop rbp
 	ret
 .Lif.end210:
+	lea rax, [rbp-0]
+	push rax
+	push 1
+	pop rdi
+	mov rax, 1
+	test rsp, 15
+	jne .call.else529
+	call _variable_decl
+	jmp .call.end529
+.call.else529:
+	push rsi
+	call _variable_decl
+	pop rsi
+.call.end529:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then211
+	jmp .Lif.end211
+.Lif.then211:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbp
+	ret
+.Lif.end211:
+	lea rax, [rbp-0]
+	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else530
+	jne .call.else530
+	call _func_decl_or_def
+	jmp .call.end530
+.call.else530:
+	push rsi
+	call _func_decl_or_def
+	pop rsi
+.call.end530:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rax
+	test rax, rax
+	je .Lif.then212
+	jmp .Lif.end212
+.Lif.then212:
+	lea rax, [rbp-0]
+	push rax
+	pop rax
+	mov rax, QWORD PTR [rax]
+	push rax
+	pop rbp
+	ret
+.Lif.end212:
+	mov rax, 0
+	test rsp, 15
+	jne .call.else531
 	call _stmt
-	jmp call.end530
-call.else530:
+	jmp .call.end531
+.call.else531:
 	push rsi
 	call _stmt
 	pop rsi
-call.end530:
+.call.end531:
 	push rax
 	pop rbp
 	ret
@@ -19876,14 +19975,14 @@ _program:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else531
+	jne .call.else532
 	call _new_vector
-	jmp call.end531
-call.else531:
+	jmp .call.end532
+.call.else532:
 	push rsi
 	call _new_vector
 	pop rsi
-call.end531:
+.call.end532:
 	push rax
 	pop rbx
 	pop rax
@@ -19892,47 +19991,47 @@ call.end531:
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else532
+	jne .call.else533
 	call _init_variable_list
-	jmp call.end532
-call.else532:
+	jmp .call.end533
+.call.else533:
 	push rsi
 	call _init_variable_list
 	pop rsi
-call.end532:
+.call.end533:
 	push rax
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lwhile.loop9:
+.Lwhile.loop8:
 	mov rax, 0
 	test rsp, 15
-	jne call.else533
+	jne .call.else534
 	call _at_eof
-	jmp call.end533
-call.else533:
+	jmp .call.end534
+.call.else534:
 	push rsi
 	call _at_eof
 	pop rsi
-call.end533:
+.call.end534:
 	push rax
 	pop rax
 	not eax
 	push rax
 	cmp rax, 0
-	je .Lwhile.end9
+	je .Lwhile.end8
 	lea rax, [rbp-0]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne call.else534
+	jne .call.else535
 	call _global
-	jmp call.end534
-call.else534:
+	jmp .call.end535
+.call.else535:
 	push rsi
 	call _global
 	pop rsi
-call.end534:
+.call.end535:
 	push rax
 	pop rbx
 	pop rax
@@ -19943,10 +20042,10 @@ call.end534:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rax
-	cmp rax, 0
-	je .Lif.then211
-	jmp .Lif.end211
-.Lif.then211:
+	test rax, rax
+	je .Lif.then213
+	jmp .Lif.end213
+.Lif.then213:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -19955,18 +20054,18 @@ call.end534:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne call.else535
+	jne .call.else536
 	call _add_code
-	jmp call.end535
-call.else535:
+	jmp .call.end536
+.call.else536:
 	push rsi
 	call _add_code
 	pop rsi
-call.end535:
+.call.end536:
 	push rax
-.Lif.end211:
-	jmp .Lwhile.loop9
-.Lwhile.end9:
+.Lif.end213:
+	jmp .Lwhile.loop8
+.Lwhile.end8:
 	lea rax, QWORD PTR [rip + hashs@GOTPCREL]
 	push rax
 	pop rax
@@ -19977,14 +20076,14 @@ call.end535:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne call.else536
+	jne .call.else537
 	call _print_variable_scope
-	jmp call.end536
-call.else536:
+	jmp .call.end537
+.call.else537:
 	push rsi
 	call _print_variable_scope
 	pop rsi
-call.end536:
+.call.end537:
 	push rax
 	lea rax, QWORD PTR [rip + code@GOTPCREL]
 	push rax
@@ -20027,318 +20126,320 @@ call.end536:
 .LC5:
 	.string "long"
 .LC6:
-	.string "float"
+	.string "int"
 .LC7:
-	.string "signed"
+	.string "test long int\n"
 .LC8:
-	.string "unsigned"
+	.string "float"
 .LC9:
-	.string "struct"
+	.string "signed"
 .LC10:
-	.string "*"
+	.string "unsigned"
 .LC11:
-	.string "("
+	.string "struct"
 .LC12:
-	.string "関数がありません"
+	.string "*"
 .LC13:
-	.string ")"
+	.string "("
 .LC14:
-	.string "関数の引数が','で終わっています"
+	.string "関数がありません"
 .LC15:
-	.string ","
+	.string ")"
 .LC16:
-	.string ")"
+	.string "関数の引数が','で終わっています"
 .LC17:
-	.string "NULL"
-.LC18:
-	.string "false"
-.LC19:
-	.string "true"
-.LC20:
-	.string "その変数は宣言されていません"
-.LC21:
-	.string "("
-.LC22:
-	.string ")"
-.LC23:
-	.string "\""
-.LC24:
-	.string "\""
-.LC25:
-	.string "'"
-.LC26:
-	.string "'"
-.LC27:
-	.string "break"
-.LC28:
-	.string "continue"
-.LC29:
-	.string "."
-.LC30:
-	.string "構造体のドット演算子のrhsが存在しません"
-.LC31:
-	.string "->"
-.LC32:
-	.string "構造体のアロー演算子のrhsが存在しません"
-.LC33:
-	.string "["
-.LC34:
-	.string "]"
-.LC35:
-	.string "++"
-.LC36:
-	.string "--"
-.LC37:
-	.string "sizeof"
-.LC38:
-	.string "("
-.LC39:
-	.string ")"
-.LC40:
-	.string "("
-.LC41:
-	.string ")"
-.LC42:
-	.string "+"
-.LC43:
-	.string "-"
-.LC44:
-	.string "++"
-.LC45:
-	.string "--"
-.LC46:
-	.string "!"
-.LC47:
-	.string "~"
-.LC48:
-	.string "*"
-.LC49:
-	.string "型がありません\n"
-.LC50:
-	.string "error: indirection requires pointer operand ('int' invalid)"
-.LC51:
-	.string "&"
-.LC52:
-	.string "*"
-.LC53:
-	.string "/"
-.LC54:
-	.string "%"
-.LC55:
-	.string "+"
-.LC56:
-	.string "-"
-.LC57:
-	.string "<<"
-.LC58:
-	.string ">>"
-.LC59:
-	.string "<"
-.LC60:
-	.string "="
-.LC61:
-	.string ">"
-.LC62:
-	.string "="
-.LC63:
-	.string "=="
-.LC64:
-	.string "!="
-.LC65:
-	.string "|"
-.LC66:
-	.string "^"
-.LC67:
-	.string "&"
-.LC68:
-	.string "&&"
-.LC69:
-	.string "||"
-.LC70:
-	.string "."
-.LC71:
-	.string "構造体のドット演算子のrhsが存在しません"
-.LC72:
-	.string "->"
-.LC73:
-	.string "構造体のアロー演算子のrhsが存在しません"
-.LC74:
-	.string "*"
-.LC75:
-	.string "&"
-.LC76:
-	.string "["
-.LC77:
-	.string "]"
-.LC78:
-	.string "{"
-.LC79:
 	.string ","
-.LC80:
-	.string "}"
-.LC81:
-	.string "+="
-.LC82:
-	.string "-="
-.LC83:
-	.string "*="
-.LC84:
-	.string "/="
-.LC85:
-	.string "%="
-.LC86:
-	.string "<<="
-.LC87:
-	.string ">>="
-.LC88:
-	.string "&="
-.LC89:
-	.string "^="
-.LC90:
-	.string "|="
-.LC91:
+.LC18:
+	.string ")"
+.LC19:
+	.string "NULL"
+.LC20:
+	.string "false"
+.LC21:
+	.string "true"
+.LC22:
+	.string "その変数は宣言されていません"
+.LC23:
+	.string "("
+.LC24:
+	.string ")"
+.LC25:
+	.string "\""
+.LC26:
+	.string "\""
+.LC27:
+	.string "\""
+.LC28:
+	.string "'"
+.LC29:
+	.string "'"
+.LC30:
+	.string "break"
+.LC31:
+	.string "continue"
+.LC32:
+	.string "."
+.LC33:
+	.string "構造体のドット演算子のrhsが存在しません"
+.LC34:
+	.string "->"
+.LC35:
+	.string "構造体のアロー演算子のrhsが存在しません"
+.LC36:
+	.string "["
+.LC37:
+	.string "]"
+.LC38:
+	.string "++"
+.LC39:
+	.string "--"
+.LC40:
+	.string "sizeof"
+.LC41:
+	.string "("
+.LC42:
+	.string ")"
+.LC43:
+	.string "("
+.LC44:
+	.string ")"
+.LC45:
+	.string "+"
+.LC46:
+	.string "-"
+.LC47:
+	.string "++"
+.LC48:
+	.string "--"
+.LC49:
+	.string "!"
+.LC50:
+	.string "~"
+.LC51:
+	.string "*"
+.LC52:
+	.string "型がありません\n"
+.LC53:
+	.string "error: indirection requires pointer operand ('int' invalid)"
+.LC54:
+	.string "&"
+.LC55:
+	.string "*"
+.LC56:
+	.string "/"
+.LC57:
+	.string "%"
+.LC58:
+	.string "+"
+.LC59:
+	.string "-"
+.LC60:
+	.string "<<"
+.LC61:
+	.string ">>"
+.LC62:
+	.string "<"
+.LC63:
 	.string "="
-.LC92:
-	.string "case"
-.LC93:
-	.string ":"
-.LC94:
-	.string "case"
-.LC95:
-	.string "}"
-.LC96:
-	.string "default"
-.LC97:
-	.string ":"
-.LC98:
-	.string "case"
-.LC99:
-	.string "}"
-.LC100:
-	.string "return"
-.LC101:
-	.string ";"
-.LC102:
-	.string "if"
-.LC103:
-	.string "("
-.LC104:
-	.string ")"
-.LC105:
-	.string "else"
-.LC106:
-	.string "switch"
-.LC107:
-	.string "("
-.LC108:
-	.string ")"
-.LC109:
+.LC64:
+	.string ">"
+.LC65:
+	.string "="
+.LC66:
+	.string "=="
+.LC67:
+	.string "!="
+.LC68:
+	.string "|"
+.LC69:
+	.string "^"
+.LC70:
+	.string "&"
+.LC71:
+	.string "&&"
+.LC72:
+	.string "||"
+.LC73:
+	.string "."
+.LC74:
+	.string "構造体のドット演算子のrhsが存在しません"
+.LC75:
+	.string "->"
+.LC76:
+	.string "構造体のアロー演算子のrhsが存在しません"
+.LC77:
+	.string "*"
+.LC78:
+	.string "&"
+.LC79:
+	.string "["
+.LC80:
+	.string "]"
+.LC81:
 	.string "{"
-.LC110:
+.LC82:
+	.string ","
+.LC83:
 	.string "}"
-.LC111:
-	.string "while"
-.LC112:
-	.string "("
-.LC113:
-	.string ")"
-.LC114:
-	.string "for"
-.LC115:
-	.string "("
-.LC116:
+.LC84:
+	.string "+="
+.LC85:
+	.string "-="
+.LC86:
+	.string "*="
+.LC87:
+	.string "/="
+.LC88:
+	.string "%="
+.LC89:
+	.string "<<="
+.LC90:
+	.string ">>="
+.LC91:
+	.string "&="
+.LC92:
+	.string "^="
+.LC93:
+	.string "|="
+.LC94:
+	.string "="
+.LC95:
+	.string "case"
+.LC96:
+	.string ":"
+.LC97:
+	.string "default"
+.LC98:
+	.string ":"
+.LC99:
+	.string "case"
+.LC100:
+	.string "}"
+.LC101:
+	.string "return"
+.LC102:
 	.string ";"
+.LC103:
+	.string "if"
+.LC104:
+	.string "("
+.LC105:
+	.string ")"
+.LC106:
+	.string "else"
+.LC107:
+	.string "switch"
+.LC108:
+	.string "("
+.LC109:
+	.string ")"
+.LC110:
+	.string "{"
+.LC111:
+	.string "}"
+.LC112:
+	.string "while"
+.LC113:
+	.string "("
+.LC114:
+	.string ")"
+.LC115:
+	.string "for"
+.LC116:
+	.string "("
 .LC117:
 	.string ";"
 .LC118:
-	.string ")"
-.LC119:
 	.string ";"
+.LC119:
+	.string ")"
 .LC120:
-	.string "{"
+	.string ";"
 .LC121:
-	.string "}"
+	.string "{"
 .LC122:
-	.string "unknown statement\n"
-.LC123:
 	.string "}"
+.LC123:
+	.string "unknown statement\n"
 .LC124:
-	.string "extern"
+	.string "}"
 .LC125:
-	.string "*"
+	.string "extern"
 .LC126:
-	.string "("
+	.string "*"
 .LC127:
-	.string "["
+	.string "("
 .LC128:
-	.string "]"
+	.string "["
 .LC129:
-	.string "="
+	.string "]"
 .LC130:
 	.string "="
 .LC131:
-	.string ","
-.LC132:
-	.string ";"
-.LC133:
-	.string "extern"
-.LC134:
-	.string "("
-.LC135:
-	.string ")"
-.LC136:
-	.string "..."
-.LC137:
-	.string ")"
-.LC138:
-	.string "関数の引数が','で終わっています"
-.LC139:
-	.string ","
-.LC140:
-	.string ")"
-.LC141:
-	.string ";"
-.LC142:
-	.string "struct"
-.LC143:
-	.string "{"
-.LC144:
-	.string ";"
-.LC145:
-	.string "}"
-.LC146:
-	.string "enum"
-.LC147:
-	.string "{"
-.LC148:
-	.string "}"
-.LC149:
-	.string "enumが','で終わっています"
-.LC150:
 	.string "="
-.LC151:
+.LC132:
 	.string ","
-.LC152:
-	.string "}"
-.LC153:
-	.string "typedef"
-.LC154:
+.LC133:
 	.string ";"
+.LC134:
+	.string "extern"
+.LC135:
+	.string "("
+.LC136:
+	.string ")"
+.LC137:
+	.string "..."
+.LC138:
+	.string ")"
+.LC139:
+	.string "関数の引数が','で終わっています"
+.LC140:
+	.string ","
+.LC141:
+	.string ")"
+.LC142:
+	.string ";"
+.LC143:
+	.string "struct"
+.LC144:
+	.string "{"
+.LC145:
+	.string ";"
+.LC146:
+	.string "}"
+.LC147:
+	.string "enum"
+.LC148:
+	.string "{"
+.LC149:
+	.string "}"
+.LC150:
+	.string "enumが','で終わっています"
+.LC151:
+	.string "="
+.LC152:
+	.string ","
+.LC153:
+	.string "}"
+.LC154:
+	.string "typedef"
 .LC155:
-	.string "#"
+	.string ";"
 .LC156:
-	.string "include"
+	.string "#"
 .LC157:
-	.string "\""
+	.string "include"
 .LC158:
-	.string "\0"
-.LC159:
 	.string "\""
+.LC159:
+	.string "\0"
 .LC160:
-	.string "<"
+	.string "\""
 .LC161:
-	.string "."
+	.string "<"
 .LC162:
-	.string ">"
+	.string "."
 .LC163:
+	.string ">"
+.LC164:
 	.string ";"

@@ -32,13 +32,15 @@ Token *deep_copy(Token *src) {
 	return dst;
 }
 
+
+
 Token *preprocessor(Token *tok) {
 	Define *defines[100] = {};
 	Token *first = tok;
 	// 番兵
-	Token *kari = calloc(1, sizeof(Token));
-	kari->next = tok;
-	tok = kari;
+	Token *init_tok = calloc(1, sizeof(Token));
+	init_tok->next = tok;
+	tok = init_tok;
 	while (tok->next->kind != TK_EOF) {
 		if (!strncmp("#", tok->next->str, tok->next->len)) {
 			Token *begin = tok;
@@ -81,8 +83,9 @@ Token *preprocessor(Token *tok) {
 							break;
 						}
 					}
-					if (*(tok->next->str) != '\\' && *(tok->str + tok->len + 1) == '\n') {
-						tok = tok->next;
+					// \n
+					// dfd\n
+					if (*(tok->str) != '\\' && *(tok->str + tok->len) == '\n') {
 						end = tok->next;
 						tok->next = NULL;
 						break;
@@ -147,12 +150,13 @@ Token *preprocessor(Token *tok) {
 		for (int i = 0;i < 100;i++) {
 			if (!defines[i]) break;
 			if (!strncmp(tok->next->str, defines[i]->pre_label->str, tok->next->len)) {
+				// defineのトークンの前のトークン
 				Token *begin = tok;
+				Token *end;
 				tok = tok->next->next;
 
 				if (preconsume(&tok, "(")) {
 					Token *vars[10];
-					Token *end;
 					fprintf(stderr, "expanding define %s %d\n", get_name(defines[i]->pre_label->str, defines[i]->pre_label->len), defines[i]->len);
 					for (int j = 0;j < defines[i]->len;j++) {
 						vars[j] = tok;
@@ -197,12 +201,14 @@ Token *preprocessor(Token *tok) {
 					}
 					tok->next = end;
 				}else{
-					Token *kari = back_token->next;
-					back_token->next = defines[i]->post_label;
-					while (!back_token->next) {
-						back_token = back_token->next;
+					fprintf(stderr, "expanding define %s %d\n", get_name(defines[i]->pre_label->str, defines[i]->pre_label->len), defines[i]->len);
+					end = tok;
+					tok = begin;
+					tok->next = deep_copy(defines[i]->post_label);
+					while (tok->next) {
+						tok = tok->next;
 					}
-					back_token->next = kari;
+					tok->next = end;
 				}
 
 				tok = begin;
@@ -210,12 +216,12 @@ Token *preprocessor(Token *tok) {
 		}
 		tok = tok->next;
 	}
-	return kari->next;
+	return init_tok->next;
 }
 
 
 void print_token(Token *tok) {
-	for (int i = 0;i < 1100;i++) {
+	for (int i = 0;i < 20000;i++) {
 		if (!tok) break;
 		fprintf(stderr, "%s  ", get_name(tok->str, tok->len));
 		if (!strncmp(tok->str, "{", 1) || !strncmp(tok->str, ";", 1))

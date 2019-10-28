@@ -196,22 +196,42 @@ void error_at(char *loc, char *fmt, ...);
  * セルフホストの為のプロトタイプ宣言
  */
 
+typedef int size_t;
+// malloc系
 void *calloc(int nitems, int size);
+void *malloc (size_t size);
+void *realloc(void *ptr, size_t size);
+
+// 文字列系
 int strncmp(char *str1, char *str2, int num);
 char *strncpy(char *destination, char *source, int num);
 int strlen(char *str);
 int memcmp(void *ptr1, void *ptr2, int num);
 int printf(char *str);
+
+// ファイル系
 typedef struct FILE {
 	int unused;
 } FILE;
-extern FILE *stderr;
+FILE *fopen(char *path, char *mode);
+int fseek(FILE *stream, long int offset, int whence);
+size_t fread ( void * ptr, size_t size, size_t count, FILE * stream );
+int fclose ( FILE * stream );
+long int ftell ( FILE * stream );
+#define SEEK_SET 1
+#define SEEK_CUR 2
+#define SEEK_END 3
+
+// print系
 typedef char* va_list;
+extern FILE *stderr;
 int sprintf(char *str, char *format, ...);
 int snprintf(char *str, int size, char *format, ...);
 int fprintf(FILE *stream, char *format);
 int vfprintf(FILE *stream, char *format, va_list ap);
+char *strerror(int errnum);
 void exit(int status);
+#define errno 0
 
 #define __va_argsiz(t)	\
 	(((sizeof(t) + sizeof(int) - 1) / sizeof(int)) * sizeof(int))

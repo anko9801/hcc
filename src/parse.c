@@ -487,6 +487,7 @@ Type *prim_type_spec() {
 	}else if (consume("int")) {
 		type = int_type();
 	}else if (consume("long")) {
+		consume("int");
 		type = int_type();
 	}else if (consume("float")) {
 		type = int_type();
@@ -645,8 +646,15 @@ Node *term() {
 			node = new_node_s(ND_STRING, tok, char_type());
 			node->type->array_size = node->len;
 			push_back(strings, (void *)tok);
+			expect("\'");
+		}else if (consume("\'")) {
+			node = new_node_s(ND_STRING, tok, char_type());
+			node->type->array_size = node->len;
+			push_back(strings, (void *)tok);
+		}else{
+			return NULL;
+			expect("\'");
 		}
-		expect("\'");
 		return node;
 	}
 

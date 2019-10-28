@@ -1,8 +1,9 @@
 #include "hcc.h"
+#define __LINE__ 0
 
 Vec *new_vector() {
-	Vec *vec = malloc(sizeof(Vec));
-	vec->data = malloc(sizeof(void *) * 16);
+	Vec *vec = calloc(1, sizeof(Vec));
+	vec->data = calloc(1, sizeof(void *) * 16);
 	vec->capacity = 16;
 	vec->len = 0;
 	return vec;
