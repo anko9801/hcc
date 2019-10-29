@@ -149,7 +149,7 @@ Token *preprocessor(Token *tok) {
 		Token *back_token = tok;
 		for (int i = 0;i < 100;i++) {
 			if (!defines[i]) break;
-			if (!strncmp(tok->next->str, defines[i]->pre_label->str, tok->next->len)) {
+			if (!strncmp(tok->next->str, defines[i]->pre_label->str, defines[i]->pre_label->len)) {
 				// defineのトークンの前のトークン
 				Token *begin = tok;
 				Token *end;

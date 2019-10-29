@@ -471,6 +471,7 @@ void print_variable_scope(Hashs *hash, int tab) {
 
 Type *prim_type_spec() {
 	Type *type = NULL;
+	Token *backup = token;
 
 	Typedef *tydef = find_typedef(token->str, token->len);
 	if (tydef) {
@@ -504,6 +505,7 @@ Type *prim_type_spec() {
 				if (!aggr) return NULL;
 				type = struct_type(aggr, aggr->type_size);
 			}
+			token = backup;
 			return NULL;
 		}
 		type = node->type;
@@ -514,6 +516,9 @@ Type *prim_type_spec() {
 
 Type *type_spec() {
 	Type *type = prim_type_spec();
+	if (!type) {
+		return NULL;
+	}
 	while (consume("*")) {
 		type = wrap_pointer(type);
 	}
@@ -596,7 +601,7 @@ Node *variable() {
 		}
 
 		error_at(token->str, "その変数は宣言されていません");
-
+		return NULL;
 	}
 
 	token = backup;
@@ -610,6 +615,7 @@ Node *term() {
 	Node *node;
 	if (consume("(")) {
 		node = expr();
+		cu();
 		expect(")");
 		return node;
 	}
@@ -1014,22 +1020,124 @@ Node *dot(Node *node) {
 	return node;
 }
 
-Node *lvalue() {
-	Token *backup = token;
+Node *lvalue();
+Node *lterm();
+Node *lpostfix();
+Node *lunary();
+
+Node *lterm() {
 	Node *node = NULL;
 
-	if (consume("*")) {
-		node = rvalue();
-		if (node->type && node->type->ty == PTR) {
+	if (consume("(")) {
+		node = lvalue();
+		if (!consume(")")) return NULL;
+		return node;
+	}
+
+	node = variable();
+	if (node) return node;
+	return node;
+}
+
+Node *lpostfix() {
+	Node *node = lterm();
+	Node *rhs;
+	Token *id;
+	Token *backup = token;
+
+	if (!node) return node;
+	for (;;) {
+		backup = token;
+		if (consume(".")) {
+			if (node->type->ty == STRUCT) {
+				id = consume_ident();
+				Node *var = find_aggr_elem(node, id->str, id->len);
+
+				if (var) {
+					node = new_binary_node(ND_DOT, node, var);
+				}else{
+					error_at(token->str, "構造体のドット演算子のrhsが存在しません");
+				}
+			}else{
+				token = backup;
+			}
+
+		}else if (consume("->")) {
+			if (node->type->ty == PTR && node->type->ptr_to->ty == STRUCT) {
+				// A->B->C[a]
+				// *((*(*A).B).C + a)
+				id = consume_ident();
+				Node *var = find_aggr_elem(node, id->str, id->len);
+
+				if (var) {
+					Type *type = node->type->ptr_to;
+					node = new_node(ND_DEREF, node);
+					node->type = type;
+					node = new_binary_node(ND_DOT, node, var);
+					node->type = var->type;
+				}else{
+					error_at(token->str, "構造体のアロー演算子のrhsが存在しません");
+				}
+			}else{
+				token = backup;
+			}
+		}else if (consume("[")) {
+			rhs = rvalue();
+			expect("]");
+
+			if (node->type->ty == PTR && node->type->ptr_to) {
+				rhs = new_binary_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
+				rhs->type = node->type;
+			}else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
+				node = new_binary_node(ND_MUL, node, new_node_num(rhs->type->ptr_to->type_size));
+				node->type = rhs->type;
+			}
+
+			//*(a+3)
 			Type *type = node->type->ptr_to;
+			node = new_binary_node(ND_ADD, node, rhs);
 			node = new_node(ND_DEREF, node);
 			node->type = type;
-			return node;
+
+		}else{
+			break;
 		}
-		return NULL;
 	}
-	if (consume("&"))
-		return new_node(ND_ADDR, lvalue());
+	return node;
+}
+
+Node *lunary() {
+	Node *node;
+
+	if (consume("*")) {
+		node = lunary();
+		if (!node) return node;
+		if (node->type && node->type->ty == PTR) {
+			node = new_node(ND_DEREF, node);
+			if (node->side[0]->type && node->side[0]->type->ty == PTR)
+				node->type = node->side[0]->type->ptr_to;
+			else
+				error_at(token->str, "error: invalid type\n");
+		}else
+			error_at(token->str, "error: indirection requires pointer operand ('int' invalid)");
+		return node;
+	}
+
+	if (consume("&")) {
+		node = new_node(ND_ADDR, lunary());
+		node->type = wrap_pointer(node->side[0]->type);
+		return node;
+	}
+
+	node = lpostfix();
+	return node;
+}
+
+Node *lvalue() {
+	Token *backup = token;
+	Node *node = lunary();
+
+	/*
 
 	Token *tok = consume_ident();
 	if (tok) {
@@ -1071,7 +1179,7 @@ Node *lvalue() {
 			return NULL;
 		}
 		return node;
-	}
+	}*/
 
 	return node;
 }
