@@ -206,8 +206,11 @@ void *realloc(void *ptr, size_t size);
 int strncmp(char *str1, char *str2, int num);
 char *strncpy(char *destination, char *source, int num);
 int strlen(char *str);
+long int strtol(char* str, char** endptr, int base);
 int memcmp(void *ptr1, void *ptr2, int num);
 int printf(char *str);
+int isspace(int c);
+int isdigit(int c);
 
 // ファイル系
 typedef struct FILE {

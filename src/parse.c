@@ -369,13 +369,11 @@ Aggregate *find_aggr(Token *tok) {
 	return NULL;
 }
 
-Node *find_aggr_elem(Node *node, char *str, int len) {
-	Aggregate *aggr = node->type->ptr_to->aggr;
+Node *find_aggr_elem(Aggregate *aggr, char *str, int len) {
 	Node *var = NULL;
 
 	for (int i = 0;i < aggr->elem->len;i++) {
 		var = (Node *)aggr->elem->data[i];
-		//printf("%s\n", get_name(var->name, var->len));
 		if (strncmp(str, var->name, var->len) == 0 && len == var->len) {
 			// 一時的回避
 			if (var->type->ptr_to) {
@@ -573,6 +571,7 @@ Node *variable() {
 	Token *backup = token;
 
 	Node *node;
+	cu();
 	Token *tok = consume_ident();
 
 	if (tok) {
@@ -699,7 +698,7 @@ Node *postfix() {
 		if (consume(".")) {
 			if (node->type->ty == STRUCT) {
 				id = consume_ident();
-				Node *var = find_aggr_elem(node, id->str, id->len);
+				Node *var = find_aggr_elem(node->type->aggr, id->str, id->len);
 
 				if (var) {
 					node = new_binary_node(ND_DOT, node, var);
@@ -715,7 +714,7 @@ Node *postfix() {
 				// A->B->C[a]
 				// *((*(*A).B).C + a)
 				id = consume_ident();
-				Node *var = find_aggr_elem(node, id->str, id->len);
+				Node *var = find_aggr_elem(node->type->ptr_to->aggr, id->str, id->len);
 
 				if (var) {
 					Type *type = node->type->ptr_to;
@@ -988,7 +987,7 @@ Node *dot(Node *node) {
 		if (consume(".")) {
 			if (node->type->ty == STRUCT) {
 				Token *rhs = consume_ident();
-				Node *var = find_aggr_elem(node, rhs->str, rhs->len);
+				Node *var = find_aggr_elem(node->type->aggr, rhs->str, rhs->len);
 
 				if (var) {
 					node = new_binary_node(ND_DOT, node, var);
@@ -1000,7 +999,7 @@ Node *dot(Node *node) {
 		}else if (consume("->")) {
 			if (node->type->ty == PTR && node->type->ptr_to->ty == STRUCT) {
 				Token *rhs = consume_ident();
-				Node *var = find_aggr_elem(node, rhs->str, rhs->len);
+				Node *var = find_aggr_elem(node->type->ptr_to->aggr, rhs->str, rhs->len);
 
 				if (var) {
 					Type *type = node->type->ptr_to;
@@ -1034,8 +1033,25 @@ Node *lterm() {
 		return node;
 	}
 
-	node = variable();
-	if (node) return node;
+	Token *tok = consume_ident();
+	if (tok) {
+		LVar *lvar = find_lvar(tok);
+		if (!lvar)
+			lvar = search_enum_lvar(hashs, tok);
+		if (lvar) {
+			node = new_node_s(ND_LVAR, tok, lvar->type);
+			node->var = lvar;
+
+			if (node->type && node->type->ty == ARRAY) {
+				node = new_node(ND_ADDR, node);
+				node->type = wrap_pointer(node->side[0]->type->ptr_to);
+			}
+			print_node(node);
+			return node;
+		}
+		return NULL;
+	}
+
 	return node;
 }
 
@@ -1049,9 +1065,12 @@ Node *lpostfix() {
 	for (;;) {
 		backup = token;
 		if (consume(".")) {
-			if (node->type->ty == STRUCT) {
+			cu();
+			if (node->type && node->type->ty == STRUCT) {
 				id = consume_ident();
-				Node *var = find_aggr_elem(node, id->str, id->len);
+				cu();
+				Node *var = find_aggr_elem(node->type->aggr, id->str, id->len);
+				cu();
 
 				if (var) {
 					node = new_binary_node(ND_DOT, node, var);
@@ -1060,6 +1079,7 @@ Node *lpostfix() {
 				}
 			}else{
 				token = backup;
+				cu();
 			}
 
 		}else if (consume("->")) {
@@ -1067,7 +1087,7 @@ Node *lpostfix() {
 				// A->B->C[a]
 				// *((*(*A).B).C + a)
 				id = consume_ident();
-				Node *var = find_aggr_elem(node, id->str, id->len);
+				Node *var = find_aggr_elem(node->type->ptr_to->aggr, id->str, id->len);
 
 				if (var) {
 					Type *type = node->type->ptr_to;
@@ -1393,7 +1413,7 @@ Node *stmts() {
 		Vec *kari = cur_nodes;
 		cur_nodes = nodes;
 		for(;;) {
-			//cu();
+			cu();
 			Node *statement = stmt();
 			if (!statement && strncmp("}", token->str, token->len)) {
 				error("unknown statement\n");
@@ -1512,6 +1532,7 @@ Node *func_decl_or_def() {
 		if (tok) {
 			// 関数
 			if (consume("(")) {
+				cu();
 				Func *func;
 				Token *arg;
 				LVar *args = init_variable_list();
