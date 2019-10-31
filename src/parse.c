@@ -414,6 +414,7 @@ void cu() {
 	int line = 0;
 	fprintf(stderr, "----start-----\n");
 	Token *tok = token;
+	if (!tok) return;
 	for (int i = 0;line < 5;i++) {
 		fprintf(stderr, "%s ", get_name(tok->str, tok->len));
 		if (*(tok->str + tok->len) == '\n') {
@@ -686,13 +687,10 @@ Node *term() {
 //				| <postfix_exp> “++”
 //				| <postfix_exp> “—-"
 
-Node *postfix() {
-	Node *node = term();
+Node *recursive_postfix(Node *node) {
+	Token *backup, *id;
 	Node *rhs;
-	Token *id;
-	Token *backup = token;
 
-	if (!node) return node;
 	for (;;) {
 		backup = token;
 		if (consume(".")) {
@@ -750,6 +748,17 @@ Node *postfix() {
 			break;
 		}
 	}
+	return node;
+}
+
+Node *postfix() {
+	Node *node = term();
+	Node *rhs;
+	Token *id;
+	Token *backup = token;
+
+	if (!node) return node;
+	node = recursive_postfix(node);
 
 	if (consume("++")) {
 		rhs = new_binary_node(ND_ADD, node, new_node_num(1));
@@ -982,43 +991,6 @@ Node *rvalue() {
 	}
 }
 
-Node *dot(Node *node) {
-	for (;;) {
-		if (consume(".")) {
-			if (node->type->ty == STRUCT) {
-				Token *rhs = consume_ident();
-				Node *var = find_aggr_elem(node->type->aggr, rhs->str, rhs->len);
-
-				if (var) {
-					node = new_binary_node(ND_DOT, node, var);
-				}else{
-					error_at(token->str, "構造体のドット演算子のrhsが存在しません");
-				}
-			}
-
-		}else if (consume("->")) {
-			if (node->type->ty == PTR && node->type->ptr_to->ty == STRUCT) {
-				Token *rhs = consume_ident();
-				Node *var = find_aggr_elem(node->type->ptr_to->aggr, rhs->str, rhs->len);
-
-				if (var) {
-					Type *type = node->type->ptr_to;
-					node = new_node(ND_DEREF, node);
-					node->type = type;
-					node = new_binary_node(ND_DOT, node, var);
-					node->type = var->type;
-				}else{
-					error_at(token->str, "構造体のアロー演算子のrhsが存在しません");
-				}
-			}
-		}else{
-			break;
-		}
-	}
-
-	return node;
-}
-
 Node *lvalue();
 Node *lterm();
 Node *lpostfix();
@@ -1046,7 +1018,6 @@ Node *lterm() {
 				node = new_node(ND_ADDR, node);
 				node->type = wrap_pointer(node->side[0]->type->ptr_to);
 			}
-			print_node(node);
 			return node;
 		}
 		return NULL;
@@ -1062,67 +1033,7 @@ Node *lpostfix() {
 	Token *backup = token;
 
 	if (!node) return node;
-	for (;;) {
-		backup = token;
-		if (consume(".")) {
-			cu();
-			if (node->type && node->type->ty == STRUCT) {
-				id = consume_ident();
-				cu();
-				Node *var = find_aggr_elem(node->type->aggr, id->str, id->len);
-				cu();
-
-				if (var) {
-					node = new_binary_node(ND_DOT, node, var);
-				}else{
-					error_at(token->str, "構造体のドット演算子のrhsが存在しません");
-				}
-			}else{
-				token = backup;
-				cu();
-			}
-
-		}else if (consume("->")) {
-			if (node->type->ty == PTR && node->type->ptr_to->ty == STRUCT) {
-				// A->B->C[a]
-				// *((*(*A).B).C + a)
-				id = consume_ident();
-				Node *var = find_aggr_elem(node->type->ptr_to->aggr, id->str, id->len);
-
-				if (var) {
-					Type *type = node->type->ptr_to;
-					node = new_node(ND_DEREF, node);
-					node->type = type;
-					node = new_binary_node(ND_DOT, node, var);
-					node->type = var->type;
-				}else{
-					error_at(token->str, "構造体のアロー演算子のrhsが存在しません");
-				}
-			}else{
-				token = backup;
-			}
-		}else if (consume("[")) {
-			rhs = rvalue();
-			expect("]");
-
-			if (node->type->ty == PTR && node->type->ptr_to) {
-				rhs = new_binary_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
-				rhs->type = node->type;
-			}else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
-				node = new_binary_node(ND_MUL, node, new_node_num(rhs->type->ptr_to->type_size));
-				node->type = rhs->type;
-			}
-
-			//*(a+3)
-			Type *type = node->type->ptr_to;
-			node = new_binary_node(ND_ADD, node, rhs);
-			node = new_node(ND_DEREF, node);
-			node->type = type;
-
-		}else{
-			break;
-		}
-	}
+	node = recursive_postfix(node);
 	return node;
 }
 
@@ -1155,53 +1066,7 @@ Node *lunary() {
 
 Node *lvalue() {
 	Token *backup = token;
-	Node *node = lunary();
-
-	/*
-
-	Token *tok = consume_ident();
-	if (tok) {
-		LVar *lvar = find_lvar(tok);
-		if (lvar) {
-			node = new_node_s(ND_LVAR, tok, lvar->type);
-			node->var = lvar;
-			node->type = lvar->type;
-			node = dot(node);
-
-			if (node->type && node->type->ty == ARRAY) {
-				node = new_node(ND_ADDR, node);
-				node->type = wrap_pointer(node->side[0]->type->ptr_to);
-			}
-
-			if (consume("[")) {
-				Node *rhs = rvalue();
-
-				if (node->type->ty == PTR && node->type->ptr_to) {
-					rhs = new_binary_node(ND_MUL, rhs, new_node_num(node->type->ptr_to->type_size));
-					rhs->type = node->type;
-				}
-				else if (rhs->type->ty == PTR && rhs->type->ptr_to) {
-					node = new_binary_node(ND_MUL, node, new_node_num(rhs->type->ptr_to->type_size));
-					node->type = rhs->type;
-				}
-
-				//*(a+3)
-				Type *type = node->type->ptr_to;
-				node = new_binary_node(ND_ADD, node, rhs);
-				node = new_node(ND_DEREF, node);
-				node->type = type;
-
-				expect("]");
-				return node;
-			}
-		}else{
-			token = backup;
-			return NULL;
-		}
-		return node;
-	}*/
-
-	return node;
+	return lunary();
 }
 
 // initiallizer = { (rvalue (, rvalue)*)? }
@@ -1413,20 +1278,26 @@ Node *stmts() {
 		Vec *kari = cur_nodes;
 		cur_nodes = nodes;
 		for(;;) {
-			cu();
 			Node *statement = stmt();
 			if (!statement && strncmp("}", token->str, token->len)) {
 				error("unknown statement\n");
 			}
+			fprintf(stderr, "test\n");
+			cu();
 			push_back(nodes, statement);
-			if (consume("}"))
+			cu();
+			if (consume("}")) {
 				break;
+			}
 		}
 
+		fprintf(stderr, "test\n");
 		cur_nodes = kari;
 		node = calloc(1, sizeof(Node));
+		fprintf(stderr, "test2\n");
 		node->kind = ND_BLOCK;
 		node->nodes = nodes;
+		fprintf(stderr, "test3\n");
 	}else{
 		node = stmt();
 	}
@@ -1590,13 +1461,19 @@ Node *func_decl_or_def() {
 					funcs = func;
 					node->kind = ND_DEF;
 					node->side[0] = stmts();
+					printf(stderr, "stmt end\n");
 					cur_scope = NULL;
 
 					func->locals = locals;
+					printf(stderr, "stmt end\n");
 					Hashs *hash = search_hash(hashs, cur_scope);
+					printf(stderr, "stmt end\n");
 					//fprintf(stderr, "locals %d %d\n", hash->vars->offset, hash->vars->type->type_size);
 					node->func = func;
 				}
+				printf(stderr, "stmt end\n");
+				cu();
+				printf(stderr, "stmt end\n");
 				return node;
 			}
 		}
@@ -1856,6 +1733,7 @@ Node *global() {
 	node = variable_decl(1);
 	if (node) return node;
 	node = func_decl_or_def();
+	printf(stderr, "stmt end\n");
 	if (node) return node;
 
 	return stmt();
@@ -1867,8 +1745,9 @@ void program() {
 	globals = init_variable_list();
 	Node *node;
 	while (!at_eof()) {
-		//cu();
+		cu();
 		node = global();
+		printf(stderr, "stmt end\n");
 		if (node)
 			add_code(node);
 	}
