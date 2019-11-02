@@ -86,6 +86,7 @@ bool consume(char *op) {
 		memcmp(token->str, op, token->len)) {
 		return false;
 	}
+	fprintf(stderr, "next %s\n", op);
 	token = token->next;
 	return true;
 }
@@ -415,6 +416,7 @@ void cu() {
 	fprintf(stderr, "----start-----\n");
 	Token *tok = token;
 	if (!tok) return;
+	if (tok->kind == TK_EOF) return;
 	for (int i = 0;line < 5;i++) {
 		fprintf(stderr, "%s ", get_name(tok->str, tok->len));
 		if (*(tok->str + tok->len) == '\n') {
@@ -1180,6 +1182,7 @@ Node *switch_case() {
 
 	while (!check("case") && !check("}")) {
 		node_k = stmts();
+		fprintf(stderr, "switch\n");
 		if (node_k) {
 			push_back(nodes_stmt, (void *)node_k);
 		}else{
@@ -1214,6 +1217,7 @@ Node *stmt() {
 			Else = stmts();
 		else
 			Else = NULL;
+		printf(stderr, "if end\n");
 
 		node = new_node_if(ND_IF, Cond, Then, Else);
 
@@ -1267,6 +1271,7 @@ Node *stmt() {
 			expect(";");
 	}
 
+	fprintf(stderr, "stmt end\n");
 	return node;
 }
 
@@ -1277,7 +1282,8 @@ Node *stmts() {
 		Vec *nodes = new_vector();
 		Vec *kari = cur_nodes;
 		cur_nodes = nodes;
-		for(;;) {
+		while (true) {
+			fprintf(stderr, "first\n");
 			Node *statement = stmt();
 			if (!statement && strncmp("}", token->str, token->len)) {
 				error("unknown statement\n");
@@ -1287,9 +1293,13 @@ Node *stmts() {
 			push_back(nodes, statement);
 			cu();
 			if (consume("}")) {
+				fprintf(stderr, "consume }\n");
+				cu();
+				fprintf(stderr, "consume }\n");
 				break;
 			}
 		}
+		cu();
 
 		fprintf(stderr, "test\n");
 		cur_nodes = kari;
@@ -1302,6 +1312,7 @@ Node *stmts() {
 		node = stmt();
 	}
 
+	cu();
 	return node;
 }
 
