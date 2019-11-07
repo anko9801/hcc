@@ -217,6 +217,25 @@ void analyse(Node *node) {
 			analyse(node->side[3]);
 			tab++;
 			break;
+
+		case ND_SWITCH:
+			print_node("SWITCH");
+			print_node("COND");
+			analyse(node->side[0]);
+			print_node("CASE");
+			for (int i = 0;i < node->nodes->len;i++) {
+				analyse((Node*)node->nodes->data[i]);
+			}
+			tab++;
+			break;
+
+		case ND_CASE:
+			print_node("CASE");
+			for (int i = 0;i < node->nodes->len;i++) {
+				analyse((Node*)node->nodes->data[i]);
+			}
+			tab++;
+			break;
 		
 		case ND_BREAK:
 			print_node("BREAK");

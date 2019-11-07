@@ -1,5 +1,5 @@
 // 現在着目しているトークン
-Token *token;
+
 
 // parser
 Node *code[1000];

@@ -1,16 +1,9 @@
 .intel_syntax noprefix
-.extern _print_variable_scope, _cu, _exit, _strerror, _vfprintf, _fprintf, _snprintf, _sprintf, _ftell, _fclose, _fread, _fseek, _fopen, _printf, _memcmp, _strlen, _strncpy, _strncmp, _realloc, _malloc, _calloc, _error_at, _error, _print_token, _preprocessor, _gen_funcs, _gen_extern, _search_hash, _new_hash, _new_node_num, _new_node_s, _consume_ident, _is_reserved, _new_token, _new_binary_node, _aggregate_decl, _print_all, _compile_at, _read_file, _print_lvar, _print_type, _get_name, _analyse, _analyse_pre, _gen_pre, _runtest, _push_back, _new_vector, _gen, _program, _tokenize, _expect
+.extern _print_variable_scope, _cu, _exit, _strerror, _vfprintf, _fprintf, _snprintf, _sprintf, _ftell, _fclose, _fread, _fseek, _fopen, _isdigit, _isspace, _printf, _memcmp, _strtol, _strlen, _strncpy, _strncmp, _realloc, _malloc, _calloc, _error_at, _error, _print_token, _preprocessor, _gen_funcs, _gen_extern, _search_hash, _new_hash, _new_node_num, _new_node_s, _consume_ident, _is_reserved, _new_token, _new_binary_node, _aggregate_decl, _print_all, _compile_at, _read_file, _print_lvar, _print_type, _get_name, _analyse, _analyse_pre, _gen_pre, _runtest, _push_back, _new_vector, _gen, _program, _tokenize, _expect
 .global _main, _compile_at, _compile, _read_file
-token:
-	.zero 8
-funcs:
-	.zero 8
-filename:
-	.zero 8
-strings:
-	.zero 8
-aggr_list:
-	.zero 8
+	.globl stderr
+stderr:
+	.quad -1282248128
 _read_file:
 	push rbp
 	mov rbp, rsp
@@ -580,33 +573,16 @@ _compile:
 	pop rsi
 .call.end16:
 	push rax
-	lea rax, QWORD PTR [rip + token@GOTPCREL]
-	push rax
-	pop rax
-	mov rax, QWORD PTR [rax]
-	push rax
-	pop rdi
-	mov rax, 1
+	mov rax, 0
 	test rsp, 15
 	jne .call.else17
-	call _print_token
+	call _program
 	jmp .call.end17
 .call.else17:
 	push rsi
-	call _print_token
+	call _program
 	pop rsi
 .call.end17:
-	push rax
-	mov rax, 0
-	test rsp, 15
-	jne .call.else18
-	call _program
-	jmp .call.end18
-.call.else18:
-	push rsi
-	call _program
-	pop rsi
-.call.end18:
 	push rax
 	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
 	push rax
@@ -625,28 +601,28 @@ _compile:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne .call.else19
+	jne .call.else18
 	call _fprintf
-	jmp .call.end19
-.call.else19:
+	jmp .call.end18
+.call.else18:
 	push rsi
 	call _fprintf
 	pop rsi
-.call.end19:
+.call.end18:
 	push rax
 	lea rax, QWORD PTR [rip + code@GOTPCREL]
 	push rax
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne .call.else20
+	jne .call.else19
 	call _analyse_pre
-	jmp .call.end20
-.call.else20:
+	jmp .call.end19
+.call.else19:
 	push rsi
 	call _analyse_pre
 	pop rsi
-.call.end20:
+.call.end19:
 	push rax
 	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
 	push rax
@@ -665,14 +641,14 @@ _compile:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne .call.else21
+	jne .call.else20
 	call _fprintf
-	jmp .call.end21
-.call.else21:
+	jmp .call.end20
+.call.else20:
 	push rsi
 	call _fprintf
 	pop rsi
-.call.end21:
+.call.end20:
 	push rax
 	lea rax, QWORD PTR [rip + user_input@GOTPCREL]
 	push rax
@@ -707,14 +683,14 @@ _compile_at:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne .call.else22
+	jne .call.else21
 	call _read_file
-	jmp .call.end22
-.call.else22:
+	jmp .call.end21
+.call.else21:
 	push rsi
 	call _read_file
 	pop rsi
-.call.end22:
+.call.end21:
 	push rax
 	pop rdi
 	lea rax, [rbp-0]
@@ -725,14 +701,14 @@ _compile_at:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne .call.else23
+	jne .call.else22
 	call _compile
-	jmp .call.end23
-.call.else23:
+	jmp .call.end22
+.call.else22:
 	push rsi
 	call _compile
 	pop rsi
-.call.end23:
+.call.end22:
 	push rax
 _main:
 	push rbp
@@ -763,20 +739,36 @@ _main:
 	pop rsi
 	mov rax, 2
 	test rsp, 15
-	jne .call.else24
+	jne .call.else23
 	call _fprintf
-	jmp .call.end24
-.call.else24:
+	jmp .call.end23
+.call.else23:
 	push rsi
 	call _fprintf
 	pop rsi
-.call.end24:
+.call.end23:
 	push rax
 	push 0
 	pop rbp
 	ret
 .Lif.end5:
 	lea rax, QWORD PTR [rip + aggr_list@GOTPCREL]
+	push rax
+	mov rax, 0
+	test rsp, 15
+	jne .call.else24
+	call _new_vector
+	jmp .call.end24
+.call.else24:
+	push rsi
+	call _new_vector
+	pop rsi
+.call.end24:
+	push rax
+	pop rbx
+	pop rax
+	mov QWORD PTR [rax], rbx
+	lea rax, QWORD PTR [rip + typedef_list@GOTPCREL]
 	push rax
 	mov rax, 0
 	test rsp, 15
@@ -792,34 +784,18 @@ _main:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	lea rax, QWORD PTR [rip + typedef_list@GOTPCREL]
-	push rax
-	mov rax, 0
-	test rsp, 15
-	jne .call.else26
-	call _new_vector
-	jmp .call.end26
-.call.else26:
-	push rsi
-	call _new_vector
-	pop rsi
-.call.end26:
-	push rax
-	pop rbx
-	pop rax
-	mov QWORD PTR [rax], rbx
 	lea rax, QWORD PTR [rip + hashs@GOTPCREL]
 	push rax
 	mov rax, 0
 	test rsp, 15
-	jne .call.else27
+	jne .call.else26
 	call _new_hash
-	jmp .call.end27
-.call.else27:
+	jmp .call.end26
+.call.else26:
 	push rsi
 	call _new_hash
 	pop rsi
-.call.end27:
+.call.end26:
 	push rax
 	pop rbx
 	pop rax
@@ -845,14 +821,14 @@ _main:
 	pop rdi
 	mov rax, 1
 	test rsp, 15
-	jne .call.else28
+	jne .call.else27
 	call _compile_at
-	jmp .call.end28
-.call.else28:
+	jmp .call.end27
+.call.else27:
 	push rsi
 	call _compile_at
 	pop rsi
-.call.end28:
+.call.end27:
 	push rax
 	lea rax, QWORD PTR [rip + code@GOTPCREL]
 	push rax
@@ -871,14 +847,14 @@ _main:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne .call.else29
+	jne .call.else28
 	call _gen_pre
-	jmp .call.end29
-.call.else29:
+	jmp .call.end28
+.call.else28:
 	push rsi
 	call _gen_pre
 	pop rsi
-.call.end29:
+.call.end28:
 	push rax
 	lea rax, QWORD PTR [rip + stderr@GOTPCREL]
 	push rax
@@ -910,14 +886,14 @@ _main:
 	pop rdx
 	mov rax, 3
 	test rsp, 15
-	jne .call.else30
+	jne .call.else29
 	call _fprintf
-	jmp .call.end30
-.call.else30:
+	jmp .call.end29
+.call.else29:
 	push rsi
 	call _fprintf
 	pop rsi
-.call.end30:
+.call.end29:
 	push rax
 	push 0
 	pop rbp

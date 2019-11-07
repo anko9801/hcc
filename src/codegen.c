@@ -33,10 +33,24 @@ void gen_global_string(char *val) {
 
 void gen_global_array(Node *lhs, Node *rhs) {
 	Node *node;
+
 	switch (rhs->kind) {
 		case ND_INITIALIZER:
+			if (((Node *)rhs->nodes->data[0])->type->ty == PTR && ((Node *)rhs->nodes->data[0])->type->ptr_to->ty == CHAR) {
+				for (int i = 0; i < rhs->nodes->len; i++) {
+					node = (Node *)rhs->nodes->data[i];
+					if (!node) break;
+					printf("%s.%d:\n", get_name(lhs->name, lhs->len), i+1);
+					gen_global_asciz(get_name(node->name, node->len));
+				}
+			}
+			printf("	.globl %s\n", get_name(lhs->name, lhs->len));
+			printf("%s:\n", get_name(lhs->name, lhs->len));
+
 			for (int i = 0; i < rhs->nodes->len; i++) {
 				node = (Node *)rhs->nodes->data[i];
+				if (!node) break;
+
 				switch (node->type->ty) {
 					case INT:
 						gen_global_int(node->val);
@@ -44,10 +58,16 @@ void gen_global_array(Node *lhs, Node *rhs) {
 					case CHAR:
 						gen_global_char(get_name(node->name, node->len));
 						break;
+					case PTR:
+						if (node->type->ptr_to->ty == CHAR) {
+							printf("	.quad %s.%d\n", get_name(lhs->name, lhs->len), i+1);
+						}
+						break;
 					default:
 						break;
 				}
 			}
+
 			// 余分なものを0で埋める
 			for (int i = rhs->nodes->len; i < lhs->type->array_size;i++) {
 				switch (node->type->ty) {
@@ -64,10 +84,17 @@ void gen_global_array(Node *lhs, Node *rhs) {
 			break;
 
 		case ND_STRING:
-			gen_global_ascii(get_name(rhs->name, rhs->len));
+			printf("	.globl %s\n", get_name(lhs->name, lhs->len));
+			printf("%s:\n", get_name(lhs->name, lhs->len));
+			if (rhs->len == 0) {
+				gen_global_zero(lhs->type->array_size);
+			}else{
+				gen_global_ascii(get_name(rhs->name, rhs->len));
+			}
 			break;
 
 		default:
+			node_kind_print(rhs);
 			break;
 	}
 }
@@ -112,7 +139,11 @@ void gen_global_ptr(Node *rhs) {
 			printf("	.ascii \"%s\\0\"\n", get_name(rhs->name, rhs->len));
 			break;
 		default:
-			printf("	.quad %s\n", gen_global_ptr_sub(rhs->side[0]));
+			if (rhs->val) {
+				printf("	.quad %d\n", rhs->val);
+			}else{
+				printf("	.quad %s\n", gen_global_ptr_sub(rhs->side[0]));
+			}
 			break;
 	}
 }
@@ -122,6 +153,7 @@ void gen_global(Node *code) {
 
 	switch (code->kind) {
 		case ND_VARDECL:
+			printf("	.globl %s\n", get_name(code->name, code->len));
 			printf("%s:\n", get_name(code->name, code->len));
 			gen_global_zero(code->type->type_size);
 			break;
@@ -130,21 +162,29 @@ void gen_global(Node *code) {
 			lhs = code->side[0];
 			rhs = code->side[1];
 
-			printf("%s:\n", get_name(lhs->name, lhs->len));
+			printf("	.globl %s\n", get_name(lhs->name, lhs->len));
 			switch (lhs->type->ty) {
 				case INT:
+					printf("%s:\n", get_name(lhs->name, lhs->len));
 					gen_global_int(rhs->val);
 					break;
 				case CHAR:
+					printf("%s:\n", get_name(lhs->name, lhs->len));
 					gen_global_char(get_name(rhs->name, rhs->len));
 					break;
 				case ARRAY:
 					gen_global_array(lhs, rhs);
 					break;
 				case PTR:
+					printf("%s:\n", get_name(lhs->name, lhs->len));
 					gen_global_ptr(rhs);
 					break;
+				case STRUCT:
+					printf("%s:\n", get_name(lhs->name, lhs->len));
+					gen_global_zero(lhs->type->type_size);
+					break;
 				default:
+					fprintf(stderr, "I don't know this global kind\n");
 					break;
 			}
 			break;
@@ -154,6 +194,7 @@ void gen_global(Node *code) {
 			break;
 
 		default:
+			//node_kind_print(code);
 			break;
 	}
 }
@@ -341,6 +382,7 @@ char *gen_cond(Node *node) {
 
 void gen(Node *node) {
 	char str[100];
+	loop_info pre_loop;
 
 	if (!node) return;
 	switch (node->kind) {
@@ -412,12 +454,14 @@ void gen(Node *node) {
 		if (rhs->kind == ND_INITIALIZER) {
 			for (int i = 0; i < rhs->nodes->len;i++) {
 				Node *node = (Node*)rhs->nodes->data[i];
+				if (!node) continue;
 				gen(node);
 				gen_pop(regs64[RAX]);
-				if (node->type->ty == INT && lhs->type->ty == INT)
+				if (node->type->ty == INT && lhs->type->ty == INT) {
 					printf("	mov %s [rbp-%d], eax\n", gen_type(lhs->type), lhs->var->offset + i * lhs->type->type_size / lhs->type->array_size);
-				else
+				}else{
 					printf("	mov %s [rbp-%d], rax\n", gen_type(lhs->type), lhs->var->offset + i * lhs->type->type_size / lhs->type->array_size);
+				}
 			}
 			// 配列のサイズより初期化子が少ない時
 			if (lhs->type->array_size > rhs->nodes->len) {
@@ -484,7 +528,10 @@ void gen(Node *node) {
 		return;
 
 	case ND_WHILE: {
-		loop_info pre_loop = {cur_loop.which, cur_loop.nth};
+		while_cnt += 1;
+		int cur_while = while_cnt;
+		int nested_while = while_cnt;
+		pre_loop = cur_loop;
 		cur_loop.which = 1;
 		cur_loop.nth = while_cnt;
 
@@ -495,21 +542,24 @@ void gen(Node *node) {
 		printf("	cmp rax, 0\n");
 		printf("	je .Lwhile.end%d\n", while_cnt);
 
+		while_cnt = nested_while;
 		gen(node->side[1]);
+		nested_while = while_cnt;
+		while_cnt = cur_while;
 
 		printf("	jmp .Lwhile.loop%d\n", while_cnt);
 		printf(".Lwhile.end%d:\n", while_cnt);
 
+		while_cnt = nested_while;
 		cur_loop = pre_loop;
-		while_cnt += 1;
 		return;
 	}
 
-	case ND_FOR: {
+	case ND_FOR:
 		for_cnt += 1;
 		int cur_for = for_cnt;
 		int nested_for = for_cnt;
-		loop_info pre_loop = cur_loop;
+		pre_loop = cur_loop;
 		cur_loop.which = 2;
 		cur_loop.nth = for_cnt;
 
@@ -546,7 +596,6 @@ void gen(Node *node) {
 		for_cnt = nested_for;
 		cur_loop = pre_loop;
 		return;
-	}
 
 	/*
 		 * switch(Cond) {
@@ -576,16 +625,25 @@ void gen(Node *node) {
 		 */
 	case ND_SWITCH:
 		switch_cnt += 1;
-		Node *node_case;
-		loop_info pre_loop = cur_loop;
+		int cur_switch = switch_cnt;
+		int nested_switch = switch_cnt;
+		pre_loop = cur_loop;
 		cur_loop.which = 3;
 		cur_loop.nth = switch_cnt;
+		fprintf(stderr, "%d\n", stderr);
+
+		Node *node_case;
 
 		for (int i = 0;i < node->nodes->len;i++) {
 			node_case = (Node *)node->nodes->data[i];
 			if (node_case->side[0]) {
 				gen(node->side[0]);
+
+				switch_cnt = nested_switch;
 				gen(node_case->side[0]);
+				nested_switch = switch_cnt;
+				switch_cnt = cur_switch;
+
 				gen_pop(regs64[RBX]);
 				gen_pop(regs64[RAX]);
 				printf("	cmp rax, rbx\n");
@@ -599,16 +657,20 @@ void gen(Node *node) {
 		for (int i = 0;i < node->nodes->len;i++) {
 			node_case = (Node *)node->nodes->data[i];
 			if (node_case->side[0]) {
-				printf(".Lswitch%d.case%d\n", switch_cnt, i);
+				printf(".Lswitch%d.case%d:\n", switch_cnt, i);
 			}else{
-				printf(".Lswitch%d.default\n", switch_cnt);
+				printf(".Lswitch%d.default:\n", switch_cnt);
 			}
 
 			for (int j = 0;j < node_case->nodes->len;j++) {
-				gen((Node*)node_case->nodes->data[j]);
+				switch_cnt = nested_switch;
+				gen((Node *)node_case->nodes->data[j]);
+				nested_switch = switch_cnt;
+				switch_cnt = cur_switch;
 			}
 		}
-		printf(".Lswitch%d.end\n", switch_cnt);
+		printf(".Lswitch%d.end:\n", switch_cnt);
+		switch_cnt = nested_switch;
 		cur_loop = pre_loop;
 
 		return;
@@ -765,8 +827,7 @@ void gen(Node *node) {
 		break;
 
 	default:
-		{}
-		//error("I don't know this nodekind\n");
+		error("I don't know this nodekind\n");
 	}
 
 	gen_push(regs64[RAX]);

@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-std=c11 -g -static
-SRCS=$(wildcard *.c)
+SRCS=analyse.c codegen.c container.c error.c main.c parse.c preprocessor.c token.c
 OBJS=$(SRCS:.c=.o)
 TEST=$(wildcard *.c)
 TESTO=$(TEST:.c=.o)
@@ -23,7 +23,17 @@ test%: hcc ./test/lib.o
 	@gcc -o ./test/test$* ./test/lib.o ./test/test$*.o
 	./test/test$*
 
+../selfhost/%.o:
+	./hcc $*.c > ../selfhost/$*.s
+	$(CC) -c ../selfhost/$*.s -o ../selfhost/$*.o
+
+selfhost: $(OBJS:%=../selfhost/%)
+	$(CC) -o ../selfhost/hcc_self $(OBJS:%=../selfhost/%)
+
 clean:
-	rm -f 9cc *.o *~ tmp*
+	rm -f *.o *.s ../selfhost/*.o ../selfhost/*.s
+
+clean_all:
+	rm -f hcc *.o *.s ../selfhost/*.o ../selfhost/*.s
 
 .PHONY: test% clean

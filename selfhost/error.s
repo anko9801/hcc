@@ -1,18 +1,10 @@
 .intel_syntax noprefix
-.extern _print_variable_scope, _cu, _exit, _strerror, _vfprintf, _fprintf, _snprintf, _sprintf, _ftell, _fclose, _fread, _fseek, _fopen, _printf, _memcmp, _strlen, _strncpy, _strncmp, _realloc, _malloc, _calloc, _error_at, _error, _print_token, _preprocessor, _gen_funcs, _gen_extern, _search_hash, _new_hash, _new_node_num, _new_node_s, _consume_ident, _is_reserved, _new_token, _new_binary_node, _aggregate_decl, _print_all, _compile_at, _read_file, _print_lvar, _print_type, _get_name, _analyse, _analyse_pre, _gen_pre, _runtest, _push_back, _new_vector, _gen, _program, _tokenize, _expect
+.extern _print_variable_scope, _cu, _exit, _strerror, _vfprintf, _fprintf, _snprintf, _sprintf, _ftell, _fclose, _fread, _fseek, _fopen, _isdigit, _isspace, _printf, _memcmp, _strtol, _strlen, _strncpy, _strncmp, _realloc, _malloc, _calloc, _error_at, _error, _print_token, _preprocessor, _gen_funcs, _gen_extern, _search_hash, _new_hash, _new_node_num, _new_node_s, _consume_ident, _is_reserved, _new_token, _new_binary_node, _aggregate_decl, _print_all, _compile_at, _read_file, _print_lvar, _print_type, _get_name, _analyse, _analyse_pre, _gen_pre, _runtest, _push_back, _new_vector, _gen, _program, _tokenize, _expect
 .global _expect_number, _expect, _error_at, _error
-token:
-	.zero 8
-funcs:
-	.zero 8
-filename:
-	.zero 8
-strings:
-	.zero 8
-aggr_list:
-	.zero 8
+	.globl user_input
 user_input:
 	.zero 8
+	.globl filename
 filename:
 	.zero 8
 _error:
@@ -135,7 +127,7 @@ _error_at:
 	pop rbx
 	pop rax
 	mov DWORD PTR [rax], ebx
-.Lwhile.loop0:
+.Lwhile.loop1:
 	lea rax, QWORD PTR [rip + user_input@GOTPCREL]
 	push rax
 	pop rax
@@ -188,7 +180,7 @@ _error_at:
 	and eax, ebx
 	push rax
 	cmp rax, 0
-	je .Lwhile.end0
+	je .Lwhile.end1
 	lea rax, [rbp-16]
 	push rax
 	lea rax, [rbp-16]
@@ -236,8 +228,8 @@ _error_at:
 	pop rax
 	mov DWORD PTR [rax], ebx
 .Lif.end1:
-	jmp .Lwhile.loop0
-.Lwhile.end0:
+	jmp .Lwhile.loop1
+.Lwhile.end1:
 	lea rax, [rbp-0]
 	push rax
 	pop rax
@@ -246,7 +238,7 @@ _error_at:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-.Lwhile.loop1:
+.Lwhile.loop2:
 	lea rax, [rbp-28]
 	push rax
 	pop rax
@@ -255,7 +247,7 @@ _error_at:
 	pop rax
 	mov al, BYTE PTR [rax]
 	push rax
-	lea rax, qword ptr [rip + .LC4]
+	lea rax, qword ptr [rip + .LC3]
 	push rax
 	pop rbx
 	pop rax
@@ -264,7 +256,7 @@ _error_at:
 	movzx rax, al
 	push rax
 	cmp rax, 0
-	je .Lwhile.end1
+	je .Lwhile.end2
 	lea rax, [rbp-28]
 	push rax
 	lea rax, [rbp-28]
@@ -280,8 +272,8 @@ _error_at:
 	pop rbx
 	pop rax
 	mov QWORD PTR [rax], rbx
-	jmp .Lwhile.loop1
-.Lwhile.end1:
+	jmp .Lwhile.loop2
+.Lwhile.end2:
 	push 1
 	pop rbx
 	pop rax
@@ -321,7 +313,7 @@ _error_at:
 	pop rax
 	mov al, BYTE PTR [rax]
 	push rax
-	lea rax, qword ptr [rip + .LC6]
+	lea rax, qword ptr [rip + .LC4]
 	push rax
 	pop rax
 	pop rbx
@@ -369,7 +361,7 @@ _error_at:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC8]
+	lea rax, qword ptr [rip + .LC5]
 	push rax
 	pop rsi
 	lea rax, QWORD PTR [rip + filename@GOTPCREL]
@@ -404,7 +396,7 @@ _error_at:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC9]
+	lea rax, qword ptr [rip + .LC6]
 	push rax
 	pop rsi
 	lea rax, [rbp-28]
@@ -472,7 +464,7 @@ _error_at:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC10]
+	lea rax, qword ptr [rip + .LC7]
 	push rax
 	pop rsi
 	lea rax, [rbp-48]
@@ -481,7 +473,7 @@ _error_at:
 	mov eax, DWORD PTR [rax]
 	push rax
 	pop rdx
-	lea rax, qword ptr [rip + .LC11]
+	lea rax, qword ptr [rip + .LC8]
 	push rax
 	pop rcx
 	mov rax, 4
@@ -524,7 +516,7 @@ _error_at:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC12]
+	lea rax, qword ptr [rip + .LC9]
 	push rax
 	pop rsi
 	mov rax, 2
@@ -562,7 +554,7 @@ _error_at:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC13]
+	lea rax, qword ptr [rip + .LC10]
 	push rax
 	pop rsi
 	lea rax, [rbp-52]
@@ -576,7 +568,7 @@ _error_at:
 	sub rax, rbx
 	push rax
 	pop rdx
-	lea rax, qword ptr [rip + .LC14]
+	lea rax, qword ptr [rip + .LC11]
 	push rax
 	pop rcx
 	mov rax, 4
@@ -629,7 +621,7 @@ _error_at:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC15]
+	lea rax, qword ptr [rip + .LC12]
 	push rax
 	pop rsi
 	mov rax, 2
@@ -678,7 +670,7 @@ _error_at:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC16]
+	lea rax, qword ptr [rip + .LC13]
 	push rax
 	pop rsi
 	mov rax, 2
@@ -797,7 +789,7 @@ _expect:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC17]
+	lea rax, qword ptr [rip + .LC14]
 	push rax
 	pop rsi
 	lea rax, [rbp-0]
@@ -908,7 +900,7 @@ _expect_number:
 	mov rax, QWORD PTR [rax]
 	push rax
 	pop rdi
-	lea rax, qword ptr [rip + .LC18]
+	lea rax, qword ptr [rip + .LC15]
 	push rax
 	pop rsi
 	mov rax, 2
@@ -967,34 +959,28 @@ _expect_number:
 .LC2:
 	.string "\t"
 .LC3:
-	.string "\t"
+	.string "\n"
 .LC4:
 	.string "\n"
 .LC5:
-	.string "\n"
-.LC6:
-	.string "\n"
-.LC7:
-	.string "\n"
-.LC8:
 	.string "%s:%d:"
-.LC9:
+.LC6:
 	.string "%.*s\n"
+.LC7:
+	.string "%*s"
+.LC8:
+	.string ""
+.LC9:
+	.string "\t"
 .LC10:
 	.string "%*s"
 .LC11:
 	.string ""
 .LC12:
-	.string "\t"
-.LC13:
-	.string "%*s"
-.LC14:
-	.string ""
-.LC15:
 	.string "^ "
-.LC16:
+.LC13:
 	.string "\n"
-.LC17:
+.LC14:
 	.string "'%s' is expected, but %s"
-.LC18:
+.LC15:
 	.string "数ではありません"
